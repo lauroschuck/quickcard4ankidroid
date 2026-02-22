@@ -5,7 +5,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -46,7 +48,7 @@ public class ProcessTextActivity extends AppCompatActivity {
         public void processSelectedCards(String json) {
             runOnUiThread(() -> {
                 Log.d(TAG, "Selected cards JSON: " + json);
-                Toast.makeText(ProcessTextActivity.this, "Cards extracted. Check Logcat.", Toast.LENGTH_LONG).show();
+                Toast.makeText(ProcessTextActivity.this, "Extraction finished. Data in Logcat.", Toast.LENGTH_LONG).show();
             });
         }
     }
@@ -60,9 +62,24 @@ public class ProcessTextActivity extends AppCompatActivity {
         statusText = findViewById(R.id.statusText);
         createCardsButton = findViewById(R.id.createCardsButton);
 
-        // Configure WebView
+        configureWebView();
+        createCardsButton.setOnClickListener(v -> triggerJsExtraction());
+        handleIntent(getIntent());
+    }
+
+    private void configureWebView() {
         webView.getSettings().setJavaScriptEnabled(true);
         webView.addJavascriptInterface(new WebAppInterface(), "Android");
+
+        // Debugging: Forward JS console.log to Android Logcat (Filter: WebViewConsole)
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
+                Log.d("WebViewConsole", consoleMessage.message());
+                return true;
+            }
+        });
+
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -75,9 +92,6 @@ public class ProcessTextActivity extends AppCompatActivity {
                 return true;
             }
         });
-
-        createCardsButton.setOnClickListener(v -> createCards());
-        handleIntent(getIntent());
     }
 
     private void handleIntent(Intent intent) {
@@ -90,9 +104,6 @@ public class ProcessTextActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * Fetches rendered HTML from Wiktionary API.
-     */
     private void fetchWiktionaryHtml(String word) {
         runOnUiThread(() -> {
             statusText.setVisibility(View.VISIBLE);
@@ -100,7 +111,7 @@ public class ProcessTextActivity extends AppCompatActivity {
             createCardsButton.setVisibility(View.GONE);
             webView.setVisibility(View.INVISIBLE);
         });
-        
+
         String url = "https://en.wiktionary.org/w/api.php?action=parse&prop=text&format=json&redirects=1&page=" + Uri.encode(word);
         OkHttpClient client = new OkHttpClient();
         Request request = new Request.Builder().url(url).header("User-Agent", "SwedishAnkiQuickAdd/1.0").build();
@@ -117,9 +128,6 @@ public class ProcessTextActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * Parses the JSON response, extracts the Swedish section, and cleans the HTML.
-     */
     private void processHtmlResponse(String json) {
         try {
             JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
@@ -133,25 +141,25 @@ public class ProcessTextActivity extends AppCompatActivity {
             Element root = doc.selectFirst(".mw-parser-output");
             if (root == null) root = doc.body();
 
-            // 1. Target the Swedish section
+            // 1. Identify Swedish section
             Element swedishHeader = findSwedishHeader(root);
             if (swedishHeader == null) {
                 runOnUiThread(() -> statusText.setText("No Swedish section found."));
                 return;
             }
 
-            // 2. Clean up unwanted elements globally
+            // 2. Pre-process: remove unwanted elements
             cleanUnwantedElements(root);
 
-            // 3. Extract only the content between the Swedish header and the next language (H2)
+            // 3. Extract only the Swedish content
             String swedishHtml = extractSwedishContent(swedishHeader);
 
-            // 4. Final transformations on the subset of HTML
+            // 4. Final transformations
             Document swDoc = Jsoup.parseBodyFragment(swedishHtml);
             transformLinks(swDoc);
             injectCheckboxes(swDoc);
 
-            String finalHtml = wrapWithCss(swDoc.body().html());
+            String finalHtml = buildHtmlPage(swDoc.body().html());
 
             runOnUiThread(() -> {
                 statusText.setVisibility(View.GONE);
@@ -169,31 +177,32 @@ public class ProcessTextActivity extends AppCompatActivity {
     private Element findSwedishHeader(Element root) {
         Element header = root.selectFirst(".mw-heading2:has(#Swedish), h2:has(#Swedish)");
         if (header == null) {
-            Element id = root.selectFirst("#Swedish");
-            if (id != null) header = id.closest(".mw-heading2, h2");
+            Element swId = root.selectFirst("#Swedish");
+            if (swId != null) header = swId.closest(".mw-heading2, h2");
         }
         return header;
     }
 
     private void cleanUnwantedElements(Element root) {
-        root.select(".mw-editsection, .interproject-box, figure").remove();
-        
-        // Remove entire sections that are noisy for flashcards
-        String[] sectionsToRemove = {"Anagrams", "Further_reading", "Quotations"};
-        for (String id : sectionsToRemove) {
-            Element h = root.selectFirst(".mw-heading:has(#" + id + "), h2:has(#" + id + "), h3:has(#" + id + "), h4:has(#" + id + ")");
-            if (h != null) removeSection(h);
-        }
-    }
+        // interproject-box: links to Wikipedia
+        // figure: images on some definitions (bok)
+        // mw-empty-elt: present on some definition lists (ben)
+        root.select(".mw-editsection, .interproject-box, figure, .mw-empty-elt").remove();
 
-    private void removeSection(Element header) {
-        Element next = header.nextElementSibling();
-        while (next != null && !next.tagName().matches("h[2-6]") && !next.hasClass("mw-heading")) {
-            Element toRemove = next;
-            next = next.nextElementSibling();
-            toRemove.remove();
+        // Remove entire sections that are noisy for flashcards
+        String[] ids = {"Anagrams", "Further_reading", "Quotations"};
+        for (String id : ids) {
+            Element h = root.selectFirst(".mw-heading:has(#" + id + "), h2:has(#" + id + "), h3:has(#" + id + "), h4:has(#" + id + ")");
+            if (h != null) {
+                Element next = h.nextElementSibling();
+                while (next != null && !next.tagName().matches("h[2-6]") && !next.hasClass("mw-heading")) {
+                    Element toRemove = next;
+                    next = next.nextElementSibling();
+                    toRemove.remove();
+                }
+                h.remove();
+            }
         }
-        header.remove();
     }
 
     private String extractSwedishContent(Element header) {
@@ -227,7 +236,7 @@ public class ProcessTextActivity extends AppCompatActivity {
         }
     }
 
-    private String wrapWithCss(String body) {
+    private String buildHtmlPage(String bodyContent) {
         String css = """
                 body { font-family: sans-serif; padding: 12px; line-height: 1.5; color: #202122; }
                 h2 { border-bottom: 1px solid #a2a9b1; margin-bottom: 0.25em; padding-top: 0.5em; font-size: 1.5em; }
@@ -237,61 +246,73 @@ public class ProcessTextActivity extends AppCompatActivity {
                 ol { padding-left: 1.5em; }
                 li { margin-bottom: 0.5em; }
                 .h-usage-example, .ux-example { font-style: italic; display: block; margin-top: 0.5em; }
-                .h-usage-example-translation { font-style: normal; color: #54595d; display: block; font-size: 0.9em; margin-left: 2em; margin-top: 0.2em; }
+                .h-usage-example-translation, .mention-gloss { font-style: normal; color: #54595d; display: block; font-size: 0.9em; margin-left: 2em; margin-top: 0.2em; }
                 a { color: #36c; text-decoration: none; }
                 table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.85em; }
                 table th, table td { border: 1px solid #a2a9b1; padding: 6px; text-align: center; }
                 table th { background-color: #f8f9fa; }
                 .example-checkbox { margin-right: 8px; vertical-align: middle; }""";
-        return "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>" + css + "</style></head><body>" + body + "</body></html>";
+
+        return "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>" + css + "</style></head><body>" + bodyContent + "</body></html>";
     }
 
-    private void createCards() {
-        /**
-         * JS script to find selected examples and their context.
-         */
+    private void triggerJsExtraction() {
         String js = """
                 (() => {
                     const cards = [];
+                    console.log('Starting card extraction...');
+                    
                     document.querySelectorAll('input.example-checkbox:checked').forEach(cb => {
                         const container = cb.parentElement;
                         
-                        // 1. Extract Swedish text (the phrase itself)
-                        // If multiple possibilities, do '.className, tag, [prop=value]
-                        const swedishEl = container.querySelector('.e-example');
-                        const swedish = swedishEl ? swedishEl.innerText.trim() : null;
+                        // 1. Extract Swedish HTML (preserve bolding)
+                        const swedishEl = container.querySelector('.e-example, [lang=sv], .ux-example');
+                        const swedish = swedishEl ? swedishEl.innerHTML.trim() : null;
                         
-                        // 2. Extract English translation
-                        // We look for common translation classes used in Swedish Wiktionary entries
-                        const englishEl = container.querySelector('.e-translation');
-                        const english = englishEl ? englishEl.innerText.trim() : null;
+                        // 2. Extract English HTML
+                        let englishEl = container.querySelector('.e-translation, .h-usage-example-translation, .ux-translation, .mention-gloss, .translation');
+                        // Fallback: check if it is a sibling instead of a child
+                        if (!englishEl && container.nextElementSibling && container.nextElementSibling.matches('.e-translation, .h-usage-example-translation, .ux-translation, .mention-gloss, .translation')) {
+                            englishEl = container.nextElementSibling;
+                        }
+                        const english = englishEl ? englishEl.innerHTML.trim() : null;
                         
-                        // 3. Extract the Word Meaning (the parent <li> text)
+                        // 3. Extract the Word Meaning (the parent definition <li>)
                         const li = container.closest('li');
                         let definition = null;
                         if (li) {
                             const clone = li.cloneNode(true);
-                            // Remove nested lists (examples/sub-definitions) to get only the clean definition text
                             clone.querySelectorAll('dl, ul, ol').forEach(el => el.remove());
                             definition = clone.innerText.trim();
                         }
                         
                         // 4. Extract Grammatical Class (search upwards for the nearest H3/H4/H5)
-                        let grammaticalClass = '';
-                        let curr = li ? li.closest('ol') : container;
-                        while (curr) {
-                            curr = curr.previousElementSibling;
-                            if (!curr) break;
-                            const h = curr.matches('h3, h4, h5') ? curr : curr.querySelector('h3, h4, h5');
-                            if (h) {
-                                grammaticalClass = h.innerText.replace('[edit]', '').trim();
-                                break;
+                        let grammaticalClass = 'Unknown';
+                        let searchNode = li || container;
+                        while (searchNode && grammaticalClass === 'Unknown') {
+                            let ol = searchNode.closest('ol');
+                            if (!ol) break;
+                            
+                            let curr = ol;
+                            while (curr) {
+                                curr = curr.previousElementSibling;
+                                if (!curr) break;
+                                // Look for header directly or within a mw-heading wrapper
+                                const h = curr.matches('h3, h4, h5') ? curr : curr.querySelector('h3, h4, h5');
+                                if (h) {
+                                    grammaticalClass = h.innerText.replace('[edit]', '').trim();
+                                    break;
+                                }
+                                if (curr.tagName === 'H2') break;
                             }
-                            if (curr.tagName === 'H2') break;
+                            if (grammaticalClass !== 'Unknown') break;
+                            searchNode = ol.parentElement; // Move up to parent OL level
                         }
                         
+                        console.log('Found Card:', { swedish, english, definition, grammaticalClass });
                         cards.push({ swedish, english, definition, grammaticalClass });
                     });
+                    
                     Android.processSelectedCards(JSON.stringify(cards));
                 })();""";
         webView.evaluateJavascript(js, null);
