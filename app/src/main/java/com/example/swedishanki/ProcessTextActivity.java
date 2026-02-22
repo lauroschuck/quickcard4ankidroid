@@ -167,18 +167,30 @@ public class ProcessTextActivity extends AppCompatActivity {
                     a.unwrap();
                 }
             }
+
+            // Add checkboxes to examples
+            for (Element ex : contentDoc.select(".h-usage-example, .ux-example")) {
+                ex.prepend("<input type=\"checkbox\" class=\"example-checkbox\"> ");
+            }
+
             String processedHtml = contentDoc.body().html();
 
             // Base CSS to mimic Wiktionary
             String css = "body { font-family: sans-serif; padding: 12px; line-height: 1.5; color: #202122; } " +
                          "h2 { border-bottom: 1px solid #a2a9b1; margin-bottom: 0.25em; padding-top: 0.5em; font-size: 1.5em; } " +
-                         "h3 { font-size: 1.2em; font-weight: bold; margin-top: 1em; } " +
+                         "h3 { font-size: 1.25em; font-weight: bold; margin-top: 1.2em; } " +
+                         "h4 { font-size: 1.15em; font-weight: bold; margin-top: 1.0em; } " +
+                         "h5 { font-size: 1.05em; font-weight: bold; margin-top: 0.8em; } " +
                          "ol { padding-left: 1.5em; } " +
                          "li { margin-bottom: 0.5em; } " +
-                         ".h-usage-example { font-style: italic; display: block; margin-top: 0.3em; border-left: 3px solid #eaecf0; padding-left: 10px; } " +
-                         ".h-usage-example-translation { font-style: normal; color: #54595d; display: block; font-size: 0.9em; } " +
+                         ".h-usage-example, .ux-example { font-style: italic; display: block; margin-top: 0.5em; } " +
+                         ".h-usage-example-translation, .mention-gloss { font-style: normal; color: #54595d; display: block; font-size: 0.9em; margin-left: 2em; margin-top: 0.2em; } " +
                          ".mw-editsection { display: none; } " +
-                         "a { color: #36c; text-decoration: none; }";
+                         "a { color: #36c; text-decoration: none; } " +
+                         "table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.85em; background-color: #fff; } " +
+                         "table th, table td { border: 1px solid #a2a9b1; padding: 6px; text-align: center; } " +
+                         "table th { background-color: #f8f9fa; font-weight: bold; } " +
+                         ".example-checkbox { margin-right: 8px; vertical-align: middle; }";
 
             String finalHtml = "<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
                                "<style>" + css + "</style></head><body>" + processedHtml + "</body></html>";
