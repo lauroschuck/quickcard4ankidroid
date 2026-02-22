@@ -5,24 +5,24 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.regex.Pattern;
+import java.util.Locale;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -33,32 +33,35 @@ import okhttp3.Response;
 public class ProcessTextActivity extends AppCompatActivity {
 
     private static final String TAG = "ProcessTextActivity";
-    private RecyclerView recyclerView;
-    private ExampleAdapter adapter;
+    private WebView webView;
     private TextView statusText;
     private Button createCardsButton;
-
-    private static final Set<String> GRAMMAR_CLASSES = new HashSet<>(Arrays.asList(
-            "Noun", "Verb", "Adjective", "Adverb", "Pronoun", "Preposition", 
-            "Conjunction", "Interjection", "Proper noun", "Phrase", "Participle"
-    ));
-
-    private static final Set<String> EXCLUDED_SECTIONS = new HashSet<>(Arrays.asList(
-            "See also", "Conjugation", "Declension", "Pronunciation", "References"
-    ));
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        recyclerView = findViewById(R.id.recyclerView);
+        webView = findViewById(R.id.webView);
         statusText = findViewById(R.id.statusText);
         createCardsButton = findViewById(R.id.createCardsButton);
 
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new ExampleAdapter();
-        recyclerView.setAdapter(adapter);
+        // Custom WebViewClient to intercept whitelisted links
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                String url = request.getUrl().toString();
+                if (url.startsWith("app://fetch/")) {
+                    // Decode the word (e.g., sm%C3%A5 -> små) before fetching
+                    String encodedWord = url.substring("app://fetch/".length());
+                    String word = Uri.decode(encodedWord);
+                    fetchWiktionaryHtml(word);
+                    return true;
+                }
+                // Block all other link clicks
+                return true;
+            }
+        });
 
         createCardsButton.setOnClickListener(v -> createCards());
 
@@ -68,20 +71,23 @@ public class ProcessTextActivity extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         String selectedWord = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
         if (selectedWord != null) {
-            fetchWiktionary(selectedWord);
+            fetchWiktionaryHtml(selectedWord.toLowerCase(Locale.ROOT));
         } else {
             statusText.setVisibility(View.VISIBLE);
             statusText.setText("Select a word to start");
         }
     }
 
-    private void fetchWiktionary(String word) {
-        statusText.setVisibility(View.VISIBLE);
-        statusText.setText("Fetching '" + word + "'...");
-        createCardsButton.setVisibility(View.GONE);
+    private void fetchWiktionaryHtml(String word) {
+        runOnUiThread(() -> {
+            statusText.setVisibility(View.VISIBLE);
+            statusText.setText("Fetching '" + word + "'...");
+            createCardsButton.setVisibility(View.GONE);
+            webView.setVisibility(View.INVISIBLE);
+        });
         
         String url = "https://en.wiktionary.org/w/api.php?action=parse"
-                + "&prop=wikitext&format=json"
+                + "&prop=text&format=json&redirects=1"
                 + "&page=" + Uri.encode(word);
 
         OkHttpClient client = new OkHttpClient();
@@ -94,19 +100,17 @@ public class ProcessTextActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 String body = response.body().string();
-                processResponse(body);
+                processHtmlResponse(body);
             }
 
             @Override
             public void onFailure(Call call, IOException e) {
-                runOnUiThread(() -> {
-                    statusText.setText("Error: " + e.getMessage());
-                });
+                runOnUiThread(() -> statusText.setText("Error: " + e.getMessage()));
             }
         });
     }
 
-    private void processResponse(String json) {
+    private void processHtmlResponse(String json) {
         try {
             JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
             if (obj.has("error")) {
@@ -114,83 +118,85 @@ public class ProcessTextActivity extends AppCompatActivity {
                 return;
             }
 
-            String markup = obj.getAsJsonObject("parse")
-                    .getAsJsonObject("wikitext")
-                    .get("*").getAsString();
+            String rawHtml = obj.getAsJsonObject("parse").getAsJsonObject("text").get("*").getAsString();
+            Document doc = Jsoup.parse(rawHtml);
 
-            var swedishPattern = Pattern.compile("(==\\s*Swedish\\s*==\\s*.*?)(?=\\n==[^=]|$)", Pattern.DOTALL);
-            var matcher = swedishPattern.matcher(markup);
-            
-            if (matcher.find()) {
-                WikitextParser.Section root = WikitextParser.parse(matcher.group(1));
-                List<ExampleAdapter.Item> items = new ArrayList<>();
-                extractRelevantContent(root, items);
+            Element parserOutput = doc.selectFirst(".mw-parser-output");
+            if (parserOutput == null) parserOutput = doc.body();
 
-                runOnUiThread(() -> {
-                    if (items.isEmpty()) {
-                        statusText.setText("No examples or grammar classes found.");
-                    } else {
-                        statusText.setVisibility(View.GONE);
-                        adapter.setItems(items);
-                        createCardsButton.setVisibility(View.VISIBLE);
-                    }
-                });
-            } else {
-                runOnUiThread(() -> statusText.setText("No Swedish section found."));
+            // Find Swedish header
+            Element swedishHeader = parserOutput.selectFirst(".mw-heading2:has(#Swedish), h2:has(#Swedish)");
+            if (swedishHeader == null) {
+                Element swedishId = parserOutput.selectFirst("#Swedish");
+                if (swedishId != null) {
+                    swedishHeader = swedishId.closest(".mw-heading2, h2");
+                }
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Error processing wikitext", e);
-            runOnUiThread(() -> statusText.setText("Error parsing: " + e.getMessage()));
-        }
-    }
 
-    private void extractRelevantContent(WikitextParser.Node node, List<ExampleAdapter.Item> items) {
-        if (node instanceof WikitextParser.Section) {
-            WikitextParser.Section s = (WikitextParser.Section) node;
-            
-            if (EXCLUDED_SECTIONS.contains(s.title)) {
+            if (swedishHeader == null) {
+                runOnUiThread(() -> statusText.setText("No Swedish section found."));
                 return;
             }
 
-            // Always add the section header (including Etymology)
-            items.add(ExampleAdapter.header(s.title));
+            // Extract content between this H2 and the next H2
+            StringBuilder contentBuilder = new StringBuilder();
+            contentBuilder.append(swedishHeader.outerHtml());
             
-            // Add immediate children content
-            for (WikitextParser.Node child : s.children) {
-                if (child instanceof WikitextParser.TextNode) {
-                    items.add(ExampleAdapter.text(((WikitextParser.TextNode) child).text));
-                } else if (child instanceof WikitextParser.EntryNode) {
-                    WikitextParser.EntryNode entry = (WikitextParser.EntryNode) child;
-                    // We can add the entry text too for more context if desired
-                    // items.add(ExampleAdapter.text(entry.content));
-                    for (WikitextParser.Node entryChild : entry.children) {
-                        if (entryChild instanceof WikitextParser.EntryExampleNode) {
-                            WikitextParser.EntryExampleNode ex = (WikitextParser.EntryExampleNode) entryChild;
-                            items.add(ExampleAdapter.example(ex.swedish, ex.english));
-                        }
+            Element next = swedishHeader.nextElementSibling();
+            while (next != null && !next.hasClass("mw-heading2") && !next.tagName().equalsIgnoreCase("h2")) {
+                contentBuilder.append(next.outerHtml());
+                next = next.nextElementSibling();
+            }
+
+            // Process links: whitelist Swedish wiki links and turn others into plain text
+            Document contentDoc = Jsoup.parseBodyFragment(contentBuilder.toString());
+            for (Element a : contentDoc.select("a")) {
+                String href = a.attr("href");
+                if (href.contains("/wiki/") && href.contains("#Swedish")) {
+                    // Extract the word from /wiki/word#Swedish
+                    int start = href.indexOf("/wiki/") + 6;
+                    int end = href.indexOf("#Swedish");
+                    if (end > start) {
+                        String word = href.substring(start, end);
+                        a.attr("href", "app://fetch/" + word);
+                    } else {
+                        a.unwrap();
                     }
-                } else if (child instanceof WikitextParser.FormOfNode) {
-                     WikitextParser.FormOfNode f = (WikitextParser.FormOfNode) child;
-                     items.add(ExampleAdapter.text("Form of: " + f.baseWord + " (" + f.type + ")"));
-                } else if (child instanceof WikitextParser.Section) {
-                    // Recurse into sub-sections
-                    extractRelevantContent(child, items);
+                } else {
+                    // Turn other links into plain text
+                    a.unwrap();
                 }
             }
+            String processedHtml = contentDoc.body().html();
+
+            // Base CSS to mimic Wiktionary
+            String css = "body { font-family: sans-serif; padding: 12px; line-height: 1.5; color: #202122; } " +
+                         "h2 { border-bottom: 1px solid #a2a9b1; margin-bottom: 0.25em; padding-top: 0.5em; font-size: 1.5em; } " +
+                         "h3 { font-size: 1.2em; font-weight: bold; margin-top: 1em; } " +
+                         "ol { padding-left: 1.5em; } " +
+                         "li { margin-bottom: 0.5em; } " +
+                         ".h-usage-example { font-style: italic; display: block; margin-top: 0.3em; border-left: 3px solid #eaecf0; padding-left: 10px; } " +
+                         ".h-usage-example-translation { font-style: normal; color: #54595d; display: block; font-size: 0.9em; } " +
+                         ".mw-editsection { display: none; } " +
+                         "a { color: #36c; text-decoration: none; }";
+
+            String finalHtml = "<html><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
+                               "<style>" + css + "</style></head><body>" + processedHtml + "</body></html>";
+
+            runOnUiThread(() -> {
+                statusText.setVisibility(View.GONE);
+                webView.setVisibility(View.VISIBLE);
+                webView.loadDataWithBaseURL("https://en.wiktionary.org/", finalHtml, "text/html", "UTF-8", null);
+                createCardsButton.setVisibility(View.VISIBLE);
+            });
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error processing HTML", e);
+            runOnUiThread(() -> statusText.setText("Error: " + e.getMessage()));
         }
     }
 
     private void createCards() {
-        List<ExampleAdapter.Item> selected = adapter.getSelectedItems();
-        if (selected.isEmpty()) {
-            Toast.makeText(this, "No examples selected", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        StringBuilder sb = new StringBuilder("Creating cards for:\n");
-        for (ExampleAdapter.Item item : selected) {
-            sb.append("- ").append(item.text1).append("\n");
-        }
-        Toast.makeText(this, sb.toString(), Toast.LENGTH_LONG).show();
+        Toast.makeText(this, "Checkbox integration coming soon...", Toast.LENGTH_SHORT).show();
     }
 }
