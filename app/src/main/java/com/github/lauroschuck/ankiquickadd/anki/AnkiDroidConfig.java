@@ -1,4 +1,4 @@
-package com.github.lauroschuck.ankiquickadd;
+package com.github.lauroschuck.ankiquickadd.anki;
 
 import java.util.ArrayList;
 import java.util.Collections;

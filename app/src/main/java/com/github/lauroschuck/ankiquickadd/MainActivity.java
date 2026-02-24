@@ -16,12 +16,15 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.github.lauroschuck.ankiquickadd.anki.AnkiDroidHelper;
+import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;
+import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
 import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
 import com.github.lauroschuck.ankiquickadd.source.WiktionarySource;
 
 import java.util.List;
 
-public class ProcessTextActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "AnkiQuickAdd";
     private WebView webView;
@@ -41,9 +44,9 @@ public class ProcessTextActivity extends AppCompatActivity {
             runOnUiThread(() -> {
                 Log.d(TAG, "Selected cards JSON: " + json);
                 List<TranslationCard> cards = TranslationCard.fromJson(json);
-                if (AnkiDroidHelper.isApiAvailable(ProcessTextActivity.this)) {
+                if (AnkiDroidHelper.isApiAvailable(MainActivity.this)) {
                     // Use AnkiDroidActionProvider to handle the click event if the provider is installed
-                    AnkiIntegration.createAnkiCards(ProcessTextActivity.this, cards);
+                    AnkiIntegration.createAnkiCards(MainActivity.this, cards);
                 }
             });
         }

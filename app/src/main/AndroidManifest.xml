@@ -8,7 +8,7 @@
         android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
 
         <activity
-            android:name="com.github.lauroschuck.ankiquickadd.ProcessTextActivity"
+            android:name="com.github.lauroschuck.ankiquickadd.MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -1,7 +1,10 @@
-package com.github.lauroschuck.ankiquickadd;
+package com.github.lauroschuck.ankiquickadd.anki;
 
 import android.util.Log;
 import android.widget.Toast;
+
+import com.github.lauroschuck.ankiquickadd.MainActivity;
+import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -11,9 +14,9 @@ public class AnkiIntegration {
 
     private static final int AD_PERM_REQUEST = 0;
     private AnkiDroidHelper mAnkiDroid;
-    private ProcessTextActivity context;
+    private MainActivity context;
 
-    public AnkiIntegration(ProcessTextActivity context) {
+    public AnkiIntegration(MainActivity context) {
         this.context = context;
         mAnkiDroid = new AnkiDroidHelper(context);
         if (mAnkiDroid.shouldRequestPermission()) {
@@ -21,7 +24,7 @@ public class AnkiIntegration {
         }
     }
 
-    public static void createAnkiCards(ProcessTextActivity context, List<TranslationCard> cards) {
+    public static void createAnkiCards(MainActivity context, List<TranslationCard> cards) {
 
         if (cards == null || cards.isEmpty()) {
             Toast.makeText(context, "No cards selected.", Toast.LENGTH_SHORT).show();

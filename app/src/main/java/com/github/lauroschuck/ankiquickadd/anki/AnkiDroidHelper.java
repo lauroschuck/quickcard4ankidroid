@@ -1,4 +1,4 @@
-package com.github.lauroschuck.ankiquickadd;
+package com.github.lauroschuck.ankiquickadd.anki;
 
 import static com.ichi2.anki.api.AddContentApi.READ_WRITE_PERMISSION;
 
@@ -22,6 +22,9 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Copied from https://github.com/ankidroid/apisample
+ */
 public class AnkiDroidHelper {
     private static final String DECK_REF_DB = "com.ichi2.anki.api.decks";
     private static final String MODEL_REF_DB = "com.ichi2.anki.api.models";
