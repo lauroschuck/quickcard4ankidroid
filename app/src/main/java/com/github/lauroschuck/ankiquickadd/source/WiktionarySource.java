@@ -24,7 +24,7 @@ public class WiktionarySource implements DictionarySource {
     private final OkHttpClient client = new OkHttpClient();
 
     @Override
-    public void fetch(String word, Language sourceLanguage, OnResultListener listener) {
+    public void fetch(String word, Language sourceLanguage, Language targetLanguage, OnResultListener listener) {
         String url = "https://en.wiktionary.org/w/api.php?action=parse&prop=text&format=json&redirects=1&page=" + Uri.encode(word);
         Request request = new Request.Builder()
                 .url(url)
@@ -46,6 +46,72 @@ public class WiktionarySource implements DictionarySource {
                 listener.onError(e.getMessage());
             }
         });
+    }
+
+    @Override
+    public String getExtractionJs() {
+        return """
+                (() => {
+                    const cards = [];
+                    const headword = document.body.getAttribute('data-word');
+                    
+                    document.querySelectorAll('input.example-checkbox:checked').forEach(cb => {
+                        const container = cb.parentElement;
+                        
+                        // 1. Extract sourceText HTML (preserve bolding)
+                        const sourceTextEl = container.querySelector('.e-example, [lang=sv], .ux-example');
+                        let sourceText = null;
+                        if (sourceTextEl) {
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = sourceTextEl.innerHTML;
+                            tempDiv.querySelectorAll('a').forEach(a => {
+                                a.parentNode.replaceChild(document.createTextNode(a.textContent), a);
+                            });
+                            sourceText = tempDiv.innerHTML.trim();
+                        }
+                        
+                        // 2. Extract targetText HTML
+                        let targetTextEl = container.querySelector('.e-translation, .h-usage-example-translation, .ux-translation, .mention-gloss, .translation');
+                        if (!targetTextEl && container.nextElementSibling && container.nextElementSibling.matches('.e-translation, .h-usage-example-translation, .ux-translation, .mention-gloss, .translation')) {
+                            targetTextEl = container.nextElementSibling;
+                        }
+                        const targetText = targetTextEl ? targetTextEl.innerHTML.trim() : null;
+                        
+                        // 3. Extract the definition (parent <li> text)
+                        const li = container.closest('li');
+                        let definition = null;
+                        if (li) {
+                            const clone = li.cloneNode(true);
+                            clone.querySelectorAll('dl, ul, ol').forEach(el => el.remove());
+                            definition = clone.innerText.trim();
+                        }
+                        
+                        // 4. Extract lexicalCategory (walk up to nearest H3/H4/H5)
+                        let lexicalCategory = 'Unknown';
+                        let searchNode = li || container;
+                        while (searchNode && lexicalCategory === 'Unknown') {
+                            let ol = searchNode.closest('ol');
+                            if (!ol) break;
+                            let curr = ol;
+                            while (curr) {
+                                curr = curr.previousElementSibling;
+                                if (!curr) break;
+                                const h = curr.matches('h3, h4, h5') ? curr : curr.querySelector('h3, h4, h5');
+                                if (h) {
+                                    lexicalCategory = h.innerText.replace('[edit]', '').trim();
+                                    break;
+                                }
+                                if (curr.tagName === 'H2') break;
+                            }
+                            if (lexicalCategory !== 'Unknown') break;
+                            searchNode = ol.parentElement;
+                        }
+                        
+                        cards.push({ headword, sourceText, targetText, definition, lexicalCategory });
+                    });
+                    
+                    Android.processSelectedCards(JSON.stringify(cards));
+                })();""";
     }
 
     private void processResponse(String json, String word, Language sourceLanguage, OnResultListener listener) {

@@ -15,10 +15,16 @@ public interface DictionarySource {
     }
 
     /**
-     * Fetches definition for a word.
+     * Fetches definition or translation for a word.
      * @param word the word to look up
      * @param sourceLanguage the source language selected in settings
+     * @param targetLanguage the target language selected in settings
      * @param listener the listener to receive the results
      */
-    void fetch(String word, Language sourceLanguage, OnResultListener listener);
+    void fetch(String word, Language sourceLanguage, Language targetLanguage, OnResultListener listener);
+
+    /**
+     * Returns the JavaScript code to extract card data from the rendered HTML.
+     */
+    String getExtractionJs();
 }
