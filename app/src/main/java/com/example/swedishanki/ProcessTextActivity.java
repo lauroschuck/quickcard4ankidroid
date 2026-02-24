@@ -3,6 +3,7 @@ package com.example.swedishanki;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Process;
 import android.util.Log;
 import android.view.View;
 import android.webkit.ConsoleMessage;
@@ -25,6 +26,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 
 import okhttp3.Call;
@@ -39,6 +41,7 @@ public class ProcessTextActivity extends AppCompatActivity {
     private WebView webView;
     private TextView statusText;
     private Button createCardsButton;
+    private String currentWord = "";
 
     /**
      * JS Interface to receive extracted data from the WebView.
@@ -48,7 +51,12 @@ public class ProcessTextActivity extends AppCompatActivity {
         public void processSelectedCards(String json) {
             runOnUiThread(() -> {
                 Log.d(TAG, "Selected cards JSON: " + json);
-                Toast.makeText(ProcessTextActivity.this, "Extraction finished. Data in Logcat.", Toast.LENGTH_LONG).show();
+                List<SwedishCard> cards = SwedishCard.fromJson(json);
+                Log.d(TAG, "Selected cards: " + cards);
+                if (AnkiDroidHelper.isApiAvailable(ProcessTextActivity.this)) {
+                    // Use AnkiDroidActionProvider to handle the click event if the provider is installed
+                    AnkiIntegration.createAnkiCards(ProcessTextActivity.this, cards);
+                }
             });
         }
     }
@@ -105,6 +113,7 @@ public class ProcessTextActivity extends AppCompatActivity {
     }
 
     private void fetchWiktionaryHtml(String word) {
+        currentWord = word;
         runOnUiThread(() -> {
             statusText.setVisibility(View.VISIBLE);
             statusText.setText("Fetching '" + word + "'...");
@@ -253,21 +262,36 @@ public class ProcessTextActivity extends AppCompatActivity {
                 table th { background-color: #f8f9fa; }
                 .example-checkbox { margin-right: 8px; vertical-align: middle; }""";
 
-        return "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>" + css + "</style></head><body>" + bodyContent + "</body></html>";
+        return "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>" + css + "</style></head><body data-word='" + currentWord + "'>" + bodyContent + "</body></html>";
     }
 
     private void triggerJsExtraction() {
         String js = """
                 (() => {
                     const cards = [];
-                    console.log('Starting card extraction...');
+                    const rootWord = document.body.getAttribute('data-word');
+                    console.log('Starting card extraction for word: ' + rootWord);
                     
                     document.querySelectorAll('input.example-checkbox:checked').forEach(cb => {
                         const container = cb.parentElement;
                         
                         // 1. Extract Swedish HTML (preserve bolding)
                         const swedishEl = container.querySelector('.e-example, [lang=sv], .ux-example');
-                        const swedish = swedishEl ? swedishEl.innerHTML.trim() : null;
+                        let swedish = null;
+                        
+                        if (swedishEl) {
+                            // Create a clone to manipulate so we don't break the UI
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = swedishEl.innerHTML;
+                            
+                            // Remove all links (<a> tags) but keep their text content
+                            tempDiv.querySelectorAll('a').forEach(a => {
+                                const textNode = document.createTextNode(a.textContent);
+                                a.parentNode.replaceChild(textNode, a);
+                            });
+                            
+                            swedish = tempDiv.innerHTML.trim();
+                        }
                         
                         // 2. Extract English HTML
                         let englishEl = container.querySelector('.e-translation, .h-usage-example-translation, .ux-translation, .mention-gloss, .translation');
@@ -309,8 +333,7 @@ public class ProcessTextActivity extends AppCompatActivity {
                             searchNode = ol.parentElement; // Move up to parent OL level
                         }
                         
-                        console.log('Found Card:', { swedish, english, definition, grammaticalClass });
-                        cards.push({ swedish, english, definition, grammaticalClass });
+                        cards.push({ word: rootWord, swedish, english, definition, grammaticalClass });
                     });
                     
                     Android.processSelectedCards(JSON.stringify(cards));
