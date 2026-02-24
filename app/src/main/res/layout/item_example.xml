@@ -18,7 +18,7 @@
         android:layout_marginStart="8dp">
 
         <TextView
-            android:id="@+id/swedishText"
+            android:id="@+id/sourceText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="16sp"
@@ -26,7 +26,7 @@
             android:textColor="#000000"/>
 
         <TextView
-            android:id="@+id/englishText"
+            android:id="@+id/targetText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="14sp"

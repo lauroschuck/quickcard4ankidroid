@@ -21,7 +21,7 @@ public class AnkiIntegration {
         }
     }
 
-    public static void createAnkiCards(ProcessTextActivity context, List<SwedishCard> cards) {
+    public static void createAnkiCards(ProcessTextActivity context, List<TranslationCard> cards) {
 
         if (cards == null || cards.isEmpty()) {
             Toast.makeText(context, "No cards selected.", Toast.LENGTH_SHORT).show();
@@ -62,7 +62,7 @@ public class AnkiIntegration {
         return mid;
     }
 
-    private void addCardsToAnkiDroid(final List<SwedishCard> data) {
+    private void addCardsToAnkiDroid(final List<TranslationCard> data) {
         Long deckId = getDeckId();
         Long modelId = getModelId();
         if ((deckId == null) || (modelId == null)) {
@@ -71,7 +71,7 @@ public class AnkiIntegration {
             return;
         }
         String[] fieldNames = mAnkiDroid.getApi().getFieldList(modelId);
-        Log.i("tag","field names " + List.of(fieldNames));
+        Log.i("tag","field names " + (fieldNames != null ? List.of(fieldNames) : "null"));
         if (fieldNames == null) {
             // we had an API error, report failure and return
             Toast.makeText(context, "card_add_fail", Toast.LENGTH_LONG).show();
@@ -83,16 +83,16 @@ public class AnkiIntegration {
         for (var card : data) {
             // Build a field map accounting for the fact that the user could have changed the fields in the model
             String[] flds = new String[fieldNames.length];
-            /*for (int i = 0; i < flds.length; i++) {
-                // Fill up the fields one-by-one until either all fields are filled or we run out of fields to send
-                if (i < AnkiDroidConfig.FIELDS.length) {
-                    flds[i] = fieldMap.get(AnkiDroidConfig.FIELDS[i]);
-                }
-            }*/
-            flds[0] = card.swedish();
-            flds[2] = card.definition();
-            flds[3] = card.english();
-            flds[4] = card.grammaticalClass();
+            
+            // Mapping new terms:
+            // Assuming flds order: [sourceText, headword, targetText, definition, lexicalCategory]
+            // Adjusted based on your AnkiDroidConfig field order if available.
+            flds[0] = card.sourceText();
+            flds[1] = card.headword();
+            flds[2] = card.targetText();
+            flds[3] = card.definition();
+            flds[4] = card.lexicalCategory();
+
             tags.add(AnkiDroidConfig.TAGS);
             fields.add(flds);
         }

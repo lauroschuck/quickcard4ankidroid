@@ -82,8 +82,8 @@ public class ExampleAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
             tv.setPadding(32, 8, 32, 8);
         } else if (holder instanceof ExampleViewHolder) {
             ExampleViewHolder evh = (ExampleViewHolder) holder;
-            evh.swedish.setText(fromHtml(item.html));
-            evh.english.setText(fromHtml(item.translationHtml));
+            evh.sourceText.setText(fromHtml(item.html));
+            evh.targetText.setText(fromHtml(item.translationHtml));
             evh.checkBox.setOnCheckedChangeListener(null);
             evh.checkBox.setChecked(item.selected);
             evh.checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> item.selected = isChecked);
@@ -122,12 +122,12 @@ public class ExampleAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
 
     static class ExampleViewHolder extends RecyclerView.ViewHolder {
         CheckBox checkBox;
-        TextView swedish, english;
+        TextView sourceText, targetText;
         ExampleViewHolder(View itemView) {
             super(itemView);
             checkBox = itemView.findViewById(R.id.exampleCheckbox);
-            swedish = itemView.findViewById(R.id.swedishText);
-            english = itemView.findViewById(R.id.englishText);
+            sourceText = itemView.findViewById(R.id.sourceText);
+            targetText = itemView.findViewById(R.id.targetText);
         }
     }
 
@@ -139,7 +139,7 @@ public class ExampleAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder
         return new Item(TYPE_CONTENT, html, null);
     }
 
-    public static Item example(String swedishHtml, String englishHtml) {
-        return new Item(TYPE_EXAMPLE, swedishHtml, englishHtml);
+    public static Item example(String sourceHtml, String targetHtml) {
+        return new Item(TYPE_EXAMPLE, sourceHtml, targetHtml);
     }
 }

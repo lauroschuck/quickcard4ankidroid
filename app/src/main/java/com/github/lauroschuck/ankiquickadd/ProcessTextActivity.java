@@ -35,7 +35,7 @@ import okhttp3.Response;
 
 public class ProcessTextActivity extends AppCompatActivity {
 
-    private static final String TAG = "ProcessTextActivity";
+    private static final String TAG = "AnkiQuickAdd";
     private WebView webView;
     private TextView statusText;
     private Button createCardsButton;
@@ -49,8 +49,7 @@ public class ProcessTextActivity extends AppCompatActivity {
         public void processSelectedCards(String json) {
             runOnUiThread(() -> {
                 Log.d(TAG, "Selected cards JSON: " + json);
-                List<SwedishCard> cards = SwedishCard.fromJson(json);
-                Log.d(TAG, "Selected cards: " + cards);
+                List<TranslationCard> cards = TranslationCard.fromJson(json);
                 if (AnkiDroidHelper.isApiAvailable(ProcessTextActivity.this)) {
                     // Use AnkiDroidActionProvider to handle the click event if the provider is installed
                     AnkiIntegration.createAnkiCards(ProcessTextActivity.this, cards);
@@ -77,7 +76,7 @@ public class ProcessTextActivity extends AppCompatActivity {
         webView.getSettings().setJavaScriptEnabled(true);
         webView.addJavascriptInterface(new WebAppInterface(), "Android");
 
-        // Debugging: Forward JS console.log to Android Logcat (Filter: WebViewConsole)
+        // Forward JS console logs to Android Logcat
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
@@ -148,9 +147,9 @@ public class ProcessTextActivity extends AppCompatActivity {
             Element root = doc.selectFirst(".mw-parser-output");
             if (root == null) root = doc.body();
 
-            // 1. Identify Swedish section
-            Element swedishHeader = findSwedishHeader(root);
-            if (swedishHeader == null) {
+            // 1. Identify section of the source language
+            Element sourceLanguageHeader = findSourceLanguageHeader(root);
+            if (sourceLanguageHeader == null) {
                 runOnUiThread(() -> statusText.setText("No Swedish section found."));
                 return;
             }
@@ -158,11 +157,11 @@ public class ProcessTextActivity extends AppCompatActivity {
             // 2. Pre-process: remove unwanted elements
             cleanUnwantedElements(root);
 
-            // 3. Extract only the Swedish content
-            String swedishHtml = extractSwedishContent(swedishHeader);
+            // 3. Extract only the source language content of the HTML
+            String sourceLanguageSection = extractLanguageSectionFrom(sourceLanguageHeader);
 
             // 4. Final transformations
-            Document swDoc = Jsoup.parseBodyFragment(swedishHtml);
+            Document swDoc = Jsoup.parseBodyFragment(sourceLanguageSection);
             transformLinks(swDoc);
             injectCheckboxes(swDoc);
 
@@ -181,7 +180,7 @@ public class ProcessTextActivity extends AppCompatActivity {
         }
     }
 
-    private Element findSwedishHeader(Element root) {
+    private Element findSourceLanguageHeader(Element root) {
         Element header = root.selectFirst(".mw-heading2:has(#Swedish), h2:has(#Swedish)");
         if (header == null) {
             Element swId = root.selectFirst("#Swedish");
@@ -212,7 +211,7 @@ public class ProcessTextActivity extends AppCompatActivity {
         }
     }
 
-    private String extractSwedishContent(Element header) {
+    private String extractLanguageSectionFrom(Element header) {
         StringBuilder sb = new StringBuilder(header.outerHtml());
         Element next = header.nextElementSibling();
         while (next != null && !next.hasClass("mw-heading2") && !next.tagName().equalsIgnoreCase("h2")) {
@@ -267,39 +266,33 @@ public class ProcessTextActivity extends AppCompatActivity {
         String js = """
                 (() => {
                     const cards = [];
-                    const rootWord = document.body.getAttribute('data-word');
-                    console.log('Starting card extraction for word: ' + rootWord);
+                    const headword = document.body.getAttribute('data-word');
                     
                     document.querySelectorAll('input.example-checkbox:checked').forEach(cb => {
                         const container = cb.parentElement;
                         
-                        // 1. Extract Swedish HTML (preserve bolding)
-                        const swedishEl = container.querySelector('.e-example, [lang=sv], .ux-example');
-                        let swedish = null;
-                        
-                        if (swedishEl) {
+                        // 1. Extract sourceText HTML (preserve bolding)
+                        const sourceTextEl = container.querySelector('.e-example, [lang=sv], .ux-example');
+                        let sourceText = null;
+                        if (sourceTextEl) {
                             // Create a clone to manipulate so we don't break the UI
                             const tempDiv = document.createElement('div');
-                            tempDiv.innerHTML = swedishEl.innerHTML;
-                            
-                            // Remove all links (<a> tags) but keep their text content
+                            tempDiv.innerHTML = sourceTextEl.innerHTML;
+                            // Clean links within the phrase
                             tempDiv.querySelectorAll('a').forEach(a => {
-                                const textNode = document.createTextNode(a.textContent);
-                                a.parentNode.replaceChild(textNode, a);
+                                a.parentNode.replaceChild(document.createTextNode(a.textContent), a);
                             });
-                            
-                            swedish = tempDiv.innerHTML.trim();
+                            sourceText = tempDiv.innerHTML.trim();
                         }
                         
-                        // 2. Extract English HTML
-                        let englishEl = container.querySelector('.e-translation, .h-usage-example-translation, .ux-translation, .mention-gloss, .translation');
-                        // Fallback: check if it is a sibling instead of a child
-                        if (!englishEl && container.nextElementSibling && container.nextElementSibling.matches('.e-translation, .h-usage-example-translation, .ux-translation, .mention-gloss, .translation')) {
-                            englishEl = container.nextElementSibling;
+                        // 2. Extract targetText HTML
+                        let targetTextEl = container.querySelector('.e-translation, .h-usage-example-translation, .ux-translation, .mention-gloss, .translation');
+                        if (!targetTextEl && container.nextElementSibling && container.nextElementSibling.matches('.e-translation, .h-usage-example-translation, .ux-translation, .mention-gloss, .translation')) {
+                            targetTextEl = container.nextElementSibling;
                         }
-                        const english = englishEl ? englishEl.innerHTML.trim() : null;
+                        const targetText = targetTextEl ? targetTextEl.innerHTML.trim() : null;
                         
-                        // 3. Extract the Word Meaning (the parent definition <li>)
+                        // 3. Extract the definition (parent <li> text)
                         const li = container.closest('li');
                         let definition = null;
                         if (li) {
@@ -308,13 +301,12 @@ public class ProcessTextActivity extends AppCompatActivity {
                             definition = clone.innerText.trim();
                         }
                         
-                        // 4. Extract Grammatical Class (search upwards for the nearest H3/H4/H5)
-                        let grammaticalClass = 'Unknown';
+                        // 4. Extract lexicalCategory (walk up to nearest H3/H4/H5)
+                        let lexicalCategory = 'Unknown';
                         let searchNode = li || container;
-                        while (searchNode && grammaticalClass === 'Unknown') {
+                        while (searchNode && lexicalCategory === 'Unknown') {
                             let ol = searchNode.closest('ol');
                             if (!ol) break;
-                            
                             let curr = ol;
                             while (curr) {
                                 curr = curr.previousElementSibling;
@@ -322,16 +314,16 @@ public class ProcessTextActivity extends AppCompatActivity {
                                 // Look for header directly or within a mw-heading wrapper
                                 const h = curr.matches('h3, h4, h5') ? curr : curr.querySelector('h3, h4, h5');
                                 if (h) {
-                                    grammaticalClass = h.innerText.replace('[edit]', '').trim();
+                                    lexicalCategory = h.innerText.replace('[edit]', '').trim();
                                     break;
                                 }
                                 if (curr.tagName === 'H2') break;
                             }
-                            if (grammaticalClass !== 'Unknown') break;
-                            searchNode = ol.parentElement; // Move up to parent OL level
+                            if (lexicalCategory !== 'Unknown') break;
+                            searchNode = ol.parentElement;
                         }
                         
-                        cards.push({ word: rootWord, swedish, english, definition, grammaticalClass });
+                        cards.push({ headword, sourceText, targetText, definition, lexicalCategory });
                     });
                     
                     Android.processSelectedCards(JSON.stringify(cards));
