@@ -49,6 +49,11 @@ public class WiktionarySource implements DictionarySource {
     }
 
     @Override
+    public void fetchMore(String word, Language sourceLanguage, Language targetLanguage, int page, OnResultListener listener) {
+
+    }
+
+    @Override
     public String getExtractionJs() {
         return """
                 (() => {

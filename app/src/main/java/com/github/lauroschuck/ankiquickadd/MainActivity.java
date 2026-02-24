@@ -25,8 +25,12 @@ import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
 import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
+import com.github.lauroschuck.ankiquickadd.source.ReversoSource;
 import com.github.lauroschuck.ankiquickadd.source.WiktionarySource;
+import com.github.lauroschuck.ankiquickadd.source.WordReferenceSource;
+import com.google.android.material.tabs.TabLayout;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -35,10 +39,11 @@ public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private TextView statusText;
     private Button createCardsButton;
+    private TabLayout tabLayout;
     private String currentWord = "";
     
-    // The dictionary source interface
-    private DictionarySource dictionarySource = new WiktionarySource();
+    private final List<DictionarySource> sources = new ArrayList<>();
+    private DictionarySource currentSource;
 
     /**
      * JS Interface to receive extracted data from the WebView.
@@ -50,7 +55,6 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(TAG, "Selected cards JSON: " + json);
                 List<TranslationCard> cards = TranslationCard.fromJson(json);
                 if (AnkiDroidHelper.isApiAvailable(MainActivity.this)) {
-                    // Use AnkiDroidActionProvider to handle the click event if the provider is installed
                     AnkiIntegration.createAnkiCards(MainActivity.this, cards);
                 }
             });
@@ -65,10 +69,42 @@ public class MainActivity extends AppCompatActivity {
         webView = findViewById(R.id.webView);
         statusText = findViewById(R.id.statusText);
         createCardsButton = findViewById(R.id.createCardsButton);
+        tabLayout = findViewById(R.id.tabLayout);
 
+        setupSources();
         configureWebView();
+        
         createCardsButton.setOnClickListener(v -> triggerJsExtraction());
+        
         handleIntent(getIntent());
+    }
+
+    private void setupSources() {
+        sources.add(new WiktionarySource());
+        sources.add(new WordReferenceSource());
+        sources.add(new ReversoSource());
+
+        tabLayout.addTab(tabLayout.newTab().setText("Wiktionary"));
+        tabLayout.addTab(tabLayout.newTab().setText("WordReference"));
+        tabLayout.addTab(tabLayout.newTab().setText("Reverso"));
+
+        currentSource = sources.get(0);
+
+        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                currentSource = sources.get(tab.getPosition());
+                if (!currentWord.isEmpty()) {
+                    fetchDefinition(currentWord);
+                }
+            }
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {}
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {}
+        });
     }
 
     @Override
@@ -90,7 +126,6 @@ public class MainActivity extends AppCompatActivity {
         webView.getSettings().setJavaScriptEnabled(true);
         webView.addJavascriptInterface(new WebAppInterface(), "Android");
 
-        // Forward JS console logs to Android Logcat
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
@@ -133,27 +168,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String sourceIso = prefs.getString(SettingsActivity.KEY_SOURCE_LANGUAGE, Language.SWEDISH.getIsoCode());
-        Language sourceLanguage = null;
-        for (Language l : Language.values()) {
-            if (l.getIsoCode().equals(sourceIso)) {
-                sourceLanguage = l;
-                break;
-            }
-        }
-        if (sourceLanguage == null) sourceLanguage = Language.SWEDISH;
+        Language sourceLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_SOURCE_LANGUAGE, Language.SWEDISH);
+        Language targetLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_TARGET_LANGUAGE, Language.ENGLISH);
 
-        String targetIso = prefs.getString(SettingsActivity.KEY_TARGET_LANGUAGE, Language.ENGLISH.getIsoCode());
-        Language targetLanguage = null;
-        for (Language l : Language.values()) {
-            if (l.getIsoCode().equals(targetIso)) {
-                targetLanguage = l;
-                break;
-            }
-        }
-        if (targetLanguage == null) targetLanguage = Language.ENGLISH;
-
-        dictionarySource.fetch(word, sourceLanguage, targetLanguage, new DictionarySource.OnResultListener() {
+        currentSource.fetch(word, sourceLanguage, targetLanguage, new DictionarySource.OnResultListener() {
             @Override
             public void onSuccess(String html, String headword) {
                 runOnUiThread(() -> {
@@ -171,8 +189,16 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private Language getLanguageFromPref(SharedPreferences prefs, String key, Language defaultLang) {
+        String iso = prefs.getString(key, defaultLang.getIsoCode());
+        for (Language l : Language.values()) {
+            if (l.getIsoCode().equals(iso)) return l;
+        }
+        return defaultLang;
+    }
+
     private void triggerJsExtraction() {
-        String js = dictionarySource.getExtractionJs();
+        String js = currentSource.getExtractionJs();
         webView.evaluateJavascript(js, null);
     }
 }

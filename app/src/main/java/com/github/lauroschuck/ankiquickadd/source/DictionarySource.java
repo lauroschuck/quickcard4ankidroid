@@ -24,6 +24,16 @@ public interface DictionarySource {
     void fetch(String word, Language sourceLanguage, Language targetLanguage, OnResultListener listener);
 
     /**
+     * Fetches more examples if available.
+     * @param word the word to look up
+     * @param sourceLanguage the source language
+     * @param targetLanguage the target language
+     * @param page the page number to fetch
+     * @param listener the listener to receive results (HTML fragment or JSON)
+     */
+    void fetchMore(String word, Language sourceLanguage, Language targetLanguage, int page, OnResultListener listener);
+
+    /**
      * Returns the JavaScript code to extract card data from the rendered HTML.
      */
     String getExtractionJs();

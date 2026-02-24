@@ -8,7 +8,6 @@ import com.github.lauroschuck.ankiquickadd.model.Language;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 import java.io.IOException;
 
@@ -24,7 +23,6 @@ public class WordReferenceSource implements DictionarySource {
 
     @Override
     public void fetch(String word, Language sourceLanguage, Language targetLanguage, OnResultListener listener) {
-        // WordReference uses language pairs like 'enpt' (English to Portuguese)
         String langPair = sourceLanguage.getIsoCode() + targetLanguage.getIsoCode();
         String url = "https://www.wordreference.com/" + langPair + "/" + Uri.encode(word);
 
@@ -51,31 +49,84 @@ public class WordReferenceSource implements DictionarySource {
     }
 
     @Override
+    public void fetchMore(String word, Language sourceLanguage, Language targetLanguage, int page, OnResultListener listener) {
+
+    }
+
+    @Override
     public String getExtractionJs() {
-        return "";
+        return """
+                (() => {
+                    const cards = [];
+                    const headword = document.body.getAttribute('data-word');
+                    
+                    document.querySelectorAll('input.example-checkbox:checked').forEach(cb => {
+                        const frRow = cb.closest('tr');
+                        if (!frRow) return;
+                        
+                        const toRow = frRow.nextElementSibling;
+                        if (!toRow) return;
+
+                        const sourceTextEl = frRow.querySelector('.FrEx');
+                        const targetTextEl = toRow.querySelector('.ToEx');
+                        
+                        if (!sourceTextEl || !targetTextEl) return;
+
+                        const sourceText = sourceTextEl.innerHTML.trim();
+                        const targetText = targetTextEl.innerHTML.trim();
+                        
+                        // Find the definition (DS class) by looking back through preceding rows
+                        let definition = '';
+                        let curr = frRow;
+                        while (curr) {
+                            const defEl = curr.querySelector('.DS');
+                            if (defEl) {
+                                definition = defEl.innerText.trim();
+                                break;
+                            }
+                            curr = curr.previousElementSibling;
+                        }
+                        
+                        cards.push({ headword, sourceText, targetText, definition, lexicalCategory: 'WordReference' });
+                    });
+                    
+                    Android.processSelectedCards(JSON.stringify(cards));
+                })();""";
     }
 
     private void processResponse(String html, String word, OnResultListener listener) {
         try {
             Document doc = Jsoup.parse(html);
-            
-            // 1. Identify the main content. WordReference usually has a #articleWRD
             Element article = doc.getElementById("articleWRD");
             if (article == null) {
                 listener.onError("Translation not found on WordReference.");
                 return;
             }
 
-            // 2. Pre-process: remove ads and UI noise
-            article.select(".ad-container, script, .share, .listen").remove();
+            // Clean up UI noise
+            article.select(".ad-container, script, .share, .listen, .header-tool, .rc").remove();
 
-            // 3. Inject checkboxes into examples
-            // WordReference examples are often in <span class="ex"> or table rows with class "ex"
-            for (Element ex : article.select("span.ex, .ex")) {
-                ex.prepend("<input type='checkbox' class='example-checkbox'> ");
+            // Target the specific translation tables
+            for (Element table : article.select("table.WRD")) {
+                for (Element row : table.select("tr")) {
+                    boolean isFrEx = !row.select("td.FrEx").isEmpty();
+                    
+                    if (isFrEx) {
+                        Element nextRow = row.nextElementSibling();
+                        boolean hasToExNext = nextRow != null && !nextRow.select("td.ToEx").isEmpty();
+                        
+                        if (hasToExNext) {
+                            row.prepend("<td class='checkbox-cell'><input type='checkbox' class='example-checkbox'></td>");
+                        } else {
+                            row.prepend("<td class='checkbox-cell'></td>");
+                        }
+                    } else {
+                        // All other rows (ToEx, FrWrd, etc) get an empty cell to keep columns aligned
+                        row.prepend("<td class='checkbox-cell'></td>");
+                    }
+                }
             }
 
-            // 4. Build final HTML
             String finalHtml = buildHtmlPage(article.html(), word);
             listener.onSuccess(finalHtml, word);
 
@@ -88,13 +139,15 @@ public class WordReferenceSource implements DictionarySource {
     private String buildHtmlPage(String bodyContent, String word) {
         String css = """
                 body { font-family: sans-serif; padding: 12px; line-height: 1.4; color: #333; }
-                .WRD { width: 100%; border-collapse: collapse; margin-bottom: 1em; }
+                .WRD { width: 100%; border-collapse: collapse; margin-bottom: 1em; font-size: 0.9em; }
                 .WRD tr { border-bottom: 1px solid #eee; }
-                .WRD .Fr { font-weight: bold; color: #000; padding: 4px; }
-                .WRD .To { color: #444; padding: 4px; }
-                .ex { font-style: italic; color: #666; display: block; margin-top: 4px; padding-left: 20px; }
-                .example-checkbox { margin-right: 8px; vertical-align: middle; }
-                h3 { background: #f4f4f4; padding: 5px; border-radius: 3px; font-size: 1.1em; }
+                .WRD td { padding: 4px; vertical-align: top; }
+                .WRD .Fr, .WRD .FrEx, .WRD .Fr3 { font-weight: bold; color: #000; }
+                .WRD .To, .WRD .ToEx, .WRD .To3 { color: #444; }
+                .ex { font-style: italic; color: #666; display: block; margin-top: 2px; }
+                .example-checkbox { transform: scale(1.2); margin: 0; }
+                .checkbox-cell { width: 30px; text-align: center; vertical-align: middle !important; }
+                .DS { color: #888; font-size: 0.85em; font-style: italic; }
                 """;
 
         return "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>" + css + "</style></head><body data-word='" + word + "'>" + bodyContent + "</body></html>";
