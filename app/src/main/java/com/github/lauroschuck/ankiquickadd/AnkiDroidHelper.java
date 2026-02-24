@@ -1,4 +1,4 @@
-package com.example.swedishanki;
+package com.github.lauroschuck.ankiquickadd;
 
 import static com.ichi2.anki.api.AddContentApi.READ_WRITE_PERMISSION;
 

@@ -1,4 +1,4 @@
-package com.example.swedishanki;
+package com.github.lauroschuck.ankiquickadd;
 
 import android.os.Build;
 import android.text.Html;
@@ -11,6 +11,7 @@ import android.widget.CheckBox;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
 import java.util.ArrayList;
 import java.util.List;
 

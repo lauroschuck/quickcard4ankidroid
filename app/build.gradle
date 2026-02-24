@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.swedishanki'
+    namespace 'com.github.lauroschuck.ankiquickadd'
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.example.swedishanki"
+        applicationId "com.github.lauroschuck.ankiquickadd"
         minSdk 24
         targetSdk 34
         versionCode 1

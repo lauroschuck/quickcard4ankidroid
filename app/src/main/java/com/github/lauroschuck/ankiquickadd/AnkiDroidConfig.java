@@ -1,4 +1,4 @@
-package com.example.swedishanki;
+package com.github.lauroschuck.ankiquickadd;
 
 import java.util.ArrayList;
 import java.util.Collections;

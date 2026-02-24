@@ -1,9 +1,8 @@
-package com.example.swedishanki;
+package com.github.lauroschuck.ankiquickadd;
 
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Process;
 import android.util.Log;
 import android.view.View;
 import android.webkit.ConsoleMessage;
@@ -14,7 +13,6 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -123,7 +121,7 @@ public class ProcessTextActivity extends AppCompatActivity {
 
         String url = "https://en.wiktionary.org/w/api.php?action=parse&prop=text&format=json&redirects=1&page=" + Uri.encode(word);
         OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder().url(url).header("User-Agent", "SwedishAnkiQuickAdd/1.0").build();
+        Request request = new Request.Builder().url(url).header("User-Agent", "AnkiDroidQuickAdd/1.0").build();
 
         client.newCall(request).enqueue(new Callback() {
             @Override

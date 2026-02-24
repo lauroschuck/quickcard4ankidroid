@@ -1,11 +1,10 @@
-package com.example.swedishanki;
+package com.github.lauroschuck.ankiquickadd;
 
 import android.util.Log;
 import android.widget.Toast;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class AnkiIntegration {

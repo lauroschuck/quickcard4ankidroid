@@ -1,4 +1,4 @@
-package com.example.swedishanki;
+package com.github.lauroschuck.ankiquickadd;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
