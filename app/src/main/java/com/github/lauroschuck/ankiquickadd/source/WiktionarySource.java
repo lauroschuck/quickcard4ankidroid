@@ -3,6 +3,7 @@ package com.github.lauroschuck.ankiquickadd.source;
 import android.net.Uri;
 import android.util.Log;
 
+import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
@@ -23,7 +24,7 @@ public class WiktionarySource implements DictionarySource {
     private final OkHttpClient client = new OkHttpClient();
 
     @Override
-    public void fetch(String word, OnResultListener listener) {
+    public void fetch(String word, Language sourceLanguage, OnResultListener listener) {
         String url = "https://en.wiktionary.org/w/api.php?action=parse&prop=text&format=json&redirects=1&page=" + Uri.encode(word);
         Request request = new Request.Builder()
                 .url(url)
@@ -37,7 +38,7 @@ public class WiktionarySource implements DictionarySource {
                     listener.onError("Unexpected code " + response);
                     return;
                 }
-                processResponse(response.body().string(), word, listener);
+                processResponse(response.body().string(), word, sourceLanguage, listener);
             }
 
             @Override
@@ -47,7 +48,7 @@ public class WiktionarySource implements DictionarySource {
         });
     }
 
-    private void processResponse(String json, String word, OnResultListener listener) {
+    private void processResponse(String json, String word, Language sourceLanguage, OnResultListener listener) {
         try {
             JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
             if (obj.has("error")) {
@@ -61,9 +62,9 @@ public class WiktionarySource implements DictionarySource {
             if (root == null) root = doc.body();
 
             // 1. Identify section of the source language
-            Element sourceLanguageHeader = findSourceLanguageHeader(root);
+            Element sourceLanguageHeader = findSourceLanguageHeader(root, sourceLanguage);
             if (sourceLanguageHeader == null) {
-                listener.onError("No Swedish section found.");
+                listener.onError("No " + sourceLanguage.getDisplayName() + " section found.");
                 return;
             }
 
@@ -75,7 +76,7 @@ public class WiktionarySource implements DictionarySource {
 
             // 4. Final transformations
             Document swDoc = Jsoup.parseBodyFragment(sourceLanguageSection);
-            transformLinks(swDoc);
+            transformLinks(swDoc, sourceLanguage);
             injectCheckboxes(swDoc);
 
             String finalHtml = buildHtmlPage(swDoc.body().html(), word);
@@ -87,10 +88,11 @@ public class WiktionarySource implements DictionarySource {
         }
     }
 
-    private Element findSourceLanguageHeader(Element root) {
-        Element header = root.selectFirst(".mw-heading2:has(#Swedish), h2:has(#Swedish)");
+    private Element findSourceLanguageHeader(Element root, Language sourceLanguage) {
+        String langName = sourceLanguage.getDisplayName();
+        Element header = root.selectFirst(".mw-heading2:has(#" + langName + "), h2:has(#" + langName + ")");
         if (header == null) {
-            Element swId = root.selectFirst("#Swedish");
+            Element swId = root.selectFirst("#" + langName);
             if (swId != null) header = swId.closest(".mw-heading2, h2");
         }
         return header;
@@ -126,12 +128,13 @@ public class WiktionarySource implements DictionarySource {
         return sb.toString();
     }
 
-    private void transformLinks(Document doc) {
+    private void transformLinks(Document doc, Language sourceLanguage) {
+        String langName = sourceLanguage.getDisplayName();
         for (Element a : doc.select("a")) {
             String href = a.attr("href");
-            if (href.contains("/wiki/") && href.contains("#Swedish")) {
+            if (href.contains("/wiki/") && href.contains("#" + langName)) {
                 int start = href.indexOf("/wiki/") + 6;
-                int end = href.indexOf("#Swedish");
+                int end = href.indexOf("#" + langName);
                 if (end > start) {
                     a.attr("href", "app://fetch/" + href.substring(start, end));
                     continue;
