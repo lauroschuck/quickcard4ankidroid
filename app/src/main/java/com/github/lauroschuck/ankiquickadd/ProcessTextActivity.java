@@ -16,22 +16,10 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
+import com.github.lauroschuck.ankiquickadd.source.WiktionarySource;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-
-import java.io.IOException;
 import java.util.List;
-import java.util.Locale;
-
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 
 public class ProcessTextActivity extends AppCompatActivity {
 
@@ -40,6 +28,9 @@ public class ProcessTextActivity extends AppCompatActivity {
     private TextView statusText;
     private Button createCardsButton;
     private String currentWord = "";
+    
+    // The dictionary source interface
+    private DictionarySource dictionarySource = new WiktionarySource();
 
     /**
      * JS Interface to receive extracted data from the WebView.
@@ -91,7 +82,7 @@ public class ProcessTextActivity extends AppCompatActivity {
                 String url = request.getUrl().toString();
                 if (url.startsWith("app://fetch/")) {
                     String word = Uri.decode(url.substring("app://fetch/".length()));
-                    fetchWiktionaryHtml(word);
+                    fetchDefinition(word);
                     return true;
                 }
                 return true;
@@ -102,14 +93,14 @@ public class ProcessTextActivity extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         String selectedWord = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
         if (selectedWord != null) {
-            fetchWiktionaryHtml(selectedWord.toLowerCase(Locale.ROOT));
+            fetchDefinition(selectedWord.toLowerCase(java.util.Locale.ROOT));
         } else {
             statusText.setVisibility(View.VISIBLE);
             statusText.setText("Select a word to start");
         }
     }
 
-    private void fetchWiktionaryHtml(String word) {
+    private void fetchDefinition(String word) {
         currentWord = word;
         runOnUiThread(() -> {
             statusText.setVisibility(View.VISIBLE);
@@ -118,148 +109,22 @@ public class ProcessTextActivity extends AppCompatActivity {
             webView.setVisibility(View.INVISIBLE);
         });
 
-        String url = "https://en.wiktionary.org/w/api.php?action=parse&prop=text&format=json&redirects=1&page=" + Uri.encode(word);
-        OkHttpClient client = new OkHttpClient();
-        Request request = new Request.Builder().url(url).header("User-Agent", "AnkiDroidQuickAdd/1.0").build();
-
-        client.newCall(request).enqueue(new Callback() {
+        dictionarySource.fetch(word, new DictionarySource.OnResultListener() {
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                processHtmlResponse(response.body().string());
+            public void onSuccess(String html, String headword) {
+                runOnUiThread(() -> {
+                    statusText.setVisibility(View.GONE);
+                    webView.setVisibility(View.VISIBLE);
+                    webView.loadDataWithBaseURL("https://en.wiktionary.org/", html, "text/html", "UTF-8", null);
+                    createCardsButton.setVisibility(View.VISIBLE);
+                });
             }
+
             @Override
-            public void onFailure(Call call, IOException e) {
-                runOnUiThread(() -> statusText.setText("Error: " + e.getMessage()));
+            public void onError(String message) {
+                runOnUiThread(() -> statusText.setText("Error: " + message));
             }
         });
-    }
-
-    private void processHtmlResponse(String json) {
-        try {
-            JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
-            if (obj.has("error")) {
-                runOnUiThread(() -> statusText.setText("Word not found."));
-                return;
-            }
-
-            String rawHtml = obj.getAsJsonObject("parse").getAsJsonObject("text").get("*").getAsString();
-            Document doc = Jsoup.parse(rawHtml);
-            Element root = doc.selectFirst(".mw-parser-output");
-            if (root == null) root = doc.body();
-
-            // 1. Identify section of the source language
-            Element sourceLanguageHeader = findSourceLanguageHeader(root);
-            if (sourceLanguageHeader == null) {
-                runOnUiThread(() -> statusText.setText("No Swedish section found."));
-                return;
-            }
-
-            // 2. Pre-process: remove unwanted elements
-            cleanUnwantedElements(root);
-
-            // 3. Extract only the source language content of the HTML
-            String sourceLanguageSection = extractLanguageSectionFrom(sourceLanguageHeader);
-
-            // 4. Final transformations
-            Document swDoc = Jsoup.parseBodyFragment(sourceLanguageSection);
-            transformLinks(swDoc);
-            injectCheckboxes(swDoc);
-
-            String finalHtml = buildHtmlPage(swDoc.body().html());
-
-            runOnUiThread(() -> {
-                statusText.setVisibility(View.GONE);
-                webView.setVisibility(View.VISIBLE);
-                webView.loadDataWithBaseURL("https://en.wiktionary.org/", finalHtml, "text/html", "UTF-8", null);
-                createCardsButton.setVisibility(View.VISIBLE);
-            });
-
-        } catch (Exception e) {
-            Log.e(TAG, "Parsing error", e);
-            runOnUiThread(() -> statusText.setText("Error: " + e.getMessage()));
-        }
-    }
-
-    private Element findSourceLanguageHeader(Element root) {
-        Element header = root.selectFirst(".mw-heading2:has(#Swedish), h2:has(#Swedish)");
-        if (header == null) {
-            Element swId = root.selectFirst("#Swedish");
-            if (swId != null) header = swId.closest(".mw-heading2, h2");
-        }
-        return header;
-    }
-
-    private void cleanUnwantedElements(Element root) {
-        // interproject-box: links to Wikipedia
-        // figure: images on some definitions (bok)
-        // mw-empty-elt: present on some definition lists (ben)
-        root.select(".mw-editsection, .interproject-box, figure, .mw-empty-elt").remove();
-
-        // Remove entire sections that are noisy for flashcards
-        String[] ids = {"Anagrams", "Further_reading", "Quotations"};
-        for (String id : ids) {
-            Element h = root.selectFirst(".mw-heading:has(#" + id + "), h2:has(#" + id + "), h3:has(#" + id + "), h4:has(#" + id + ")");
-            if (h != null) {
-                Element next = h.nextElementSibling();
-                while (next != null && !next.tagName().matches("h[2-6]") && !next.hasClass("mw-heading")) {
-                    Element toRemove = next;
-                    next = next.nextElementSibling();
-                    toRemove.remove();
-                }
-                h.remove();
-            }
-        }
-    }
-
-    private String extractLanguageSectionFrom(Element header) {
-        StringBuilder sb = new StringBuilder(header.outerHtml());
-        Element next = header.nextElementSibling();
-        while (next != null && !next.hasClass("mw-heading2") && !next.tagName().equalsIgnoreCase("h2")) {
-            sb.append(next.outerHtml());
-            next = next.nextElementSibling();
-        }
-        return sb.toString();
-    }
-
-    private void transformLinks(Document doc) {
-        for (Element a : doc.select("a")) {
-            String href = a.attr("href");
-            if (href.contains("/wiki/") && href.contains("#Swedish")) {
-                int start = href.indexOf("/wiki/") + 6;
-                int end = href.indexOf("#Swedish");
-                if (end > start) {
-                    a.attr("href", "app://fetch/" + href.substring(start, end));
-                    continue;
-                }
-            }
-            a.unwrap();
-        }
-    }
-
-    private void injectCheckboxes(Document doc) {
-        for (Element ex : doc.select(".h-usage-example, .ux-example")) {
-            ex.prepend("<input type='checkbox' class='example-checkbox'> ");
-        }
-    }
-
-    private String buildHtmlPage(String bodyContent) {
-        String css = """
-                body { font-family: sans-serif; padding: 12px; line-height: 1.5; color: #202122; }
-                h2 { border-bottom: 1px solid #a2a9b1; margin-bottom: 0.25em; padding-top: 0.5em; font-size: 1.5em; }
-                h3 { font-size: 1.25em; font-weight: bold; margin-top: 1.2em; }
-                h4 { font-size: 1.15em; font-weight: bold; margin-top: 1.0em; }
-                h5 { font-size: 1.05em; font-weight: bold; margin-top: 0.8em; }
-                ol { padding-left: 1.5em; }
-                li { margin-bottom: 0.5em; }
-                .h-usage-example, .ux-example { font-style: italic; display: block; margin-top: 0.5em; }
-                .h-usage-example-translation, .mention-gloss { font-style: normal; color: #54595d; display: block; font-size: 0.9em; margin-left: 2em; margin-top: 0.2em; }
-                a { color: #36c; text-decoration: none; }
-                table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: 0.85em; }
-                table th, table td { border: 1px solid #a2a9b1; padding: 6px; text-align: center; }
-                table th { background-color: #f8f9fa; }
-                .example-checkbox { margin-right: 8px; vertical-align: middle; }""";
-
-        return "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>" + css + "</style></head><body data-word='" + currentWord + "'>" + bodyContent + "</body></html>";
     }
 
     private void triggerJsExtraction() {
