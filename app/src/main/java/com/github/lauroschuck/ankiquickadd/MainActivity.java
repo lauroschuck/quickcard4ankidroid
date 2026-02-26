@@ -25,6 +25,7 @@ import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
 import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
+import com.github.lauroschuck.ankiquickadd.source.OfflineKaikkiSource;
 import com.github.lauroschuck.ankiquickadd.source.ReversoSource;
 import com.github.lauroschuck.ankiquickadd.source.WiktionarySource;
 import com.github.lauroschuck.ankiquickadd.source.WordReferenceSource;
@@ -83,10 +84,12 @@ public class MainActivity extends AppCompatActivity {
         sources.add(new WiktionarySource());
         sources.add(new WordReferenceSource());
         sources.add(new ReversoSource());
+        sources.add(new OfflineKaikkiSource(this));
 
         tabLayout.addTab(tabLayout.newTab().setText("Wiktionary"));
         tabLayout.addTab(tabLayout.newTab().setText("WordReference"));
         tabLayout.addTab(tabLayout.newTab().setText("Reverso"));
+        tabLayout.addTab(tabLayout.newTab().setText("Kaikki"));
 
         currentSource = sources.get(0);
 
