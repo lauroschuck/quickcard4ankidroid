@@ -9,7 +9,9 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.sql.*;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Script to convert Kaikki.org JSONL Wiktionary dump to a relational SQLite Database.
@@ -29,6 +31,8 @@ public class KaikkiToSqlite {
 
     private final Map<String, Long> headwordCache = new HashMap<>();
     private final Map<String, Integer> headwordSenseCounter = new HashMap<>();
+    // Cache to prevent duplicate audio URLs for the same headword across multiple etymologies
+    private final Map<Long, Set<String>> headwordAudioCache = new HashMap<>();
 
     public KaikkiToSqlite(String dbPath) throws Exception {
         this.conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
@@ -102,12 +106,16 @@ public class KaikkiToSqlite {
     }
 
     private void processPronunciations(long headwordId, JsonArray sounds) throws Exception {
+        Set<String> seenUrls = headwordAudioCache.computeIfAbsent(headwordId, k -> new HashSet<>());
+
         for (JsonElement soundElem : sounds) {
             JsonObject sound = soundElem.getAsJsonObject();
+            // MP3 is generally preferable for broader compatibility
             String audioUrl = sound.has("mp3_url") ? sound.get("mp3_url").getAsString() :
                              (sound.has("ogg_url") ? sound.get("ogg_url").getAsString() : "");
             
-            if (!audioUrl.isEmpty()) {
+            if (!audioUrl.isEmpty() && !seenUrls.contains(audioUrl)) {
+                seenUrls.add(audioUrl);
                 pPronunciation.setLong(1, headwordId);
                 pPronunciation.setString(2, audioUrl);
                 
