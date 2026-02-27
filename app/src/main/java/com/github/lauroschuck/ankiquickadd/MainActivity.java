@@ -1,5 +1,6 @@
 package com.github.lauroschuck.ankiquickadd;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
@@ -9,13 +10,20 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.webkit.ConsoleMessage;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -29,26 +37,31 @@ import com.github.lauroschuck.ankiquickadd.source.OfflineKaikkiSource;
 import com.github.lauroschuck.ankiquickadd.source.ReversoSource;
 import com.github.lauroschuck.ankiquickadd.source.WiktionarySource;
 import com.github.lauroschuck.ankiquickadd.source.WordReferenceSource;
-import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "AnkiQuickAdd";
     private WebView webView;
+    private View centralContainer;
     private TextView statusText;
-    private Button createCardsButton;
-    private TabLayout tabLayout;
+    private View createCardsFabContainer;
+    private FloatingActionButton createCardsFab;
+    private TextView badgeText;
+    private FloatingActionButton closeButton;
+    private Spinner sourceSpinner;
+    private ImageButton settingsButton;
+    private EditText searchEditText;
+    private Button searchButton;
     private String currentWord = "";
     
     private final List<DictionarySource> sources = new ArrayList<>();
     private DictionarySource currentSource;
 
-    /**
-     * JS Interface to receive extracted data from the WebView.
-     */
     public class WebAppInterface {
         @JavascriptInterface
         public void processSelectedCards(String json) {
@@ -60,6 +73,20 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+
+        @JavascriptInterface
+        public void updateSelectedCount(int count) {
+            runOnUiThread(() -> {
+                if (count > 0) {
+                    createCardsFabContainer.setVisibility(View.VISIBLE);
+                    badgeText.setVisibility(View.VISIBLE);
+                    badgeText.setText(String.valueOf(count));
+                } else {
+                    createCardsFabContainer.setVisibility(View.GONE);
+                    badgeText.setVisibility(View.GONE);
+                }
+            });
+        }
     }
 
     @Override
@@ -68,67 +95,80 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         webView = findViewById(R.id.webView);
+        centralContainer = findViewById(R.id.centralContainer);
         statusText = findViewById(R.id.statusText);
-        createCardsButton = findViewById(R.id.createCardsButton);
-        tabLayout = findViewById(R.id.tabLayout);
+        createCardsFabContainer = findViewById(R.id.createCardsFabContainer);
+        createCardsFab = findViewById(R.id.createCardsFab);
+        badgeText = findViewById(R.id.badgeText);
+        closeButton = findViewById(R.id.closeButton);
+        sourceSpinner = findViewById(R.id.sourceSpinner);
+        settingsButton = findViewById(R.id.settingsButton);
+        searchEditText = findViewById(R.id.searchEditText);
+        searchButton = findViewById(R.id.searchButton);
 
         setupSources();
         configureWebView();
+        setupSearch();
         
-        createCardsButton.setOnClickListener(v -> triggerJsExtraction());
+        settingsButton.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+        createCardsFab.setOnClickListener(v -> triggerJsExtraction());
+        closeButton.setOnClickListener(v -> showCentralSearch("Enter a word or select text in another app"));
         
         handleIntent(getIntent());
     }
 
+    private void setupSearch() {
+        searchButton.setOnClickListener(v -> performSearch());
+        searchEditText.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
+                performSearch();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private void performSearch() {
+        String query = searchEditText.getText().toString().trim();
+        if (!query.isEmpty()) {
+            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.hideSoftInputFromWindow(searchEditText.getWindowToken(), 0);
+            }
+            fetchDefinition(query);
+        }
+    }
+
     private void setupSources() {
+        sources.add(new OfflineKaikkiSource(this));
         sources.add(new WiktionarySource());
         sources.add(new WordReferenceSource());
         sources.add(new ReversoSource());
-        sources.add(new OfflineKaikkiSource(this));
 
-        tabLayout.addTab(tabLayout.newTab().setText("Wiktionary"));
-        tabLayout.addTab(tabLayout.newTab().setText("WordReference"));
-        tabLayout.addTab(tabLayout.newTab().setText("Reverso"));
-        tabLayout.addTab(tabLayout.newTab().setText("Kaikki"));
+        String[] sourceNames = {"Offline", "Wiktionary", "WordReference", "Reverso"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, sourceNames);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        sourceSpinner.setAdapter(adapter);
 
         currentSource = sources.get(0);
 
-        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+        sourceSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
-            public void onTabSelected(TabLayout.Tab tab) {
-                currentSource = sources.get(tab.getPosition());
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                currentSource = sources.get(position);
                 if (!currentWord.isEmpty()) {
                     fetchDefinition(currentWord);
                 }
             }
 
             @Override
-            public void onTabUnselected(TabLayout.Tab tab) {}
-
-            @Override
-            public void onTabReselected(TabLayout.Tab tab) {}
+            public void onNothingSelected(AdapterView<?> parent) {}
         });
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.action_settings) {
-            startActivity(new Intent(this, SettingsActivity.class));
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
     }
 
     private void configureWebView() {
         webView.getSettings().setJavaScriptEnabled(true);
         webView.addJavascriptInterface(new WebAppInterface(), "Android");
-
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
@@ -136,7 +176,6 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
         });
-
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -148,26 +187,56 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return true;
             }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                // Inject selection change listener
+                injectCheckboxListener();
+            }
         });
+    }
+
+    private void injectCheckboxListener() {
+        String js = "document.addEventListener('change', function(e) {" +
+                    "  if (e.target.classList.contains('example-checkbox')) {" +
+                    "    var count = document.querySelectorAll('input.example-checkbox:checked').length;" +
+                    "    Android.updateSelectedCount(count);" +
+                    "  }" +
+                    "});";
+        webView.evaluateJavascript(js, null);
     }
 
     private void handleIntent(Intent intent) {
         String selectedWord = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
         if (selectedWord != null) {
-            fetchDefinition(selectedWord.toLowerCase(java.util.Locale.ROOT));
+            fetchDefinition(selectedWord.toLowerCase(Locale.ROOT));
         } else {
-            statusText.setVisibility(View.VISIBLE);
-            statusText.setText("Select a word to start");
+            showCentralSearch("Enter a word or select text in another app");
         }
+    }
+
+    private void showCentralSearch(String message) {
+        currentWord = "";
+        runOnUiThread(() -> {
+            webView.setVisibility(View.GONE);
+            createCardsFabContainer.setVisibility(View.GONE);
+            closeButton.setVisibility(View.GONE);
+            centralContainer.setVisibility(View.VISIBLE);
+            statusText.setText(message);
+            searchEditText.setText("");
+        });
     }
 
     private void fetchDefinition(String word) {
         currentWord = word;
+        searchEditText.setText(word);
         runOnUiThread(() -> {
-            statusText.setVisibility(View.VISIBLE);
-            statusText.setText("Fetching '" + word + "'...");
-            createCardsButton.setVisibility(View.GONE);
+            centralContainer.setVisibility(View.GONE);
             webView.setVisibility(View.INVISIBLE);
+            createCardsFabContainer.setVisibility(View.GONE);
+            closeButton.setVisibility(View.GONE);
+            badgeText.setVisibility(View.GONE); // Reset badge
         });
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
@@ -178,16 +247,17 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSuccess(String html, String headword) {
                 runOnUiThread(() -> {
-                    statusText.setVisibility(View.GONE);
                     webView.setVisibility(View.VISIBLE);
                     webView.loadDataWithBaseURL("https://en.wiktionary.org/", html, "text/html", "UTF-8", null);
-                    createCardsButton.setVisibility(View.VISIBLE);
+                    // Container remains GONE until a checkbox is selected
+                    closeButton.setVisibility(View.VISIBLE);
                 });
             }
-
             @Override
             public void onError(String message) {
-                runOnUiThread(() -> statusText.setText("Error: " + message));
+                runOnUiThread(() -> {
+                    showCentralSearch("Error: " + message);
+                });
             }
         });
     }
@@ -201,7 +271,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void triggerJsExtraction() {
-        String js = currentSource.getExtractionJs();
-        webView.evaluateJavascript(js, null);
+        webView.evaluateJavascript(currentSource.getExtractionJs(), null);
     }
 }
