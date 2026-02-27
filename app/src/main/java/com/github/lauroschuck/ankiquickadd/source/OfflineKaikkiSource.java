@@ -11,6 +11,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,17 +46,27 @@ public class OfflineKaikkiSource implements DictionarySource {
                     "WHERE h.headword = ? COLLATE NOCASE";
             try (Cursor cursor = db.rawQuery(pronQuery, new String[]{word})) {
                 if (cursor.getCount() > 0) {
-                    html.append("<div class='pronunciations'><ul>");
+                    html.append("<div class='pronunciation-box'>");
                     while (cursor.moveToNext()) {
                         String url = cursor.getString(0);
                         String desc = cursor.getString(1);
-                        html.append("<li><a href='").append(url).append("'>Play Audio</a> ").append(desc).append("</li>");
+                        if (desc == null || desc.trim().isEmpty()) {
+                            desc = "<span class='no-desc'>No description</span>";
+                        }
+                        try {
+                            String encodedUrl = URLEncoder.encode(url, "UTF-8");
+                            html.append("<div class='pronunciation-item'>")
+                                .append("<a class='play-button' href='app://play/").append(encodedUrl).append("'>&#9658;</a> ")
+                                .append("<span class='pron-desc'>").append(desc).append("</span>")
+                                .append("</div>");
+                        } catch (Exception ignored) {}
                     }
-                    html.append("</ul></div>");
+                    html.append("</div>");
                 }
             }
 
             // 2. Fetch main lexical entries, merged by category
+            // STANDALONE INFLECTION BOX REMOVED AS REQUESTED
             String mainQuery = "SELECT le.id, le.lexical_category, le.sense_index FROM lexical_entries le " +
                     "JOIN headwords h ON le.headword_id = h.id " +
                     "WHERE h.headword = ? COLLATE NOCASE " +
@@ -137,8 +148,6 @@ public class OfflineKaikkiSource implements DictionarySource {
             while (cursor.moveToNext()) {
                 String linkText = cursor.getString(0);
                 String targetWord = cursor.getString(1);
-                // Use a simple replacement. For better results with overlapping words, 
-                // one would need a more sophisticated approach, but this matches the intent.
                 text = text.replace(linkText, "<a href='app://fetch/" + targetWord + "'>" + linkText + "</a>");
             }
         }
@@ -216,23 +225,32 @@ public class OfflineKaikkiSource implements DictionarySource {
                      "a { color: #36c; text-decoration: none; } " +
                      ".example-checkbox { margin-right: 8px; vertical-align: middle; } " +
                      ".relation-group { margin: 4px 0; font-size: 0.9em; } " +
-                     ".relation-label { cursor: pointer; background: #eee; padding: 2px 6px; border-radius: 3px; margin-right: 8px; font-weight: bold; color: #36c; text-decoration: underline; } " +
+                     ".relation-label { cursor: pointer; background: #eee; padding: 2px 6px; border-radius: 3px; margin-right: 8px; font-weight: bold; color: #36c; } " +
                      ".relation-label:hover { background: #ddd; } " +
-                     ".pronunciations ul { list-style: none; padding: 0; } " +
-                     ".pronunciations li { margin-bottom: 4px; }";
+                     ".pronunciation-box { background: #f0f7ff; padding: 10px; border-radius: 4px; margin-bottom: 1em; border-left: 4px solid #36c; } " +
+                     ".pronunciation-item { margin-bottom: 4px; display: flex; align-items: center; } " +
+                     ".play-button { text-decoration: none; background: #36c; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 12px; margin-right: 8px; } " +
+                     ".pron-desc { font-size: 0.9em; color: #555; } " +
+                     ".no-desc { color: #999; font-style: italic; }";
         return "<html><head><style>" + css + "</style></head><body data-word='" + word + "'>" + content + "</body></html>";
     }
 
     private void copyDatabaseIfNeeded() {
         java.io.File dbFile = context.getDatabasePath(DB_NAME);
         if (!dbFile.exists()) {
-            dbFile.getParentFile().mkdirs();
-            try (InputStream is = context.getAssets().open(DB_NAME);
-                 OutputStream os = new FileOutputStream(dbFile)) {
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = is.read(buffer)) > 0) os.write(buffer, 0, length);
-            } catch (IOException e) { Log.e(TAG, "Failed to copy database", e); }
+            try {
+                dbFile.getParentFile().mkdirs();
+                try (InputStream is = context.getAssets().open(DB_NAME);
+                     OutputStream os = new FileOutputStream(dbFile)) {
+                    byte[] buffer = new byte[1024];
+                    int length;
+                    while ((length = is.read(buffer)) > 0) {
+                        os.write(buffer, 0, length);
+                    }
+                }
+            } catch (IOException e) {
+                Log.e(TAG, "Failed to copy database", e);
+            }
         }
     }
 }

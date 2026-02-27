@@ -3,12 +3,12 @@ package com.github.lauroschuck.ankiquickadd;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.media.AudioAttributes;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -25,6 +25,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -39,6 +40,7 @@ import com.github.lauroschuck.ankiquickadd.source.WiktionarySource;
 import com.github.lauroschuck.ankiquickadd.source.WordReferenceSource;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -58,6 +60,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText searchEditText;
     private Button searchButton;
     private String currentWord = "";
+    private MediaPlayer mediaPlayer;
     
     private final List<DictionarySource> sources = new ArrayList<>();
     private DictionarySource currentSource;
@@ -184,6 +187,10 @@ public class MainActivity extends AppCompatActivity {
                     String word = Uri.decode(url.substring("app://fetch/".length()));
                     fetchDefinition(word);
                     return true;
+                } else if (url.startsWith("app://play/")) {
+                    String audioUrl = Uri.decode(url.substring("app://play/".length()));
+                    playAudio(audioUrl);
+                    return true;
                 }
                 return true;
             }
@@ -191,10 +198,31 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                // Inject selection change listener
                 injectCheckboxListener();
             }
         });
+    }
+
+    private void playAudio(String url) {
+        if (mediaPlayer != null) {
+            mediaPlayer.release();
+        }
+        mediaPlayer = new MediaPlayer();
+        mediaPlayer.setAudioAttributes(new AudioAttributes.Builder()
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .build());
+        try {
+            mediaPlayer.setDataSource(url);
+            mediaPlayer.prepareAsync();
+            mediaPlayer.setOnPreparedListener(MediaPlayer::start);
+            mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                Toast.makeText(MainActivity.this, "Audio playback failed", Toast.LENGTH_SHORT).show();
+                return true;
+            });
+        } catch (IOException e) {
+            Log.e(TAG, "Audio error", e);
+        }
     }
 
     private void injectCheckboxListener() {
@@ -236,7 +264,7 @@ public class MainActivity extends AppCompatActivity {
             webView.setVisibility(View.INVISIBLE);
             createCardsFabContainer.setVisibility(View.GONE);
             closeButton.setVisibility(View.GONE);
-            badgeText.setVisibility(View.GONE); // Reset badge
+            badgeText.setVisibility(View.GONE);
         });
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
@@ -249,7 +277,6 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     webView.setVisibility(View.VISIBLE);
                     webView.loadDataWithBaseURL("https://en.wiktionary.org/", html, "text/html", "UTF-8", null);
-                    // Container remains GONE until a checkbox is selected
                     closeButton.setVisibility(View.VISIBLE);
                 });
             }
@@ -272,5 +299,14 @@ public class MainActivity extends AppCompatActivity {
 
     private void triggerJsExtraction() {
         webView.evaluateJavascript(currentSource.getExtractionJs(), null);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mediaPlayer != null) {
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
     }
 }
