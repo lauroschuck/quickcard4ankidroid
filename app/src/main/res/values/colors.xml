@@ -5,6 +5,7 @@
     <color name="anki_note">#515556</color> <!-- Note background gray -->
     <color name="anki_dark_text">#3e4243</color> <!-- Main text dark gray -->
     <color name="anki_light_text">#797a7c</color> <!-- Secondary text light gray -->
+    <color name="error_red">#F44336</color> <!-- Material Error Red -->
 
     <!-- Standard Android color placeholders -->
     <color name="purple_200">#FFBB86FC</color>

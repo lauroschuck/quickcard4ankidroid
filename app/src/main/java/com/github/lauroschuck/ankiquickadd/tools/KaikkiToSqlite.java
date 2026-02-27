@@ -75,7 +75,7 @@ public class KaikkiToSqlite {
                     System.err.println("Error processing line " + (linesCount + 1) + ": " + e.getMessage());
                 }
 
-                if (++linesCount % 1000 == 0) {
+                if (++linesCount % 10000 == 0) {
                     commitBatch();
                     System.out.println("Processed " + linesCount + " lines...");
                 }

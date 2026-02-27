@@ -109,7 +109,7 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Floating Close Button -->
+    <!-- Floating Close Button (Top Right) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/closeButton"
         android:layout_width="wrap_content"
@@ -149,7 +149,7 @@
             app:backgroundTint="@color/anki_blue"
             app:borderWidth="3dp"
             app:strokeColor="@android:color/white"
-            app:maxImageSize="46dp"
+            app:maxImageSize="48dp"
             android:contentDescription="Create Cards"
             app:fabSize="normal"
             app:elevation="4dp"
@@ -160,8 +160,8 @@
             android:layout_width="24dp"
             android:layout_height="24dp"
             android:layout_gravity="top|end"
-            android:layout_marginTop="4dp"
-            android:layout_marginEnd="4dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
             android:background="@android:drawable/presence_online"
             android:backgroundTint="#FF4081"
             android:gravity="center"

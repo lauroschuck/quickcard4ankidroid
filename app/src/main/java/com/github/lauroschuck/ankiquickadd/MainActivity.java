@@ -28,6 +28,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.github.lauroschuck.ankiquickadd.anki.AnkiDroidHelper;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;
@@ -39,6 +40,7 @@ import com.github.lauroschuck.ankiquickadd.source.ReversoSource;
 import com.github.lauroschuck.ankiquickadd.source.WiktionarySource;
 import com.github.lauroschuck.ankiquickadd.source.WordReferenceSource;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -198,6 +200,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                // Inject selection change listener
                 injectCheckboxListener();
             }
         });
@@ -217,7 +220,7 @@ public class MainActivity extends AppCompatActivity {
             mediaPlayer.prepareAsync();
             mediaPlayer.setOnPreparedListener(MediaPlayer::start);
             mediaPlayer.setOnErrorListener((mp, what, extra) -> {
-                Toast.makeText(MainActivity.this, "Audio playback failed", Toast.LENGTH_SHORT).show();
+                showSnackbar("Audio playback failed", true);
                 return true;
             });
         } catch (IOException e) {
@@ -283,10 +286,24 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> {
-                    showCentralSearch("Error: " + message);
+                    showSnackbar("Error: " + message, true);
+                    showCentralSearch("Enter a word to start");
                 });
             }
         });
+    }
+
+    private void showSnackbar(String message, boolean isError) {
+        View rootView = findViewById(android.R.id.content);
+        if (rootView != null) {
+            Snackbar snackbar = Snackbar.make(rootView, message, Snackbar.LENGTH_LONG);
+            int bgColor = isError ? R.color.error_red : R.color.anki_blue;
+            snackbar.setBackgroundTint(ContextCompat.getColor(this, bgColor));
+            snackbar.setTextColor(ContextCompat.getColor(this, R.color.white));
+            snackbar.show();
+        } else {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private Language getLanguageFromPref(SharedPreferences prefs, String key, Language defaultLang) {

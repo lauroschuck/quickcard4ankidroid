@@ -1,10 +1,15 @@
 package com.github.lauroschuck.ankiquickadd.anki;
 
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
+import androidx.core.content.ContextCompat;
+
 import com.github.lauroschuck.ankiquickadd.MainActivity;
+import com.github.lauroschuck.ankiquickadd.R;
 import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -28,11 +33,24 @@ public class AnkiIntegration {
     public static void createAnkiCards(MainActivity context, List<TranslationCard> cards) {
 
         if (cards == null || cards.isEmpty()) {
-            Toast.makeText(context, "No cards selected.", Toast.LENGTH_SHORT).show();
+            showSnackbar(context, "No cards selected.", true);
             return;
         }
 
         new AnkiIntegration(context).addCardsToAnkiDroid(cards);
+    }
+
+    private static void showSnackbar(MainActivity activity, String message, boolean isError) {
+        View rootView = activity.findViewById(android.R.id.content);
+        if (rootView != null) {
+            Snackbar snackbar = Snackbar.make(rootView, message, Snackbar.LENGTH_LONG);
+            int bgColor = isError ? R.color.error_red : R.color.anki_blue;
+            snackbar.setBackgroundTint(ContextCompat.getColor(activity, bgColor));
+            snackbar.setTextColor(ContextCompat.getColor(activity, R.color.white));
+            snackbar.show();
+        } else {
+            Toast.makeText(activity, message, Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**
@@ -79,14 +97,14 @@ public class AnkiIntegration {
         Long modelId = getModelId();
         if ((deckId == null) || (modelId == null)) {
             // we had an API error, report failure and return
-            Toast.makeText(context, "card_add_fail", Toast.LENGTH_LONG).show();
+            showSnackbar(context, "Card add failed: API Error", true);
             return;
         }
         String[] fieldNames = mAnkiDroid.getApi().getFieldList(modelId);
         Log.i("tag","field names " + (fieldNames != null ? List.of(fieldNames) : "null"));
         if (fieldNames == null) {
             // we had an API error, report failure and return
-            Toast.makeText(context, "card_add_fail", Toast.LENGTH_LONG).show();
+            showSnackbar(context, "Card add failed: Model Error", true);
             return;
         }
         // Build list of fields and tags
@@ -96,7 +114,6 @@ public class AnkiIntegration {
             String[] flds = new String[fieldNames.length];
             
             // Mapping to SAMPLE fields based on index
-            // 0: Expression, 1: Reading, 2: Meaning, 3: Furigana, 4: Grammar, 5: Sentence, 6: SentenceFurigana, 7: SentenceMeaning
             if (flds.length >= 5) {
                 flds[0] = card.sourceText();
                 flds[1] = card.headword();
@@ -113,10 +130,10 @@ public class AnkiIntegration {
         int added = mAnkiDroid.getApi().addNotes(modelId, deckId, fields, tags);
 
         if (added != 0) {
-            Toast.makeText(context, "Successfully sent " + added + " cards to Anki", Toast.LENGTH_SHORT).show();
+            showSnackbar(context, "Successfully sent " + added + " cards to Anki", false);
         } else {
             // API indicates that a 0 return value is an error
-            Toast.makeText(context, "card_add_fail", Toast.LENGTH_LONG).show();
+            showSnackbar(context, "Card add failed: No notes added", true);
         }
     }
 
