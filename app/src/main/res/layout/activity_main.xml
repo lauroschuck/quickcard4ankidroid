@@ -2,9 +2,10 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@android:color/white">
 
-    <!-- Compact Header: Title, Source Spinner, and Settings in one line -->
+    <!-- Compact Header -->
     <LinearLayout
         android:id="@+id/headerContainer"
         android:layout_width="match_parent"
@@ -13,22 +14,33 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:padding="8dp"
-        android:background="#F5F5F5">
+        android:background="@color/anki_note">
 
         <TextView
             android:id="@+id/appTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="AnkiQuickAdd"
+            android:text="Anki Quick Add"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:layout_marginEnd="8dp"/>
+            android:textColor="@android:color/white"
+            android:layout_marginEnd="12dp"/>
 
-        <Spinner
-            android:id="@+id/sourceSpinner"
+        <!-- Spinner wrapped in a container to provide the dark background -->
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:background="@color/anki_dark_text"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp">
+
+            <Spinner
+                android:id="@+id/sourceSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@android:color/white" />
+        </FrameLayout>
 
         <ImageButton
             android:id="@+id/settingsButton"
@@ -36,10 +48,11 @@
             android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_preferences"
+            app:tint="@android:color/white"
             android:contentDescription="Settings" />
     </LinearLayout>
 
-    <!-- Content Area: WebView -->
+    <!-- Content Area -->
     <WebView
         android:id="@+id/webView"
         android:layout_width="match_parent"
@@ -47,7 +60,7 @@
         android:layout_below="@id/headerContainer"
         android:visibility="gone" />
 
-    <!-- Centered Search UI: Shown when no word is loaded -->
+    <!-- Centered Search UI -->
     <LinearLayout
         android:id="@+id/centralContainer"
         android:layout_width="match_parent"
@@ -64,7 +77,8 @@
             android:gravity="center"
             android:paddingBottom="16dp"
             android:text="Enter a word to start"
-            android:textSize="18sp" />
+            android:textSize="18sp"
+            android:textColor="@color/anki_dark_text" />
 
         <LinearLayout
             android:id="@+id/searchContainer"
@@ -78,8 +92,10 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="Search Swedish word..."
+                android:hint="Search word..."
                 android:inputType="text"
+                android:textColor="@color/anki_dark_text"
+                android:textColorHint="@color/anki_light_text"
                 android:imeOptions="actionSearch"/>
 
             <Button
@@ -87,11 +103,13 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Search"
+                android:backgroundTint="@color/anki_blue"
+                android:textColor="@android:color/white"
                 android:layout_marginStart="8dp"/>
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Floating Close Button (Top Right) -->
+    <!-- Floating Close Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/closeButton"
         android:layout_width="wrap_content"
@@ -101,19 +119,23 @@
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
         android:src="@android:drawable/ic_menu_close_clear_cancel"
-        android:contentDescription="Close Dictionary"
+        app:tint="@color/white"
+        app:backgroundTint="@color/anki_blue"
+        app:borderWidth="2dp"
+        app:strokeColor="@android:color/white"
+        app:elevation="4dp"
+        app:useCompatPadding="true"
         android:visibility="gone"
         app:fabSize="mini" />
 
     <!-- Floating Create Cards Button with Badge (Bottom Right) -->
-    <!-- Added android:clipChildren="false" to allow badge to overlap -->
     <FrameLayout
         android:id="@+id/createCardsFabContainer"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentEnd="true"
-        android:layout_margin="16dp"
+        android:padding="16dp"
         android:clipChildren="false"
         android:clipToPadding="false"
         android:visibility="gone">
@@ -122,29 +144,32 @@
             android:id="@+id/createCardsFab"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@android:drawable/ic_menu_add"
+            android:src="@android:drawable/ic_input_add"
+            app:tint="@android:color/white"
+            app:backgroundTint="@color/anki_blue"
+            app:borderWidth="3dp"
+            app:strokeColor="@android:color/white"
+            app:maxImageSize="46dp"
             android:contentDescription="Create Cards"
             app:fabSize="normal"
             app:elevation="4dp"
-            app:pressedTranslationZ="8dp"
-            app:borderWidth="0dp" />
+            app:useCompatPadding="true" />
 
-        <!-- Badge Text: Adjusted elevation and size to ensure it's on top and visible -->
         <TextView
             android:id="@+id/badgeText"
-            android:layout_width="22dp"
-            android:layout_height="22dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:layout_gravity="top|end"
-            android:layout_marginTop="-4dp"
-            android:layout_marginEnd="-4dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="4dp"
             android:background="@android:drawable/presence_online"
             android:backgroundTint="#FF4081"
             android:gravity="center"
             android:text="0"
             android:textColor="#FFFFFF"
-            android:textSize="11sp"
+            android:textSize="12sp"
             android:textStyle="bold"
-            android:elevation="6dp"
+            android:elevation="12dp"
             android:visibility="gone" />
     </FrameLayout>
 

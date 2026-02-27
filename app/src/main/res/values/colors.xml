@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Colors extracted from the Anki logo -->
+    <color name="anki_blue">#26a3e0</color> <!-- Star blue -->
+    <color name="anki_note">#515556</color> <!-- Note background gray -->
+    <color name="anki_dark_text">#3e4243</color> <!-- Main text dark gray -->
+    <color name="anki_light_text">#797a7c</color> <!-- Secondary text light gray -->
+
+    <!-- Standard Android color placeholders -->
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

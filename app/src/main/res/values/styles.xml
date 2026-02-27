@@ -1,9 +1,13 @@
 <resources>
-    <!-- Base application theme. -->
+    <!-- Base application theme using Anki branding colors -->
     <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
-        <!-- Customize your theme here. -->
-        <item name="colorPrimary">#F5F5F5</item>
-        <item name="colorPrimaryDark">#E0E0E0</item>
-        <item name="colorAccent">#80CBC4</item>
+        <!-- Primary branding color (Anki Star Blue) -->
+        <item name="colorPrimary">@color/anki_blue</item>
+        <!-- Status bar color -->
+        <item name="colorPrimaryDark">#0086d1</item>
+        <!-- Accent color for checkboxes and active elements -->
+        <item name="colorAccent">@color/anki_blue</item>
+        <!-- Background color resembling the Anki Note -->
+        <item name="android:windowBackground">@color/anki_note</item>
     </style>
 </resources>

@@ -148,8 +148,8 @@ public class MainActivity extends AppCompatActivity {
         sources.add(new WordReferenceSource());
         sources.add(new ReversoSource());
 
-        String[] sourceNames = {"Offline", "Wiktionary", "WordReference", "Reverso"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, sourceNames);
+        String[] sourceNames = {"Wiktionary", "Wiktionary (live)", "WordReference", "Reverso"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.spinner_item, sourceNames);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         sourceSpinner.setAdapter(adapter);
 
