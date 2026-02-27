@@ -13,6 +13,7 @@ import java.util.Set;
 public class AnkiIntegration {
 
     private static final int AD_PERM_REQUEST = 0;
+    private static final String DECK_NAME = "Anki Quick Add::Swedish-English"; // Default deck name
     private AnkiDroidHelper mAnkiDroid;
     private MainActivity context;
 
@@ -32,8 +33,6 @@ public class AnkiIntegration {
         }
 
         new AnkiIntegration(context).addCardsToAnkiDroid(cards);
-
-        Toast.makeText(context, "Successfully sent " + cards.size() + " cards to Anki!", Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -42,10 +41,10 @@ public class AnkiIntegration {
      * @return might be null if there was a problem
      */
     private Long getDeckId() {
-        Long did = mAnkiDroid.findDeckIdByName(AnkiDroidConfig.DECK_NAME);
+        Long did = mAnkiDroid.findDeckIdByName(DECK_NAME);
         if (did == null) {
-            did = mAnkiDroid.getApi().addNewDeck(AnkiDroidConfig.DECK_NAME);
-            mAnkiDroid.storeDeckReference(AnkiDroidConfig.DECK_NAME, did);
+            did = mAnkiDroid.getApi().addNewDeck(DECK_NAME);
+            mAnkiDroid.storeDeckReference(DECK_NAME, did);
         }
         return did;
     }
@@ -56,16 +55,26 @@ public class AnkiIntegration {
      * @return might be null if there was an error
      */
     private Long getModelId() {
-        Long mid = mAnkiDroid.findModelIdByName(AnkiDroidConfig.MODEL_NAME, AnkiDroidConfig.FIELDS.length);
+        AnkiNote note = AnkiNote.SAMPLE;
+        Long mid = mAnkiDroid.findModelIdByName(note.getModelName(), note.getFieldNames().length);
         if (mid == null) {
-            mid = mAnkiDroid.getApi().addNewCustomModel(AnkiDroidConfig.MODEL_NAME, AnkiDroidConfig.FIELDS,
-                    AnkiDroidConfig.CARD_NAMES, AnkiDroidConfig.QFMT, AnkiDroidConfig.AFMT, AnkiDroidConfig.CSS, getDeckId(), null);
-            mAnkiDroid.storeModelReference(AnkiDroidConfig.MODEL_NAME, mid);
+            mid = mAnkiDroid.getApi().addNewCustomModel(
+                    note.getModelName(),
+                    note.getFieldNames(),
+                    note.getCardNames(),
+                    note.getQuestionTemplates(),
+                    note.getAnswerTemplates(),
+                    note.getCss(),
+                    getDeckId(),
+                    null
+            );
+            mAnkiDroid.storeModelReference(note.getModelName(), mid);
         }
         return mid;
     }
 
     private void addCardsToAnkiDroid(final List<TranslationCard> data) {
+        AnkiNote note = AnkiNote.SAMPLE;
         Long deckId = getDeckId();
         Long modelId = getModelId();
         if ((deckId == null) || (modelId == null)) {
@@ -84,19 +93,19 @@ public class AnkiIntegration {
         LinkedList<String[]> fields = new LinkedList<>();
         LinkedList<Set<String>> tags = new LinkedList<>();
         for (var card : data) {
-            // Build a field map accounting for the fact that the user could have changed the fields in the model
             String[] flds = new String[fieldNames.length];
             
-            // Mapping new terms:
-            // Assuming flds order: [sourceText, headword, targetText, definition, lexicalCategory]
-            // Adjusted based on your AnkiDroidConfig field order if available.
-            flds[0] = card.sourceText();
-            flds[1] = card.headword();
-            flds[2] = card.targetText();
-            flds[3] = card.definition();
-            flds[4] = card.lexicalCategory();
+            // Mapping to SAMPLE fields based on index
+            // 0: Expression, 1: Reading, 2: Meaning, 3: Furigana, 4: Grammar, 5: Sentence, 6: SentenceFurigana, 7: SentenceMeaning
+            if (flds.length >= 5) {
+                flds[0] = card.sourceText();
+                flds[1] = card.headword();
+                flds[2] = card.targetText();
+                flds[3] = card.definition();
+                flds[4] = card.lexicalCategory();
+            }
 
-            tags.add(AnkiDroidConfig.TAGS);
+            tags.add(note.getTags());
             fields.add(flds);
         }
         // Remove any duplicates from the LinkedLists and then add over the API
@@ -104,7 +113,7 @@ public class AnkiIntegration {
         int added = mAnkiDroid.getApi().addNotes(modelId, deckId, fields, tags);
 
         if (added != 0) {
-            Toast.makeText(context, "n_items_added "+ added, Toast.LENGTH_LONG).show();
+            Toast.makeText(context, "Successfully sent " + added + " cards to Anki", Toast.LENGTH_SHORT).show();
         } else {
             // API indicates that a 0 return value is an error
             Toast.makeText(context, "card_add_fail", Toast.LENGTH_LONG).show();
