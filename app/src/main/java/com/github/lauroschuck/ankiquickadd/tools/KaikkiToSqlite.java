@@ -6,299 +6,369 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.sql.*;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.Date;
 
 /**
- * Script to convert Kaikki.org JSONL Wiktionary dump to a relational SQLite Database.
- * Processes 20GB+ files using streaming and batch inserts.
+ * Script to convert Kaikki.org JSONL Wiktionary dump to relational SQLite Databases.
+ * Usage: java KaikkiToSqlite <source_langs_csv> <targetLang1:dumpPath1> <targetLang2:dumpPath2> ...
  */
 public class KaikkiToSqlite {
 
-    private final Connection conn;
-    private final PreparedStatement pHeadword;
-    private final PreparedStatement pEntry;
-    private final PreparedStatement pGloss;
-    private final PreparedStatement pExample;
-    private final PreparedStatement pSenseLink;
-    private final PreparedStatement pOffset;
-    private final PreparedStatement pPronunciation;
-    private final PreparedStatement pRelation;
+    private static final long MIN_HEADWORDS = 1000;
 
-    private final Map<String, Long> headwordCache = new HashMap<>();
-    private final Map<String, Integer> headwordSenseCounter = new HashMap<>();
-    // Cache to prevent duplicate audio URLs for the same headword across multiple etymologies
-    private final Map<Long, Set<String>> headwordAudioCache = new HashMap<>();
+    private static class DatabaseSession implements AutoCloseable {
+        final String dbPath;
+        final Connection conn;
+        final PreparedStatement pHeadword, pEntry, pGloss, pExample, pSenseLink, pOffset, pPronunciation, pRelation;
+        final Map<String, Long> headwordCache = new HashMap<>();
+        final Map<String, Integer> headwordSenseCounter = new HashMap<>();
+        final Map<Long, Set<String>> headwordAudioCache = new HashMap<>();
+        long headwordCount = 0;
+        long glossCount = 0;
+        long exampleCount = 0;
 
-    public KaikkiToSqlite(String dbPath) throws Exception {
-        this.conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
-        this.conn.setAutoCommit(false);
-        setupSchema(conn);
+        DatabaseSession(String dbPath) throws Exception {
+            this.dbPath = dbPath;
+            this.conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
+            this.conn.setAutoCommit(false);
+            setupSchema(conn);
 
-        this.pHeadword = conn.prepareStatement("INSERT OR IGNORE INTO headwords (headword) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
-        this.pEntry = conn.prepareStatement("INSERT INTO lexical_entries (headword_id, lexical_category, sense_index) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
-        this.pGloss = conn.prepareStatement("INSERT INTO glosses (lexical_entry_id, gloss, gloss_index) VALUES (?, ?, ?)");
-        this.pExample = conn.prepareStatement("INSERT INTO examples (lexical_entry_id, source_text, target_text) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
-        this.pSenseLink = conn.prepareStatement("INSERT INTO sense_links (lexical_entry_id, word, target_headword_id) VALUES (?, ?, ?)");
-        this.pOffset = conn.prepareStatement("INSERT INTO bold_offsets (example_id, is_translation, start_index, end_index) VALUES (?, ?, ?, ?)");
-        this.pPronunciation = conn.prepareStatement("INSERT INTO pronunciations (headword_id, audio_url, description) VALUES (?, ?, ?)");
-        this.pRelation = conn.prepareStatement("INSERT INTO relations (lexical_entry_id, type, word) VALUES (?, ?, ?)");
-    }
+            this.pHeadword = conn.prepareStatement("INSERT OR IGNORE INTO headwords (headword) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+            this.pEntry = conn.prepareStatement("INSERT INTO lexical_entries (headword_id, lexical_category, sense_index) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+            this.pGloss = conn.prepareStatement("INSERT INTO glosses (lexical_entry_id, gloss, gloss_index) VALUES (?, ?, ?)");
+            this.pExample = conn.prepareStatement("INSERT INTO examples (lexical_entry_id, source_text, target_text) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+            this.pSenseLink = conn.prepareStatement("INSERT INTO sense_links (lexical_entry_id, word, target_headword_id) VALUES (?, ?, ?)");
+            this.pOffset = conn.prepareStatement("INSERT INTO bold_offsets (example_id, is_translation, start_index, end_index) VALUES (?, ?, ?, ?)");
+            this.pPronunciation = conn.prepareStatement("INSERT INTO pronunciations (headword_id, audio_url, description) VALUES (?, ?, ?)");
+            this.pRelation = conn.prepareStatement("INSERT INTO relations (lexical_entry_id, type, word) VALUES (?, ?, ?)");
+        }
 
-    public static void main(String[] args) {
-        String inputJsonl = "/home/lauro/AndroidStudioProjects/SwedishAnkiQuickAdd/last-50000.json";
-        String outputDb = "swedish_dict.db";
+        void commit() throws Exception {
+            pGloss.executeBatch(); pOffset.executeBatch(); pPronunciation.executeBatch(); pRelation.executeBatch(); pSenseLink.executeBatch();
+            conn.commit();
+        }
 
-        try {
-            KaikkiToSqlite converter = new KaikkiToSqlite(outputDb);
-            converter.run(inputJsonl);
-        } catch (Exception e) {
-            e.printStackTrace();
+        @Override
+        public void close() throws Exception {
+            if (conn != null) conn.close();
         }
     }
 
-    public void run(String inputJsonl) throws Exception {
-        try (BufferedReader br = new BufferedReader(new FileReader(inputJsonl))) {
+    public static void main(String[] args) {
+        if (args.length < 2) {
+            System.out.println("Usage: java KaikkiToSqlite <source_langs_csv> <targetLang1:dumpPath1> <targetLang2:dumpPath2> ...");
+            return;
+        }
+
+        Instant totalStart = Instant.now();
+
+        String[] sourceLangs = args[0].split(",");
+        String timestamp = new SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(new Date());
+        String outDir = "out/" + timestamp;
+        new File(outDir).mkdirs();
+
+        KaikkiToSqlite converter = new KaikkiToSqlite();
+        Map<String, Map<String, Boolean>> summaryTable = new TreeMap<>();
+
+        String statsDbPath = outDir + File.separator + "stats.db";
+        try (Connection statsConn = DriverManager.getConnection("jdbc:sqlite:" + statsDbPath)) {
+            statsConn.setAutoCommit(false);
+            setupStatsSchema(statsConn);
+            statsConn.commit();
+
+            PreparedStatement pStats = statsConn.prepareStatement("INSERT INTO stats (source_lang, target_lang, source_name, headwords, glosses, examples) VALUES (?, ?, ?, ?, ?, ?)");
+
+            int totalDumps = args.length - 1;
+            for (int i = 1; i < args.length; i++) {
+                String[] pair = args[i].split(":", 2);
+                if (pair.length < 2) continue;
+
+                String targetLangCode = pair[0].toLowerCase().trim();
+                String dumpPath = pair[1];
+
+                Locale targetLocale = new Locale(targetLangCode);
+                String targetLangName = targetLocale.getDisplayLanguage(Locale.ENGLISH);
+                System.out.println(String.format(Locale.US, "\nStarting pass of dump: %s (Target: %s, %s)", dumpPath, targetLangCode, targetLangName));
+
+                Instant dumpStart = Instant.now();
+                Map<String, DatabaseSession> sessions = null;
+                try {
+                    sessions = converter.processDump(dumpPath, targetLangCode, sourceLangs, outDir, i, totalDumps);
+
+                    for (Map.Entry<String, DatabaseSession> entry : sessions.entrySet()) {
+                        String srcCode = entry.getKey();
+                        DatabaseSession session = entry.getValue();
+                        boolean kept = session.headwordCount >= MIN_HEADWORDS;
+                        summaryTable.computeIfAbsent(srcCode, k -> new TreeMap<>()).put(targetLangCode, kept);
+
+                        if (kept) {
+                            String srcEngName = new Locale(srcCode).getDisplayLanguage(Locale.ENGLISH);
+                            pStats.setString(1, srcCode);
+                            pStats.setString(2, targetLangCode);
+                            pStats.setString(3, srcEngName);
+                            pStats.setLong(4, session.headwordCount);
+                            pStats.setLong(5, session.glossCount);
+                            pStats.setLong(6, session.exampleCount);
+                            pStats.addBatch();
+                        }
+                    }
+                    pStats.executeBatch();
+                    statsConn.commit();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                Duration elapsed = Duration.between(dumpStart, Instant.now()).truncatedTo(ChronoUnit.SECONDS);
+                System.out.println(String.format(Locale.US, "Dump %s processed in %s", dumpPath, elapsed));
+            }
+
+            printSummaryTable(summaryTable);
+            System.out.println("Stats saved to: " + statsDbPath);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        Duration totalElapsed = Duration.between(totalStart, Instant.now()).truncatedTo(ChronoUnit.SECONDS);
+        System.out.println(String.format(Locale.US, "Entire process finished in %s", totalElapsed));
+    }
+
+    private static void setupStatsSchema(Connection conn) throws Exception {
+        Statement st = conn.createStatement();
+        st.execute("DROP TABLE IF EXISTS stats");
+        st.execute("CREATE TABLE stats (source_lang TEXT, target_lang TEXT, source_name TEXT, headwords INTEGER, glosses INTEGER, examples INTEGER)");
+    }
+
+    private static void printSummaryTable(Map<String, Map<String, Boolean>> status) {
+        if (status.isEmpty()) return;
+        Set<String> targets = new TreeSet<>();
+        for (Map<String, Boolean> map : status.values()) targets.addAll(map.keySet());
+
+        System.out.println("\n--- EXTRACTION SUMMARY TABLE ---");
+        System.out.print("src\\trg |");
+        for (String t : targets) System.out.print(String.format(" %-4s |", t));
+        System.out.println();
+
+        for (Map.Entry<String, Map<String, Boolean>> entry : status.entrySet()) {
+            System.out.print(String.format(" %-6s |", entry.getKey()));
+            for (String t : targets) {
+                Boolean kept = entry.getValue().get(t);
+                System.out.print(kept != null && kept ? "  X   |" : "      |");
+            }
+            System.out.println();
+        }
+        System.out.println("--------------------------------\n");
+    }
+
+    public Map<String, DatabaseSession> processDump(String dumpPath, String targetLangCode, String[] sourceLangs, String outDir, int dumpIndex, int totalDumps) throws Exception {
+        Map<String, DatabaseSession> sessions = new HashMap<>();
+        for (String src : sourceLangs) {
+            String srcLower = src.toLowerCase().trim();
+            if (srcLower.equals(targetLangCode)) continue;
+            sessions.put(srcLower, new DatabaseSession(outDir + File.separator + "wiktionary_kaikki_" + srcLower + "-" + targetLangCode + ".db"));
+        }
+
+        try (BufferedReader br = new BufferedReader(new FileReader(dumpPath))) {
             String line;
             long linesCount = 0;
             while ((line = br.readLine()) != null) {
                 try {
                     JsonObject entry = JsonParser.parseString(line).getAsJsonObject();
-                    if (isSwedish(entry)) {
-                        processEntry(entry);
+                    String entryLangCode = entry.has("lang_code") ? entry.get("lang_code").getAsString().toLowerCase() : null;
+
+                    if (entryLangCode != null && sessions.containsKey(entryLangCode)) {
+                        processEntry(entry, sessions.get(entryLangCode));
                     }
-                } catch (Exception e) {
-                    System.err.println("Error processing line " + (linesCount + 1) + ": " + e.getMessage());
-                }
+                } catch (Exception ignored) {}
 
                 if (++linesCount % 10000 == 0) {
-                    commitBatch();
-                    System.out.println("Processed " + linesCount + " lines...");
+                    for (DatabaseSession session : sessions.values()) session.commit();
+                    System.out.print(String.format(Locale.US, "\r[%d/%d] %s : processed %d lines...", dumpIndex, totalDumps, targetLangCode, linesCount));
                 }
             }
-            commitBatch();
-            System.out.println("Finished! Total lines processed: " + linesCount);
+            System.out.print(String.format(Locale.US, "\r[%d/%d] %s : processed %d lines... Done.", dumpIndex, totalDumps, targetLangCode, linesCount));
+
+            System.out.println("\nSummary for dump: " + dumpPath);
+            for (Map.Entry<String, DatabaseSession> entry : sessions.entrySet()) {
+                DatabaseSession session = entry.getValue();
+                session.commit();
+                String srcCode = entry.getKey();
+                String srcEngName = new Locale(srcCode).getDisplayLanguage(Locale.ENGLISH);
+                System.out.println(String.format(Locale.US, "- %s, %s: %d headwords, %d glosses, %d examples added.",
+                        srcCode, srcEngName, session.headwordCount, session.glossCount, session.exampleCount));
+
+                String dbPath = session.dbPath;
+                session.close();
+                if (session.headwordCount < MIN_HEADWORDS) {
+                    System.out.println(String.format(Locale.US, "  ! Deleting database (below min %d): %s", MIN_HEADWORDS, dbPath));
+                    new File(dbPath).delete();
+                }
+            }
         }
+        return sessions;
     }
 
-    private boolean isSwedish(JsonObject entry) {
-        String langCode = entry.has("lang_code") ? entry.get("lang_code").getAsString() : null;
-        String langName = entry.has("lang") ? entry.get("lang").getAsString() : null;
-        return ("sv".equalsIgnoreCase(langCode) || "Swedish".equalsIgnoreCase(langName)) && entry.has("word");
-    }
-
-    private void processEntry(JsonObject entry) throws Exception {
+    private void processEntry(JsonObject entry, DatabaseSession session) throws Exception {
+        if (!entry.has("word")) return;
         String word = entry.get("word").getAsString();
-        long headwordId = getOrCreateHeadwordId(word);
+        long headwordId = getOrCreateHeadwordId(word, session);
 
-        if (entry.has("sounds")) {
-            processPronunciations(headwordId, entry.getAsJsonArray("sounds"));
-        }
-
+        if (entry.has("sounds")) processSounds(headwordId, entry.getAsJsonArray("sounds"), session);
         if (entry.has("senses")) {
             String pos = entry.has("pos") ? entry.get("pos").getAsString() : "unknown";
-            processSenses(headwordId, pos, entry.getAsJsonArray("senses"), word);
+            processSenses(headwordId, pos, entry.getAsJsonArray("senses"), word, session);
         }
     }
 
-    private void processPronunciations(long headwordId, JsonArray sounds) throws Exception {
-        Set<String> seenUrls = headwordAudioCache.computeIfAbsent(headwordId, k -> new HashSet<>());
-
+    private void processSounds(long headwordId, JsonArray sounds, DatabaseSession session) throws Exception {
+        Set<String> seenUrls = session.headwordAudioCache.computeIfAbsent(headwordId, k -> new HashSet<>());
         for (JsonElement soundElem : sounds) {
             JsonObject sound = soundElem.getAsJsonObject();
-            // MP3 is generally preferable for broader compatibility
-            String audioUrl = sound.has("mp3_url") ? sound.get("mp3_url").getAsString() :
-                             (sound.has("ogg_url") ? sound.get("ogg_url").getAsString() : "");
-            
+            String audioUrl = sound.has("mp3_url") ? sound.get("mp3_url").getAsString() : (sound.has("ogg_url") ? sound.get("ogg_url").getAsString() : "");
             if (!audioUrl.isEmpty() && !seenUrls.contains(audioUrl)) {
                 seenUrls.add(audioUrl);
-                pPronunciation.setLong(1, headwordId);
-                pPronunciation.setString(2, audioUrl);
-                
-                // Aggregate description/explanation from all sources
-                StringBuilder sb = new StringBuilder();
-                if (sound.has("text")) {
-                    sb.append(sound.get("text").getAsString());
-                }
-                if (sound.has("note")) {
-                    if (sb.length() > 0) sb.append("; ");
-                    sb.append(sound.get("note").getAsString());
-                }
-                if (sound.has("tags")) {
-                    JsonArray tags = sound.getAsJsonArray("tags");
-                    if (tags.size() > 0) {
-                        if (sb.length() > 0) sb.append(" (");
-                        for (int i = 0; i < tags.size(); i++) {
-                            if (i > 0) sb.append(", ");
-                            sb.append(tags.get(i).getAsString());
-                        }
-                        if (sb.indexOf(" (") != -1) sb.append(")");
-                    }
-                }
-
-                pPronunciation.setString(3, sb.toString());
-                pPronunciation.addBatch();
+                session.pPronunciation.setLong(1, headwordId);
+                session.pPronunciation.setString(2, audioUrl);
+                session.pPronunciation.setString(3, aggregateSoundDescription(sound));
+                session.pPronunciation.addBatch();
             }
         }
     }
 
-    private void processSenses(long headwordId, String pos, JsonArray senses, String word) throws Exception {
-        int senseIdx = headwordSenseCounter.getOrDefault(word, 0);
+    private String aggregateSoundDescription(JsonObject sound) {
+        StringBuilder sb = new StringBuilder();
+        if (sound.has("text")) sb.append(sound.get("text").getAsString());
+        if (sound.has("note")) { if (sb.length() > 0) sb.append("; "); sb.append(sound.get("note").getAsString()); }
+        if (sound.has("tags")) {
+            JsonArray tags = sound.getAsJsonArray("tags");
+            if (tags.size() > 0) {
+                if (sb.length() > 0) sb.append(" (");
+                for (int i = 0; i < tags.size(); i++) { if (i > 0) sb.append(", "); sb.append(tags.get(i).getAsString()); }
+                if (sb.indexOf(" (") != -1) sb.append(")");
+            }
+        }
+        return sb.toString();
+    }
 
+    private void processSenses(long headwordId, String pos, JsonArray senses, String word, DatabaseSession session) throws Exception {
+        int senseIdx = session.headwordSenseCounter.getOrDefault(word, 0);
         for (JsonElement senseElem : senses) {
             JsonObject sense = senseElem.getAsJsonObject();
-            long entryId = createLexicalEntry(headwordId, pos, senseIdx++);
-            
-            processGlosses(entryId, sense);
-            processSenseLinks(entryId, sense);
-            processExamples(entryId, sense);
-            processRelations(entryId, sense);
+            long entryId = insertLexicalEntry(headwordId, pos, senseIdx++, session);
+            processGlosses(entryId, sense, session);
+            processLinks(entryId, sense, session);
+            processExamples(entryId, sense, session);
+            processRelations(entryId, sense, session);
         }
-        
-        headwordSenseCounter.put(word, senseIdx);
+        session.headwordSenseCounter.put(word, senseIdx);
     }
 
-    private long createLexicalEntry(long headwordId, String pos, int senseIndex) throws Exception {
-        pEntry.setLong(1, headwordId);
-        pEntry.setString(2, pos);
-        pEntry.setInt(3, senseIndex);
-        pEntry.executeUpdate();
-        try (ResultSet rs = pEntry.getGeneratedKeys()) {
-            rs.next();
-            return rs.getLong(1);
-        }
+    private long insertLexicalEntry(long headwordId, String pos, int index, DatabaseSession session) throws Exception {
+        session.pEntry.setLong(1, headwordId);
+        session.pEntry.setString(2, pos);
+        session.pEntry.setInt(3, index);
+        session.pEntry.executeUpdate();
+        try (ResultSet rs = session.pEntry.getGeneratedKeys()) { rs.next(); return rs.getLong(1); }
     }
 
-    private void processGlosses(long entryId, JsonObject sense) throws Exception {
+    private void processGlosses(long entryId, JsonObject sense, DatabaseSession session) throws Exception {
         JsonArray glossArray = sense.has("raw_glosses") ? sense.getAsJsonArray("raw_glosses") : sense.getAsJsonArray("glosses");
         if (glossArray == null) return;
-
         for (int i = 0; i < glossArray.size(); i++) {
-            pGloss.setLong(1, entryId);
-            pGloss.setString(2, glossArray.get(i).getAsString());
-            pGloss.setInt(3, i);
-            pGloss.addBatch();
+            session.pGloss.setLong(1, entryId);
+            session.pGloss.setString(2, glossArray.get(i).getAsString());
+            session.pGloss.setInt(3, i);
+            session.pGloss.addBatch();
+            session.glossCount++;
         }
     }
 
-    private void processSenseLinks(long entryId, JsonObject sense) throws Exception {
+    private void processLinks(long entryId, JsonObject sense, DatabaseSession session) throws Exception {
         if (!sense.has("links")) return;
-
         for (JsonElement linkElem : sense.getAsJsonArray("links")) {
             JsonArray linkArr = linkElem.getAsJsonArray();
             if (linkArr.size() == 2) {
-                String linkWord = linkArr.get(0).getAsString();
-                String linkTarget = linkArr.get(1).getAsString();
-                if (linkTarget.contains("#Swedish")) {
-                    String cleanLemma = linkTarget.substring(0, linkTarget.indexOf("#Swedish"));
-                    long targetId = getOrCreateHeadwordId(cleanLemma);
-                    pSenseLink.setLong(1, entryId);
-                    pSenseLink.setString(2, linkWord);
-                    pSenseLink.setLong(3, targetId);
-                    pSenseLink.addBatch();
+                String target = linkArr.get(1).getAsString();
+                if (target.contains("#")) {
+                    String lemma = target.substring(0, target.indexOf("#"));
+                    session.pSenseLink.setLong(1, entryId);
+                    session.pSenseLink.setString(2, linkArr.get(0).getAsString());
+                    session.pSenseLink.setLong(3, getOrCreateHeadwordId(lemma, session));
+                    session.pSenseLink.addBatch();
                 }
             }
         }
     }
 
-    private void processExamples(long entryId, JsonObject sense) throws Exception {
+    private void processExamples(long entryId, JsonObject sense, DatabaseSession session) throws Exception {
         if (!sense.has("examples")) return;
-
         for (JsonElement exElem : sense.getAsJsonArray("examples")) {
             JsonObject ex = exElem.getAsJsonObject();
             if (ex.has("type") && "quotation".equalsIgnoreCase(ex.get("type").getAsString())) continue;
-
             String src = ex.has("text") ? ex.get("text").getAsString() : "";
-            String trg = ex.has("english") ? ex.get("english").getAsString() : 
-                         (ex.has("translation") ? ex.get("translation").getAsString() : "");
-
-            if (!src.isEmpty()) {
-                long exampleId = insertExample(entryId, src, trg);
-                processExampleOffsets(exampleId, ex);
+            String trg = ex.has("english") ? ex.get("english").getAsString() : (ex.has("translation") ? ex.get("translation").getAsString() : "");
+            if (!src.isEmpty() && !trg.isEmpty()) {
+                session.pExample.setLong(1, entryId);
+                session.pExample.setString(2, src);
+                session.pExample.setString(3, trg);
+                session.pExample.executeUpdate();
+                long exId;
+                try (ResultSet rs = session.pExample.getGeneratedKeys()) { rs.next(); exId = rs.getLong(1); }
+                if (ex.has("bold_text_offsets")) saveOffsets(exId, "S", ex.getAsJsonArray("bold_text_offsets"), session);
+                if (ex.has("bold_translation_offsets")) saveOffsets(exId, "T", ex.getAsJsonArray("bold_translation_offsets"), session);
+                session.exampleCount++;
             }
         }
     }
 
-    private long insertExample(long entryId, String src, String trg) throws Exception {
-        pExample.setLong(1, entryId);
-        pExample.setString(2, src);
-        pExample.setString(3, trg);
-        pExample.executeUpdate();
-        try (ResultSet rs = pExample.getGeneratedKeys()) {
-            rs.next();
-            return rs.getLong(1);
-        }
+    private void processRelations(long entryId, JsonObject sense, DatabaseSession session) throws Exception {
+        saveRelationsBatch(entryId, "S", sense.getAsJsonArray("synonyms"), session);
+        saveRelationsBatch(entryId, "A", sense.getAsJsonArray("antonyms"), session);
     }
 
-    private void processExampleOffsets(long exampleId, JsonObject ex) throws Exception {
-        if (ex.has("bold_text_offsets")) {
-            saveOffsetsBatch(exampleId, "S", ex.getAsJsonArray("bold_text_offsets"));
-        }
-        if (ex.has("bold_translation_offsets")) {
-            saveOffsetsBatch(exampleId, "T", ex.getAsJsonArray("bold_translation_offsets"));
-        }
-    }
-
-    private void processRelations(long entryId, JsonObject sense) throws Exception {
-        saveRelations(entryId, "S", sense.getAsJsonArray("synonyms"));
-        saveRelations(entryId, "A", sense.getAsJsonArray("antonyms"));
-    }
-
-    private void saveRelations(long entryId, String type, JsonArray array) throws Exception {
+    private void saveRelationsBatch(long entryId, String type, JsonArray array, DatabaseSession session) throws Exception {
         if (array == null) return;
         for (JsonElement e : array) {
-            pRelation.setLong(1, entryId);
-            pRelation.setString(2, type);
-            pRelation.setString(3, e.getAsJsonObject().get("word").getAsString());
-            pRelation.addBatch();
+            session.pRelation.setLong(1, entryId);
+            session.pRelation.setString(2, type);
+            session.pRelation.setString(3, e.getAsJsonObject().get("word").getAsString());
+            session.pRelation.addBatch();
         }
     }
 
-    private void saveOffsetsBatch(long exampleId, String type, JsonArray offsets) throws Exception {
+    private void saveOffsets(long exId, String type, JsonArray offsets, DatabaseSession session) throws Exception {
         for (JsonElement e : offsets) {
             JsonArray a = e.getAsJsonArray();
-            pOffset.setLong(1, exampleId);
-            pOffset.setString(2, type);
-            pOffset.setInt(3, a.get(0).getAsInt());
-            pOffset.setInt(4, a.get(1).getAsInt());
-            pOffset.addBatch();
+            session.pOffset.setLong(1, exId); session.pOffset.setString(2, type);
+            session.pOffset.setInt(3, a.get(0).getAsInt()); session.pOffset.setInt(4, a.get(1).getAsInt());
+            session.pOffset.addBatch();
         }
     }
 
-    private long getOrCreateHeadwordId(String word) throws Exception {
-        if (headwordCache.containsKey(word)) return headwordCache.get(word);
-        
-        pHeadword.setString(1, word);
-        pHeadword.executeUpdate();
+    private long getOrCreateHeadwordId(String word, DatabaseSession session) throws Exception {
+        if (session.headwordCache.containsKey(word)) return session.headwordCache.get(word);
+        session.pHeadword.setString(1, word);
+        int rows = session.pHeadword.executeUpdate();
         long id;
-        try (ResultSet rs = pHeadword.getGeneratedKeys()) {
+        try (ResultSet rs = session.pHeadword.getGeneratedKeys()) {
             if (rs.next()) {
                 id = rs.getLong(1);
+                session.headwordCount++;
             } else {
-                try (PreparedStatement ps = conn.prepareStatement("SELECT id FROM headwords WHERE headword = ?")) {
+                try (PreparedStatement ps = session.conn.prepareStatement("SELECT id FROM headwords WHERE headword = ?")) {
                     ps.setString(1, word);
-                    try (ResultSet r = ps.executeQuery()) {
-                        if (r.next()) id = r.getLong(1);
-                        else id = -1;
-                    }
+                    try (ResultSet r = ps.executeQuery()) { if (r.next()) id = r.getLong(1); else id = -1; }
                 }
             }
         }
-        headwordCache.put(word, id);
+        session.headwordCache.put(word, id);
         return id;
-    }
-
-    private void commitBatch() throws Exception {
-        pGloss.executeBatch();
-        pOffset.executeBatch();
-        pPronunciation.executeBatch();
-        pRelation.executeBatch();
-        pSenseLink.executeBatch();
-        conn.commit();
     }
 
     private static void setupSchema(Connection conn) throws Exception {
@@ -328,3 +398,4 @@ public class KaikkiToSqlite {
         st.execute("CREATE INDEX idx_sl_le ON sense_links(lexical_entry_id)");
     }
 }
+<ctrl46>}
