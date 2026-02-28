@@ -7,6 +7,7 @@ import android.util.Log;
 
 import com.github.lauroschuck.ankiquickadd.model.Language;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,23 +18,27 @@ import java.util.List;
 
 public class OfflineKaikkiSource implements DictionarySource {
     private static final String TAG = "OfflineKaikkiSource";
-    private static final String DB_NAME = "swedish_dict.db";
     private final Context context;
 
     public OfflineKaikkiSource(Context context) {
         this.context = context;
-        copyDatabaseIfNeeded();
     }
 
     @Override
     public void fetch(String word, Language sourceLanguage, Language targetLanguage, OnResultListener listener) {
-        if (sourceLanguage != Language.SWEDISH) {
-            listener.onError("Offline mode only supports Swedish for now.");
+        String dbName = String.format("wiktionary_kaikki_%s-%s.db", 
+                sourceLanguage.getIsoCode().toLowerCase(), 
+                targetLanguage.getIsoCode().toLowerCase());
+        
+        copyDatabaseIfNeeded(dbName);
+
+        File dbFile = context.getDatabasePath(dbName);
+        if (!dbFile.exists()) {
+            listener.onError("Offline database not found: " + dbName);
             return;
         }
 
-        try (SQLiteDatabase db = SQLiteDatabase.openDatabase(
-                context.getDatabasePath(DB_NAME).getPath(), null, SQLiteDatabase.OPEN_READONLY)) {
+        try (SQLiteDatabase db = SQLiteDatabase.openDatabase(dbFile.getPath(), null, SQLiteDatabase.OPEN_READONLY)) {
             
             StringBuilder html = new StringBuilder();
             html.append("<h2>").append(word).append("</h2>");
@@ -50,14 +55,11 @@ public class OfflineKaikkiSource implements DictionarySource {
                     while (cursor.moveToNext()) {
                         String url = cursor.getString(0);
                         String desc = cursor.getString(1);
-                        if (desc == null || desc.trim().isEmpty()) {
-                            desc = "<span class='no-desc'>No description</span>";
-                        }
                         try {
                             String encodedUrl = URLEncoder.encode(url, "UTF-8");
                             html.append("<div class='pronunciation-item'>")
                                 .append("<a class='play-button' href='app://play/").append(encodedUrl).append("'>&#9658;</a> ")
-                                .append("<span class='pron-desc'>").append(desc).append("</span>")
+                                .append("<span class='pron-desc'>").append(desc != null && !desc.isEmpty() ? desc : "<span class='no-desc'>No description</span>").append("</span>")
                                 .append("</div>");
                         } catch (Exception ignored) {}
                     }
@@ -66,7 +68,6 @@ public class OfflineKaikkiSource implements DictionarySource {
             }
 
             // 2. Fetch main lexical entries, merged by category
-            // STANDALONE INFLECTION BOX REMOVED AS REQUESTED
             String mainQuery = "SELECT le.id, le.lexical_category, le.sense_index FROM lexical_entries le " +
                     "JOIN headwords h ON le.headword_id = h.id " +
                     "WHERE h.headword = ? COLLATE NOCASE " +
@@ -130,13 +131,18 @@ public class OfflineKaikkiSource implements DictionarySource {
             if (found) {
                 listener.onSuccess(wrapHtml(html.toString(), word), word);
             } else {
-                listener.onError("Word not found in offline database.");
+                listener.onError("Word not found in offline database: " + word);
             }
             
         } catch (Exception e) {
             Log.e(TAG, "Offline DB error", e);
             listener.onError("Offline DB error: " + e.getMessage());
         }
+    }
+
+    @Override
+    public void fetchMore(String word, Language sourceLanguage, Language targetLanguage, int page, OnResultListener listener) {
+        // NO OP
     }
 
     private String applyLinks(String text, long entryId, SQLiteDatabase db) {
@@ -205,11 +211,39 @@ public class OfflineKaikkiSource implements DictionarySource {
     }
 
     @Override
-    public void fetchMore(String word, Language sourceLanguage, Language targetLanguage, int page, OnResultListener listener) {}
-
-    @Override
     public String getExtractionJs() {
-        return new WiktionarySource().getExtractionJs();
+        return """
+                (() => {
+                    const cards = [];
+                    const headword = document.body.getAttribute('data-word');
+                    document.querySelectorAll('.h-usage-example').forEach(example => {
+                        const cb = example.querySelector('.example-checkbox');
+                        if (cb && cb.checked) {
+                            const sourceText = example.querySelector('span[lang]').innerHTML;
+                            const targetText = example.querySelector('.h-usage-example-translation').innerHTML;
+                            // Find nearest definition
+                            let definition = '';
+                            let parent = example.parentElement;
+                            while (parent && !parent.classList.contains('definition')) {
+                                parent = parent.parentElement;
+                            }
+                            if (parent) {
+                                const glossEl = parent.querySelector('.gloss');
+                                if (glossEl) definition = glossEl.innerText;
+                            }
+                            // Find category
+                            let category = '';
+                            let posBlock = example.closest('.pos-block');
+                            if (posBlock) {
+                                const h3 = posBlock.querySelector('h3');
+                                if (h3) category = h3.innerText;
+                            }
+                            cards.push({ headword, sourceText, targetText, definition, lexicalCategory: category });
+                        }
+                    });
+                    Android.processSelectedCards(JSON.stringify(cards));
+                })();
+                """;
     }
 
     private String wrapHtml(String content, String word) {
@@ -235,12 +269,12 @@ public class OfflineKaikkiSource implements DictionarySource {
         return "<html><head><style>" + css + "</style></head><body data-word='" + word + "'>" + content + "</body></html>";
     }
 
-    private void copyDatabaseIfNeeded() {
-        java.io.File dbFile = context.getDatabasePath(DB_NAME);
+    private void copyDatabaseIfNeeded(String dbName) {
+        java.io.File dbFile = context.getDatabasePath(dbName);
         if (!dbFile.exists()) {
             try {
                 dbFile.getParentFile().mkdirs();
-                try (InputStream is = context.getAssets().open(DB_NAME);
+                try (InputStream is = context.getAssets().open(dbName);
                      OutputStream os = new FileOutputStream(dbFile)) {
                     byte[] buffer = new byte[1024];
                     int length;
@@ -248,8 +282,9 @@ public class OfflineKaikkiSource implements DictionarySource {
                         os.write(buffer, 0, length);
                     }
                 }
+                Log.d(TAG, "Database copied successfully: " + dbName);
             } catch (IOException e) {
-                Log.e(TAG, "Failed to copy database", e);
+                Log.e(TAG, "Failed to copy database from assets: " + dbName, e);
             }
         }
     }

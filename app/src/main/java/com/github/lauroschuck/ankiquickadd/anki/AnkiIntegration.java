@@ -1,5 +1,7 @@
 package com.github.lauroschuck.ankiquickadd.anki;
 
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
@@ -8,6 +10,8 @@ import androidx.core.content.ContextCompat;
 
 import com.github.lauroschuck.ankiquickadd.MainActivity;
 import com.github.lauroschuck.ankiquickadd.R;
+import com.github.lauroschuck.ankiquickadd.SettingsActivity;
+import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -31,12 +35,10 @@ public class AnkiIntegration {
     }
 
     public static void createAnkiCards(MainActivity context, List<TranslationCard> cards) {
-
         if (cards == null || cards.isEmpty()) {
             showSnackbar(context, "No cards selected.", true);
             return;
         }
-
         new AnkiIntegration(context).addCardsToAnkiDroid(cards);
     }
 
@@ -73,7 +75,7 @@ public class AnkiIntegration {
      * @return might be null if there was an error
      */
     private Long getModelId() {
-        AnkiNote note = AnkiNote.SAMPLE;
+        AnkiNote note = AnkiNote.SOURCE_TARGET_TEXT_V1;
         Long mid = mAnkiDroid.findModelIdByName(note.getModelName(), note.getFieldNames().length);
         if (mid == null) {
             mid = mAnkiDroid.getApi().addNewCustomModel(
@@ -92,7 +94,7 @@ public class AnkiIntegration {
     }
 
     private void addCardsToAnkiDroid(final List<TranslationCard> data) {
-        AnkiNote note = AnkiNote.SAMPLE;
+        AnkiNote note = AnkiNote.SOURCE_TARGET_TEXT_V1;
         Long deckId = getDeckId();
         Long modelId = getModelId();
         if ((deckId == null) || (modelId == null)) {
@@ -107,19 +109,31 @@ public class AnkiIntegration {
             showSnackbar(context, "Card add failed: Model Error", true);
             return;
         }
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        String sourceLang = prefs.getString(SettingsActivity.KEY_SOURCE_LANGUAGE, Language.SWEDISH.getIsoCode());
+        String targetLang = prefs.getString(SettingsActivity.KEY_TARGET_LANGUAGE, Language.ENGLISH.getIsoCode());
+
         // Build list of fields and tags
         LinkedList<String[]> fields = new LinkedList<>();
         LinkedList<Set<String>> tags = new LinkedList<>();
         for (var card : data) {
             String[] flds = new String[fieldNames.length];
             
-            // Mapping to SAMPLE fields based on index
-            if (flds.length >= 5) {
+            // Mapping to SOURCE_TARGET_TEXT_V1 fields
+            // 0: SourceText, 1: SourceLang, 2: TargetText, 3: TargetLang, 4: LexicalCat, 5: NoteHeader, 6: Notes, 7: HiddenNotes, 8: Audio, 9: SourceUrl
+            if (flds.length >= 10) {
                 flds[0] = card.sourceText();
-                flds[1] = card.headword();
+                flds[1] = sourceLang;
                 flds[2] = card.targetText();
-                flds[3] = card.definition();
+                flds[3] = targetLang;
                 flds[4] = card.lexicalCategory();
+                flds[5] = card.headword();
+                flds[6] = card.definition();
+                // TODO #Swedish needs fixing
+                flds[9] = String.format("https://%s.wiktionary.org/wiki/%s#Swedish", targetLang, card.headword());
+            } else {
+                // we had an API error, report failure and return;
             }
 
             tags.add(note.getTags());

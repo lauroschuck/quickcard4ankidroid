@@ -398,4 +398,3 @@ public class KaikkiToSqlite {
         st.execute("CREATE INDEX idx_sl_le ON sense_links(lexical_entry_id)");
     }
 }
-<ctrl46>}
