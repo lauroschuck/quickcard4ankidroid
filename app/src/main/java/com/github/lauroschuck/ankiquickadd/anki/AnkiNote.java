@@ -13,12 +13,12 @@ public enum AnkiNote {
         List.of("Expression", "Reading", "Meaning", "Furigana", "Grammar", "Sentence", "SentenceFurigana", "SentenceMeaning"),
                     """
                     .card {
-                     font-family: NotoSansJP;
-                     font-size: 24px;
-                     text-align: center;
-                     color: black;
-                     background-color: white;
-                     word-wrap: break-word;
+                        font-family: NotoSansJP;
+                        font-size: 24px;
+                        text-align: center;
+                        color: black;
+                        background-color: white;
+                        word-wrap: break-word;
                     }
                     @font-face { font-family: "NotoSansJP"; src: url('_NotoSansJP-Regular.otf'); }
                     @font-face { font-family: "NotoSansJP"; src: url('_NotoSansJP-Bold.otf'); font-weight: bold; }
@@ -54,7 +54,112 @@ public enum AnkiNote {
             )
         ),
         Set.of("API_Sample_App")
-    );
+    ),
+    SOURCE_TARGET_TEXT_V1(
+            "com.github.lauroschuck.ankiquickadd.notes.language.SourceTargetTextV1",
+            List.of("SourceText", "SourceLang", "TargetText", "TargetLang", "LexicalCat", "NoteHeader", "Notes", "HiddenNotes", "Audio", "SourceUrl"),
+            """
+                    .card {
+                        font-family: arial;
+                        font-size: 20px;
+                        text-align: center;
+                        color: black;
+                        background-color: white;
+                    }
+                    
+                    .text-hints {
+                        font-size: 0.75em;
+                        color: gray;
+                    }
+                    
+                    .no-style b {
+                        font-weight: normal;
+                    }
+                    
+                    .notes-container {
+                         padding-top: 1em;
+                    }
+                    
+                    .note-header {
+                         font-weight: bold;
+                         background-color: #eee;
+                         padding: 0.5em 1em;
+                    }
+                    
+                    .night_mode .note-header {
+                         background-color: #555;
+                    }
+                    
+                    .notes {
+                         font-size: 0.8em;
+                         background-color: #eee;
+                         padding: 0.5em 1em;
+                    }
+                    
+                    .night_mode .notes {
+                         background-color: #555;
+                    }
+                    
+                    .audio {
+                        display: none;
+                    }
+                    """,
+            List.of(new CardType(
+                    "Source-Target",
+                    """
+                            {{SourceText}}
+                            <div class="text-hints">({{LexicalCat}})<br/>Lang: {{SourceLang}}</div>
+                            """,
+                    """
+                            {{SourceText}}
+                            <div class="text-hints"({{LexicalCat}})<br/>Lang: {{SourceLang}}</div>
+                            
+                            <hr id="answer"/>
+                            
+                            {{TargetText}}
+                            <div class="text-hints">({{TargetLang}})</div>
+                            
+                            <div class="notes-container">
+                                {{#NoteHeader}}
+                                <div class="note-header">{{NoteHeader}}</div>
+                                {{/NoteHeader}}
+                                {{#Notes}}
+                                <div class="notes">{{Notes}}</div>
+                                {{/Notes}}
+                            </div>
+                            
+                            {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
+                            """
+            ),
+                    new CardType(
+                            "Target-Source",
+                            """
+                                    {{TargetText}}
+                                    <div class="text-hints">({{LexicalCat}})<br/>Lang: {{TargetLang}}</div>
+                                    
+                                    {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
+                                    """,
+                            """
+                                    {{TargetText}}
+                                    <div class="text-hints"({{LexicalCat}})<br/>Lang: {{TargetLang}}</div>
+                                    
+                                    <hr id="answer"/>
+                                    
+                                    {{SourceText}}
+                                    <div class="text-hints">({{SourceLang}})</div>
+                                    
+                                    <div class="notes-container">
+                                        {{#NoteHeader}}
+                                        <div class="note-header">{{NoteHeader}}</div>
+                                        {{/NoteHeader}}
+                                        {{#Notes}}
+                                        <div class="notes">{{Notes}}</div>
+                                        {{/Notes}}
+                                    </div>
+                                    """
+                    )),
+            Set.of()
+    ),;
 
     private final String modelName;
     private final List<String> fieldNames;
