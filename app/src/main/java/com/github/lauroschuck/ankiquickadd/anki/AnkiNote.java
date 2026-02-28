@@ -71,7 +71,7 @@ public enum AnkiNote {
                             <hr id="answer"/>
                             
                             {{TargetText}}
-                            <div class="text-hints">({{TargetLang}})</div>
+                            <div class="text-hints">Lang: {{TargetLang}}</div>
                             
                             <div class="notes-container">
                                 {{#NoteHeader}}
@@ -100,7 +100,7 @@ public enum AnkiNote {
                                     <hr id="answer"/>
                                     
                                     {{SourceText}}
-                                    <div class="text-hints">({{SourceLang}})</div>
+                                    <div class="text-hints">Lang: {{SourceLang}}</div>
                                     
                                     <div class="notes-container">
                                         {{#NoteHeader}}
