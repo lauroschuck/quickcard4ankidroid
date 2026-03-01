@@ -4,12 +4,14 @@ import android.net.Uri;
 import android.util.Log;
 
 import com.github.lauroschuck.ankiquickadd.model.Language;
+import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import java.io.IOException;
+import java.util.List;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -92,6 +94,11 @@ public class WordReferenceSource implements DictionarySource {
                     
                     Android.processSelectedCards(JSON.stringify(cards));
                 })();""";
+    }
+
+    @Override
+    public void getCardsFromSelection(String json, OnCardsReadyListener listener) {
+        listener.onCardsReady(TranslationCard.fromJson(json));
     }
 
     private void processResponse(String html, String word, OnResultListener listener) {

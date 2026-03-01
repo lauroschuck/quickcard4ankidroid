@@ -72,10 +72,13 @@ public class MainActivity extends AppCompatActivity {
         public void processSelectedCards(String json) {
             runOnUiThread(() -> {
                 Log.d(TAG, "Selected cards JSON: " + json);
-                List<TranslationCard> cards = TranslationCard.fromJson(json);
-                if (AnkiDroidHelper.isApiAvailable(MainActivity.this)) {
-                    AnkiIntegration.createAnkiCards(MainActivity.this, cards);
-                }
+                currentSource.getCardsFromSelection(json, cards -> {
+                    runOnUiThread(() -> {
+                        if (AnkiDroidHelper.isApiAvailable(MainActivity.this)) {
+                            AnkiIntegration.createAnkiCards(MainActivity.this, cards);
+                        }
+                    });
+                });
             });
         }
 

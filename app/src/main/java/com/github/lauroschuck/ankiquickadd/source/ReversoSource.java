@@ -4,6 +4,7 @@ import android.net.Uri;
 import android.util.Log;
 
 import com.github.lauroschuck.ankiquickadd.model.Language;
+import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -147,6 +148,11 @@ public class ReversoSource implements DictionarySource {
                     
                     Android.processSelectedCards(JSON.stringify(cards));
                 })();""";
+    }
+
+    @Override
+    public void getCardsFromSelection(String json, OnCardsReadyListener listener) {
+        listener.onCardsReady(TranslationCard.fromJson(json));
     }
 
     private void processResponse(String html, String word, OnResultListener listener) {

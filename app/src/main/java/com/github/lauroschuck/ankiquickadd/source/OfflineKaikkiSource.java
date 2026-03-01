@@ -8,6 +8,11 @@ import android.util.Log;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Template;
 import com.github.lauroschuck.ankiquickadd.model.Language;
+import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -26,6 +31,8 @@ public class OfflineKaikkiSource implements DictionarySource {
     private final Context context;
     private final Handlebars handlebars = new Handlebars();
     private Template template;
+    private Language lastSourceLanguage;
+    private Language lastTargetLanguage;
 
     public OfflineKaikkiSource(Context context) {
         this.context = context;
@@ -90,7 +97,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                                 <dl>
                                     {{#each examples}}
                                     <dd class='h-usage-example'>
-                                        <input type='checkbox' class='example-checkbox'>
+                                        <input type='checkbox' class='example-checkbox' id='example-{{id}}'>
                                         <span lang='sv'>{{{sourceText}}}</span>
                                         <div class='h-usage-example-translation'>{{{targetText}}}</div>
                                     </dd>
@@ -112,6 +119,9 @@ public class OfflineKaikkiSource implements DictionarySource {
 
     @Override
     public void fetch(String word, Language sourceLanguage, Language targetLanguage, OnResultListener listener) {
+        this.lastSourceLanguage = sourceLanguage;
+        this.lastTargetLanguage = targetLanguage;
+        
         String dbName = String.format("wiktionary_kaikki_%s-%s.db", 
                 sourceLanguage.getIsoCode().toLowerCase(), 
                 targetLanguage.getIsoCode().toLowerCase());
@@ -184,11 +194,12 @@ public class OfflineKaikkiSource implements DictionarySource {
                     sense.put("relations", relations);
 
                     // Examples
-                    List<Map<String, String>> examples = new ArrayList<>();
+                    List<Map<String, Object>> examples = new ArrayList<>();
                     try (Cursor exCursor = db.rawQuery("SELECT id, source_text, target_text FROM examples WHERE lexical_entry_id = ?", new String[]{String.valueOf(entryId)})) {
                         while (exCursor.moveToNext()) {
-                            Map<String, String> ex = new HashMap<>();
+                            Map<String, Object> ex = new HashMap<>();
                             long exId = exCursor.getLong(0);
+                            ex.put("id", exId);
                             ex.put("sourceText", applyBolding(exCursor.getString(1), exId, "S", db));
                             ex.put("targetText", applyBolding(exCursor.getString(2), exId, "T", db));
                             examples.add(ex);
@@ -257,32 +268,92 @@ public class OfflineKaikkiSource implements DictionarySource {
     public String getExtractionJs() {
         return """
                 (() => {
-                    const cards = [];
-                    const headword = document.body.getAttribute('data-word');
-                    document.querySelectorAll('.h-usage-example').forEach(example => {
-                        const cb = example.querySelector('.example-checkbox');
-                        if (cb && cb.checked) {
-                            const sourceText = example.querySelector('span[lang]').innerHTML;
-                            const targetText = example.querySelector('.h-usage-example-translation').innerHTML;
-                            let definition = '';
-                            let parent = example.parentElement;
-                            while (parent && !parent.classList.contains('definition')) parent = parent.parentElement;
-                            if (parent) {
-                                const glossEl = parent.querySelector('.gloss');
-                                if (glossEl) definition = glossEl.innerText;
-                            }
-                            let category = '';
-                            let posBlock = example.closest('.pos-block');
-                            if (posBlock) {
-                                const h3 = posBlock.querySelector('h3');
-                                if (h3) category = h3.innerText;
-                            }
-                            cards.push({ headword, sourceText, targetText, definition, lexicalCategory: category });
-                        }
+                    const selectedIds = [];
+                    document.querySelectorAll('.example-checkbox:checked').forEach(cb => {
+                        const id = cb.id.replace('example-', '');
+                        selectedIds.push(id);
                     });
-                    Android.processSelectedCards(JSON.stringify(cards));
+                    Android.processSelectedCards(JSON.stringify({ examples: selectedIds }));
                 })();
                 """;
+    }
+
+    @Override
+    public void getCardsFromSelection(String json, OnCardsReadyListener listener) {
+        try {
+            JsonObject obj = new Gson().fromJson(json, JsonObject.class);
+            if (!obj.has("examples")) {
+                // Fallback for other sources or old format if any
+                listener.onCardsReady(TranslationCard.fromJson(json));
+                return;
+            }
+
+            JsonArray exampleIds = obj.getAsJsonArray("examples");
+            List<TranslationCard> cards = new ArrayList<>();
+
+            if (lastSourceLanguage == null || lastTargetLanguage == null) {
+                listener.onCardsReady(cards);
+                return;
+            }
+
+            String dbName = String.format("wiktionary_kaikki_%s-%s.db", 
+                    lastSourceLanguage.getIsoCode().toLowerCase(), 
+                    lastTargetLanguage.getIsoCode().toLowerCase());
+            
+            File dbFile = context.getDatabasePath(dbName);
+            if (!dbFile.exists()) {
+                listener.onCardsReady(cards);
+                return;
+            }
+
+            try (SQLiteDatabase db = SQLiteDatabase.openDatabase(dbFile.getPath(), null, SQLiteDatabase.OPEN_READONLY)) {
+                for (JsonElement idElem : exampleIds) {
+                    String exIdStr = idElem.getAsString();
+                    long exId = Long.parseLong(exIdStr);
+
+                    String query = "SELECT e.source_text, e.target_text, le.lexical_category, h.headword, e.lexical_entry_id " +
+                                   "FROM examples e " +
+                                   "JOIN lexical_entries le ON e.lexical_entry_id = le.id " +
+                                   "JOIN headwords h ON le.headword_id = h.id " +
+                                   "WHERE e.id = ?";
+                    
+                    try (Cursor cursor = db.rawQuery(query, new String[]{exIdStr})) {
+                        if (cursor.moveToFirst()) {
+                            String sourceTextRaw = cursor.getString(0);
+                            String targetTextRaw = cursor.getString(1);
+                            String lexicalCategory = cursor.getString(2);
+                            String headword = cursor.getString(3);
+                            long entryId = cursor.getLong(4);
+
+                            String sourceText = applyBolding(sourceTextRaw, exId, "S", db);
+                            String targetText = applyBolding(targetTextRaw, exId, "T", db);
+
+                            // Glosses
+                            StringBuilder glosses = new StringBuilder();
+                            String glossQuery = "SELECT gloss FROM glosses WHERE lexical_entry_id = ? ORDER BY gloss_index";
+                            try (Cursor glossCursor = db.rawQuery(glossQuery, new String[]{String.valueOf(entryId)})) {
+                                while (glossCursor.moveToNext()) {
+                                    if (glosses.length() > 0) glosses.append("<br/>");
+                                    glosses.append(applyLinks(glossCursor.getString(0), entryId, db));
+                                }
+                            }
+
+                            cards.add(new TranslationCard(
+                                headword,
+                                sourceText,
+                                targetText,
+                                glosses.toString(),
+                                lexicalCategory
+                            ));
+                        }
+                    }
+                }
+            }
+            listener.onCardsReady(cards);
+        } catch (Exception e) {
+            Log.e(TAG, "Error generating cards from selection", e);
+            listener.onCardsReady(new ArrayList<>());
+        }
     }
 
     private void copyDatabaseIfNeeded(String dbName) {

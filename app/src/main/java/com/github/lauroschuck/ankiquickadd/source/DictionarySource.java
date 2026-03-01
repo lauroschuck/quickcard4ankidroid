@@ -1,6 +1,9 @@
 package com.github.lauroschuck.ankiquickadd.source;
 
 import com.github.lauroschuck.ankiquickadd.model.Language;
+import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
+
+import java.util.List;
 
 /**
  * Interface for dictionary sources.
@@ -12,6 +15,13 @@ public interface DictionarySource {
     interface OnResultListener {
         void onSuccess(String html, String headword);
         void onError(String message);
+    }
+
+    /**
+     * Interface for listener to receive selected cards.
+     */
+    interface OnCardsReadyListener {
+        void onCardsReady(List<TranslationCard> cards);
     }
 
     /**
@@ -34,7 +44,14 @@ public interface DictionarySource {
     void fetchMore(String word, Language sourceLanguage, Language targetLanguage, int page, OnResultListener listener);
 
     /**
-     * Returns the JavaScript code to extract card data from the rendered HTML.
+     * Returns the JavaScript code to extract card data or IDs from the rendered HTML.
      */
     String getExtractionJs();
+
+    /**
+     * Processes the selection from JavaScript and returns a list of TranslationCard objects.
+     * @param json the JSON string returned by the JavaScript extraction code
+     * @param listener the listener to receive the cards
+     */
+    void getCardsFromSelection(String json, OnCardsReadyListener listener);
 }
