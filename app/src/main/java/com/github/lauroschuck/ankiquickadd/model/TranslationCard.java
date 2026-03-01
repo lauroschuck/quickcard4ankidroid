@@ -13,7 +13,8 @@ public record TranslationCard(
     String sourceText,
     String targetText,
     String definition,
-    String lexicalCategory
+    String lexicalCategory,
+    String audioUrl
 ) {
     /**
      * Utility method to parse JSON extraction data into a list of TranslationCard objects.

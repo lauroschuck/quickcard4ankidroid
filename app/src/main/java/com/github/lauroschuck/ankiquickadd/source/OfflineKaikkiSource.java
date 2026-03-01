@@ -328,6 +328,16 @@ public class OfflineKaikkiSource implements DictionarySource {
                             String sourceText = applyBolding(sourceTextRaw, exId, "S", db);
                             String targetText = applyBolding(targetTextRaw, exId, "T", db);
 
+                            // Audio
+                            String audioUrl = null;
+                            String audioQuery = "SELECT audio_url FROM pronunciations p JOIN headwords h ON p.headword_id = h.id WHERE h.headword = ? LIMIT 1";
+                            try (Cursor audioCursor = db.rawQuery(audioQuery, new String[]{headword})) {
+                                // TODO is taking the first, need something smarter
+                                if (audioCursor.moveToFirst()) {
+                                    audioUrl = audioCursor.getString(0);
+                                }
+                            }
+
                             // Glosses
                             StringBuilder glosses = new StringBuilder();
                             String glossQuery = "SELECT gloss FROM glosses WHERE lexical_entry_id = ? ORDER BY gloss_index";
@@ -343,7 +353,8 @@ public class OfflineKaikkiSource implements DictionarySource {
                                 sourceText,
                                 targetText,
                                 glosses.toString(),
-                                lexicalCategory
+                                lexicalCategory,
+                                audioUrl
                             ));
                         }
                     }
