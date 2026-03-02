@@ -27,10 +27,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Handles the integration with AnkiDroid for creating language flashcards.
@@ -88,6 +89,9 @@ public class AnkiIntegration {
         LinkedList<Set<String>> tagsList = new LinkedList<>();
 
         String ankiPkg = AddContentApi.getAnkiDroidPackageName(context);
+        
+        // Cache to avoid downloading/uploading the same audio multiple times in one batch
+        Map<String, String> audioCache = new HashMap<>();
 
         for (TranslationCard card : data) {
             String[] fields = new String[fieldNames.length];
@@ -103,8 +107,16 @@ public class AnkiIntegration {
             fields[6] = card.definition();
             fields[9] = String.format("https://%s.wiktionary.org/wiki/%s#Swedish", targetLang, card.headword());
 
-            // Handle Audio
-            fields[8] = processAudio(card, sourceLang, ankiPkg);
+            // Handle Audio with caching per headword
+            String headword = card.headword();
+            String soundTag = audioCache.get(headword);
+            if (soundTag == null) {
+                soundTag = processAudio(card, sourceLang, ankiPkg);
+                if (!soundTag.isEmpty()) {
+                    audioCache.put(headword, soundTag);
+                }
+            }
+            fields[8] = soundTag;
 
             fieldsList.add(fields);
             tagsList.add(note.getTags());
@@ -158,6 +170,8 @@ public class AnkiIntegration {
     private File downloadFile(String urlString, String fileName) throws IOException {
         URL url = new URL(urlString);
         URLConnection connection = url.openConnection();
+        connection.setConnectTimeout(10000);
+        connection.setReadTimeout(10000);
         connection.connect();
 
         File file = new File(context.getCacheDir(), fileName);
