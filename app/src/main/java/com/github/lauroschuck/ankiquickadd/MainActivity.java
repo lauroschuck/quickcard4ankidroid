@@ -41,6 +41,7 @@ import com.github.lauroschuck.ankiquickadd.source.WiktionarySource;
 import com.github.lauroschuck.ankiquickadd.source.WordReferenceSource;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.tabs.TabLayout;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -61,6 +62,8 @@ public class MainActivity extends AppCompatActivity {
     private ImageButton settingsButton;
     private EditText searchEditText;
     private Button searchButton;
+    private View noteTypeHeader;
+    private TabLayout noteTypeTabLayout;
     private String currentWord = "";
     private MediaPlayer mediaPlayer;
     
@@ -75,7 +78,8 @@ public class MainActivity extends AppCompatActivity {
                 currentSource.getCardsFromSelection(json, cards -> {
                     runOnUiThread(() -> {
                         if (AnkiDroidHelper.isApiAvailable(MainActivity.this)) {
-                            AnkiIntegration.createAnkiCards(MainActivity.this, cards);
+                            boolean isDefinitions = noteTypeTabLayout.getSelectedTabPosition() == 0;
+                            AnkiIntegration.createAnkiCards(MainActivity.this, cards, isDefinitions);
                         }
                     });
                 });
@@ -113,16 +117,48 @@ public class MainActivity extends AppCompatActivity {
         settingsButton = findViewById(R.id.settingsButton);
         searchEditText = findViewById(R.id.searchEditText);
         searchButton = findViewById(R.id.searchButton);
+        noteTypeHeader = findViewById(R.id.noteTypeHeader);
+        noteTypeTabLayout = findViewById(R.id.noteTypeTabLayout);
 
         setupSources();
         configureWebView();
         setupSearch();
+        setupTabs();
         
         settingsButton.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
         createCardsFab.setOnClickListener(v -> triggerJsExtraction());
         closeButton.setOnClickListener(v -> showCentralSearch("Enter a word or select text in another app"));
         
         handleIntent(getIntent());
+    }
+
+    private void setupTabs() {
+        // "Dictionary Definitions" is at index 0, "Examples" is at index 1
+        noteTypeTabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                if (!currentWord.isEmpty()) {
+                    webView.setVisibility(View.VISIBLE);
+                    String mode = tab.getPosition() == 0 ? "definitions" : "examples";
+                    webView.evaluateJavascript("setMode('" + mode + "')", null);
+                    // Reset selected count when switching tabs since we haven't implemented cross-tab selection
+                    createCardsFabContainer.setVisibility(View.GONE);
+                    badgeText.setVisibility(View.GONE);
+                } else {
+                    webView.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {}
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {}
+        });
+        
+        // Select "Examples" by default for now
+        TabLayout.Tab examplesTab = noteTypeTabLayout.getTabAt(1);
+        if (examplesTab != null) examplesTab.select();
     }
 
     private void setupSearch() {
@@ -205,6 +241,9 @@ public class MainActivity extends AppCompatActivity {
                 super.onPageFinished(view, url);
                 // Inject selection change listener
                 injectCheckboxListener();
+                // Set initial mode based on selected tab
+                String mode = noteTypeTabLayout.getSelectedTabPosition() == 0 ? "definitions" : "examples";
+                webView.evaluateJavascript("setMode('" + mode + "')", null);
             }
         });
     }
@@ -254,6 +293,7 @@ public class MainActivity extends AppCompatActivity {
         currentWord = "";
         runOnUiThread(() -> {
             webView.setVisibility(View.GONE);
+            noteTypeHeader.setVisibility(View.GONE);
             createCardsFabContainer.setVisibility(View.GONE);
             closeButton.setVisibility(View.GONE);
             centralContainer.setVisibility(View.VISIBLE);
@@ -268,6 +308,7 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             centralContainer.setVisibility(View.GONE);
             webView.setVisibility(View.INVISIBLE);
+            noteTypeHeader.setVisibility(View.GONE);
             createCardsFabContainer.setVisibility(View.GONE);
             closeButton.setVisibility(View.GONE);
             badgeText.setVisibility(View.GONE);
@@ -281,6 +322,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onSuccess(String html, String headword) {
                 runOnUiThread(() -> {
+                    noteTypeHeader.setVisibility(View.VISIBLE);
                     webView.setVisibility(View.VISIBLE);
                     webView.loadDataWithBaseURL("https://en.wiktionary.org/", html, "text/html", "UTF-8", null);
                     closeButton.setVisibility(View.VISIBLE);

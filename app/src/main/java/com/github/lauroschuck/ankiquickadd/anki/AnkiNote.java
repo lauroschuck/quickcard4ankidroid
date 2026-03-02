@@ -3,6 +3,9 @@ package com.github.lauroschuck.ankiquickadd.anki;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * Defines Anki note types with their configuration and templates.
@@ -64,6 +67,8 @@ public enum AnkiNote {
                     """
                             {{SourceText}}
                             <div class="text-hints">({{LexicalCat}})<br/>Lang: {{SourceLang}}</div>
+                            
+                            {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
                             """,
                     """
                             {{SourceText}}
@@ -82,8 +87,6 @@ public enum AnkiNote {
                                 <div class="notes">{{Notes}}</div>
                                 {{/Notes}}
                             </div>
-                            
-                            {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
                             """
             ),
                     new CardType(
@@ -91,8 +94,6 @@ public enum AnkiNote {
                             """
                                     {{TargetText}}
                                     <div class="text-hints">({{LexicalCat}})<br/>Lang: {{TargetLang}}</div>
-                                    
-                                    {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
                                     """,
                             """
                                     {{TargetText}}
@@ -111,6 +112,8 @@ public enum AnkiNote {
                                         <div class="notes">{{Notes}}</div>
                                         {{/Notes}}
                                     </div>
+                                    
+                                    {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
                                     """
                     )),
             Set.of()
@@ -266,15 +269,9 @@ public enum AnkiNote {
                         display: none;
                     }
                     """,
-            List.of(new CardType(
-                    /*
-              List.of("SourceWord", "SourceLang", "LexicalCat", "TargetLang",
-                    "Definition1", "Definition1_SourceText", "Definition1_TargetText",
-                    "Definition2", "Definition2_SourceText", "Definition2_TargetText",
-                    "Definition3", "Definition3_SourceText", "Definition3_TargetText",
-                    "Definition4", "Definition4_SourceText", "Definition4_TargetText",
-                    "NoteHeader", "Notes", "HiddenNotes", "Audio", "SourceUrl"),
-                     */
+            Stream.concat(
+                    Stream.of(
+                            new CardType(
                             "Source-Targets",
                             """
                                     {{#LexicalCat}}
@@ -401,9 +398,6 @@ public enum AnkiNote {
                                       {{/Definition5}}
                                     </table>
     
-                                    {{#TranslationTableNote}}
-                                    <div class="note">{{TranslationTableNote}}</note>
-                                    {{/TranslationTableNote}}
                                     <div class="notes-container">
                                         {{#NoteHeader}}
                                         <div class="note-header">{{NoteHeader}}</div>
@@ -413,67 +407,77 @@ public enum AnkiNote {
                                         {{/Notes}}
                                     </div>
                                     """
-                    ),
-                    new CardType(
-                            "Target1-Source",
-                            """
-                                    {{#Definition1}}
-                                    
-                                    {{#LexicalCat}}
-                                    <div class="gramatical-class">{{LexicalCat}}</div>
-                                    {{/LexicalCat}}
-                                    
-                                    {{Definition1}}
-                                    <div class="language">({{TargetLang}})</div>
-                                    
-                                    {{#Definition1_TargetText}}
-                                    <div class="hint">
-                                    <button>Hint</button>
-                                    <div class="front example">
-                                    {{Definition1_TargetText}}
-                                    </div>
-                                    </div>
-                                    {{/Definition1_TargetText}}
-                                    
-                                    
-                                    <script>
-                                    $(".hint button").click(function() {
-                                    		 $(this).fadeOut(400, function() {
-                                            $(this).next().fadeIn();
-                                        });
-                                    });
-                                    </script>
-                                    
-                                    {{/Definition1}}
-                                    """,
-                            """
-                                    {{#LexicalCat}}
-                                    <div class="gramatical-class">{{LexicalCat}}</div>
-                                    {{/LexicalCat}}
-                                    
-                                    {{Definition1}}
-                                    <div class="language">({{TargetLang}})</div>
-                                    
-                                    {{#Definition1_TargetText}}
-                                    <div class="example">
-                                    {{Definition1_TargetText}}
-                                    </div>
-                                    {{/Definition1_TargetText}}
-                                    
-                                    <hr id="answer"/>
-                                    
-                                    {{SourceWord}}
-                                    <div class="language">({{SourceLang}})</div>
-                                    
-                                    {{#Definition1_SourceText}}
-                                    <div class="example">
-                                    {{Definition1_SourceText}}
-                                    </div>
-                                    {{/Definition1_SourceText}}
-                                    
-                                    {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
+                    )), IntStream.range(1, 6).boxed()
+                            .map(index -> new CardType(
+                                    "TargetINDEX-Source".replace("INDEX", String.valueOf(index)),
                                     """
-                    )),
+                                            {{#DefinitionINDEX}}
+                                            
+                                            {{#LexicalCat}}
+                                            <div class="gramatical-class">{{LexicalCat}}</div>
+                                            {{/LexicalCat}}
+                                            
+                                            {{DefinitionINDEX}}
+                                            <div class="language">({{TargetLang}})</div>
+                                            
+                                            {{#DefinitionINDEX_TargetText}}
+                                            <div class="hint">
+                                            <button>Hint</button>
+                                            <div class="front example">
+                                            {{DefinitionINDEX_TargetText}}
+                                            </div>
+                                            </div>
+                                            {{/DefinitionINDEX_TargetText}}
+                                            
+                                            
+                                            <script>
+                                            $(".hint button").click(function() {
+                                                     $(this).fadeOut(400, function() {
+                                                    $(this).next().fadeIn();
+                                                });
+                                            });
+                                            </script>
+                                            
+                                            {{/DefinitionINDEX}}
+                                            """.replaceAll("INDEX", String.valueOf(index)),
+                                    """
+                                            {{#LexicalCat}}
+                                            <div class="gramatical-class">{{LexicalCat}}</div>
+                                            {{/LexicalCat}}
+                                            
+                                            {{DefinitionINDEX}}
+                                            <div class="language">({{TargetLang}})</div>
+                                            
+                                            {{#DefinitionINDEX_TargetText}}
+                                            <div class="example">
+                                            {{DefinitionINDEX_TargetText}}
+                                            </div>
+                                            {{/DefinitionINDEX_TargetText}}
+                                            
+                                            <hr id="answer"/>
+                                            
+                                            {{SourceWord}}
+                                            <div class="language">({{SourceLang}})</div>
+                                            
+                                            {{#DefinitionINDEX_SourceText}}
+                                            <div class="example">
+                                            {{DefinitionINDEX_SourceText}}
+                                            </div>
+                                            {{/DefinitionINDEX_SourceText}}
+                                            
+                                            <div class="notes-container">
+                                                {{#NoteHeader}}
+                                                <div class="note-header">{{NoteHeader}}</div>
+                                                {{/NoteHeader}}
+                                                {{#Notes}}
+                                                <div class="notes">{{Notes}}</div>
+                                                {{/Notes}}
+                                            </div>
+                                            
+                                            {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
+                                            """.replaceAll("INDEX", String.valueOf(index))
+                            ))
+            ).collect(Collectors.toList()),
             Set.of()
             );
 

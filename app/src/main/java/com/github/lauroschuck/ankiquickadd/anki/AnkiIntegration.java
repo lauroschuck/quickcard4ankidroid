@@ -27,7 +27,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -53,22 +55,18 @@ public class AnkiIntegration {
         }
     }
 
-    /**
-     * Entry point to create Anki cards from a list of TranslationCard objects.
-     * Operates in a background thread to handle network and file I/O.
-     */
-    public static void createAnkiCards(MainActivity context, List<TranslationCard> cards) {
+    public static void createAnkiCards(MainActivity context, List<TranslationCard> cards, boolean isDefinitions) {
         if (cards == null || cards.isEmpty()) {
             showSnackbar(context, "No cards selected.", true);
             return;
         }
-        new Thread(() -> new AnkiIntegration(context).addCardsToAnkiDroid(cards)).start();
+        new Thread(() -> new AnkiIntegration(context).addCardsToAnkiDroid(cards, isDefinitions)).start();
     }
 
-    private void addCardsToAnkiDroid(final List<TranslationCard> data) {
-        AnkiNote note = AnkiNote.SOURCE_TARGET_TEXT_V1;
+    private void addCardsToAnkiDroid(final List<TranslationCard> data, boolean isDefinitions) {
+        AnkiNote note = isDefinitions ? AnkiNote.DICTIONARY_DEFINITION_V1 : AnkiNote.SOURCE_TARGET_TEXT_V1;
         Long deckId = getDeckId();
-        Long modelId = getModelId();
+        Long modelId = getModelId(note);
 
         if (deckId == null || modelId == null) {
             showSnackbar(context, "Card add failed: API Error", true);
@@ -87,39 +85,74 @@ public class AnkiIntegration {
 
         LinkedList<String[]> fieldsList = new LinkedList<>();
         LinkedList<Set<String>> tagsList = new LinkedList<>();
-
         String ankiPkg = AddContentApi.getAnkiDroidPackageName(context);
-        
-        // Cache to avoid downloading/uploading the same audio multiple times in one batch
         Map<String, String> audioCache = new HashMap<>();
 
-        for (TranslationCard card : data) {
-            String[] fields = new String[fieldNames.length];
-
-            // Mapping to SOURCE_TARGET_TEXT_V1 fields
-            // 0: SourceText, 1: SourceLang, 2: TargetText, 3: TargetLang, 4: LexicalCat, 5: NoteHeader, 6: Notes, 7: HiddenNotes, 8: Audio, 9: SourceUrl
-            fields[0] = card.sourceText();
-            fields[1] = sourceLang;
-            fields[2] = card.targetText();
-            fields[3] = targetLang;
-            fields[4] = card.lexicalCategory();
-            fields[5] = card.headword();
-            fields[6] = card.definition();
-            fields[9] = String.format("https://%s.wiktionary.org/wiki/%s#Swedish", targetLang, card.headword());
-
-            // Handle Audio with caching per headword
-            String headword = card.headword();
-            String soundTag = audioCache.get(headword);
-            if (soundTag == null) {
-                soundTag = processAudio(card, sourceLang, ankiPkg);
-                if (!soundTag.isEmpty()) {
-                    audioCache.put(headword, soundTag);
-                }
+        if (isDefinitions) {
+            // Group cards by headword and lexical category for DICTIONARY_DEFINITION_V1
+            Map<String, List<TranslationCard>> groups = new LinkedHashMap<>();
+            for (TranslationCard card : data) {
+                String key = card.headword() + "|" + card.lexicalCategory();
+                groups.computeIfAbsent(key, k -> new ArrayList<>()).add(card);
             }
-            fields[8] = soundTag;
 
-            fieldsList.add(fields);
-            tagsList.add(note.getTags());
+            for (List<TranslationCard> group : groups.values()) {
+                String[] fields = new String[fieldNames.length];
+                TranslationCard first = group.get(0);
+                
+                // 0: SourceWord, 1: SourceLang, 2: LexicalCat, 3: TargetLang
+                fields[0] = first.headword();
+                fields[1] = sourceLang;
+                fields[2] = first.lexicalCategory();
+                fields[3] = targetLang;
+
+                // Definitions and their examples (up to 5)
+                for (int i = 0; i < Math.min(group.size(), 5); i++) {
+                    TranslationCard card = group.get(i);
+                    int baseIdx = 4 + (i * 3);
+                    fields[baseIdx] = card.definition();
+                    fields[baseIdx + 1] = card.sourceText();
+                    fields[baseIdx + 2] = card.targetText();
+                }
+
+                fields[22] = String.format("https://%s.wiktionary.org/wiki/%s#Swedish", targetLang, first.headword()); // SourceUrl
+
+                String headword = first.headword();
+                String soundTag = audioCache.get(headword);
+                if (soundTag == null) {
+                    soundTag = processAudio(first, sourceLang, ankiPkg);
+                    if (!soundTag.isEmpty()) audioCache.put(headword, soundTag);
+                }
+                fields[21] = soundTag; // Audio
+
+                sanitizeFields(fields);
+                fieldsList.add(fields);
+                tagsList.add(note.getTags());
+            }
+        } else {
+            for (TranslationCard card : data) {
+                String[] fields = new String[fieldNames.length];
+                fields[0] = card.sourceText();
+                fields[1] = sourceLang;
+                fields[2] = card.targetText();
+                fields[3] = targetLang;
+                fields[4] = card.lexicalCategory();
+                fields[5] = card.headword();
+                fields[6] = card.definition();
+                fields[9] = String.format("https://%s.wiktionary.org/wiki/%s#Swedish", targetLang, card.headword());
+
+                String headword = card.headword();
+                String soundTag = audioCache.get(headword);
+                if (soundTag == null) {
+                    soundTag = processAudio(card, sourceLang, ankiPkg);
+                    if (!soundTag.isEmpty()) audioCache.put(headword, soundTag);
+                }
+                fields[8] = soundTag;
+
+                sanitizeFields(fields);
+                fieldsList.add(fields);
+                tagsList.add(note.getTags());
+            }
         }
 
         mAnkiDroid.removeDuplicates(fieldsList, tagsList, modelId);
@@ -132,19 +165,18 @@ public class AnkiIntegration {
         }
     }
 
-    /**
-     * Downloads and imports the audio file into AnkiDroid's media collection.
-     * Returns the internal name of the file wrapped in [sound:filename] syntax.
-     */
+    private void sanitizeFields(String[] fields) {
+        for (int i = 0; i < fields.length; i++) {
+            if (fields[i] == null) {
+                fields[i] = "";
+            }
+        }
+    }
+
     private String processAudio(TranslationCard card, String sourceLang, String ankiPkg) {
         String urlString = card.audioUrl();
-        if (urlString == null || urlString.isEmpty() || ankiPkg == null) {
-            return "";
-        }
-
-        if (urlString.startsWith("//")) {
-            urlString = "https:" + urlString;
-        }
+        if (urlString == null || urlString.isEmpty() || ankiPkg == null) return "";
+        if (urlString.startsWith("//")) urlString = "https:" + urlString;
 
         try {
             String fileName = sourceLang + "-" + card.headword() + "." + MimeTypeMap.getFileExtensionFromUrl(urlString);
@@ -154,11 +186,8 @@ public class AnkiIntegration {
             context.grantUriPermission(ankiPkg, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
             try {
                 String internalName = mAnkiDroid.getApi().addMediaFromUri(uri, fileName, "audio");
-                if (internalName != null) {
-                    return internalName;
-                }
+                if (internalName != null) return internalName;
             } finally {
-                // Revoke permission after synchronous call is finished
                 context.revokeUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
             }
         } catch (Exception e) {
@@ -179,9 +208,7 @@ public class AnkiIntegration {
              FileOutputStream output = new FileOutputStream(file)) {
             byte[] buffer = new byte[1024];
             int count;
-            while ((count = input.read(buffer)) != -1) {
-                output.write(buffer, 0, count);
-            }
+            while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
             output.flush();
         }
         return file;
@@ -196,8 +223,7 @@ public class AnkiIntegration {
         return did;
     }
 
-    private Long getModelId() {
-        AnkiNote note = AnkiNote.SOURCE_TARGET_TEXT_V1;
+    private Long getModelId(AnkiNote note) {
         Long mid = mAnkiDroid.findModelIdByName(note.getModelName(), note.getFieldNames().length);
         if (mid == null) {
             mid = mAnkiDroid.getApi().addNewCustomModel(

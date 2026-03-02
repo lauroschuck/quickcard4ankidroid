@@ -41,17 +41,28 @@ public class OfflineKaikkiSource implements DictionarySource {
                 <html>
                 <head>
                     <style>
-                        body { font-family: sans-serif; padding: 12px; line-height: 1.5; color: #202122; }
+                        body { font-family: sans-serif; padding: 12px; line-height: 1.5; color: #202122; transition: background 0.3s; }
                         h2 { border-bottom: 1px solid #a2a9b1; margin-bottom: 0.25em; padding-top: 0.5em; font-size: 1.5em; }
                         h3 { font-size: 1.25em; font-weight: bold; margin-top: 1.2em; }
                         ol { padding-left: 1.5em; }
-                        li.definition { margin-bottom: 0.8em; }
-                        .gloss { margin-bottom: 0.3em; }
+                        li.definition { margin-bottom: 0.8em; position: relative; }
+                        .gloss { margin-bottom: 0.3em; display: inline-block; width: 90%; vertical-align: top; }
                         dl { margin-top: 0.5em; margin-bottom: 0.5em; }
                         .h-usage-example { font-style: italic; display: block; margin-top: 0.5em; }
                         .h-usage-example-translation { font-style: normal; color: #54595d; display: block; font-size: 0.9em; margin-left: 2em; margin-top: 0.2em; }
                         a { color: #36c; text-decoration: none; }
-                        .example-checkbox { margin-right: 8px; vertical-align: middle; }
+                        
+                        .example-checkbox, .sense-checkbox, .example-radio { margin-right: 8px; vertical-align: middle; }
+                        
+                        /* Mode Toggling */
+                        body.mode-examples .sense-checkbox, body.mode-examples .example-radio { display: none; }
+                        body.mode-definitions .example-checkbox { display: none; }
+                        
+                        /* Definitions mode specifics */
+                        body.mode-definitions .h-usage-example .example-radio { visibility: hidden; }
+                        body.mode-definitions li.definition.selected .h-usage-example .example-radio { visibility: visible; }
+                        body.mode-definitions li.definition.selected { background-color: #f8f9fa; border-radius: 4px; }
+
                         .relation-group { margin: 4px 0; font-size: 0.9em; }
                         .relation-label { cursor: pointer; background: #eee; padding: 2px 6px; border-radius: 3px; margin-right: 8px; font-weight: bold; color: #36c; }
                         .relation-label:hover { background: #ddd; }
@@ -61,8 +72,20 @@ public class OfflineKaikkiSource implements DictionarySource {
                         .pron-desc { font-size: 0.9em; color: #555; }
                         .no-desc { color: #999; font-style: italic; }
                     </style>
+                    <script>
+                        function setMode(mode) {
+                            document.body.className = 'mode-' + mode;
+                        }
+                        function toggleSense(cb) {
+                            cb.closest('li.definition').classList.toggle('selected', cb.checked);
+                            if (window.Android) {
+                                var count = document.querySelectorAll('.sense-checkbox:checked').length;
+                                Android.updateSelectedCount(count);
+                            }
+                        }
+                    </script>
                 </head>
-                <body data-word="{{word}}">
+                <body data-word="{{word}}" class="mode-examples">
                     <h2>{{word}}</h2>
                     {{#if pronunciations}}
                     <div class='pronunciation-box'>
@@ -79,10 +102,13 @@ public class OfflineKaikkiSource implements DictionarySource {
                         <h3>{{pos}}</h3>
                         <ol>
                             {{#each senses}}
-                            <li class='definition'>
-                                {{#each glosses}}
-                                <div class='gloss'>{{{this}}}</div>
-                                {{/each}}
+                            <li class='definition' id='sense-{{entryId}}'>
+                                <input type='checkbox' class='sense-checkbox' id='chk-sense-{{entryId}}' onchange='toggleSense(this)'>
+                                <div class='gloss'>
+                                    {{#each glosses}}
+                                    <div>{{{this}}}</div>
+                                    {{/each}}
+                                </div>
                                 {{#each relations}}
                                 <div class='relation-group'>
                                     <span class='relation-label' onclick='var el = this.nextElementSibling; el.style.display = el.style.display === "none" ? "inline" : "none"'>{{label}}</span>
@@ -98,6 +124,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                                     {{#each examples}}
                                     <dd class='h-usage-example'>
                                         <input type='checkbox' class='example-checkbox' id='example-{{id}}'>
+                                        <input type='radio' class='example-radio' name='radio-sense-{{../entryId}}' value='{{id}}' {{#if @first}}checked{{/if}}>
                                         <span lang='sv'>{{{sourceText}}}</span>
                                         <div class='h-usage-example-translation'>{{{targetText}}}</div>
                                     </dd>
@@ -164,6 +191,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                     String pos = cursor.getString(1);
 
                     Map<String, Object> sense = new HashMap<>();
+                    sense.put("entryId", entryId);
                     
                     // Glosses
                     List<String> glosses = new ArrayList<>();
@@ -268,12 +296,26 @@ public class OfflineKaikkiSource implements DictionarySource {
     public String getExtractionJs() {
         return """
                 (() => {
-                    const selectedIds = [];
-                    document.querySelectorAll('.example-checkbox:checked').forEach(cb => {
-                        const id = cb.id.replace('example-', '');
-                        selectedIds.push(id);
-                    });
-                    Android.processSelectedCards(JSON.stringify({ examples: selectedIds }));
+                    const isDefinitions = document.body.classList.contains('mode-definitions');
+                    if (isDefinitions) {
+                        const entries = [];
+                        document.querySelectorAll('.sense-checkbox:checked').forEach(cb => {
+                            const entryId = cb.id.replace('chk-sense-', '');
+                            const radio = document.querySelector('input[name="radio-sense-' + entryId + '"]:checked');
+                            entries.push({
+                                entryId: entryId,
+                                exampleId: radio ? radio.value : null
+                            });
+                        });
+                        Android.processSelectedCards(JSON.stringify({ mode: 'definitions', entries: entries }));
+                    } else {
+                        const selectedIds = [];
+                        document.querySelectorAll('.example-checkbox:checked').forEach(cb => {
+                            const id = cb.id.replace('example-', '');
+                            selectedIds.push(id);
+                        });
+                        Android.processSelectedCards(JSON.stringify({ mode: 'examples', examples: selectedIds }));
+                    }
                 })();
                 """;
     }
@@ -282,17 +324,10 @@ public class OfflineKaikkiSource implements DictionarySource {
     public void getCardsFromSelection(String json, OnCardsReadyListener listener) {
         try {
             JsonObject obj = new Gson().fromJson(json, JsonObject.class);
-            if (!obj.has("examples")) {
-                // Fallback for other sources or old format if any
-                listener.onCardsReady(TranslationCard.fromJson(json));
-                return;
-            }
-
-            JsonArray exampleIds = obj.getAsJsonArray("examples");
-            List<TranslationCard> cards = new ArrayList<>();
-
+            String mode = obj.has("mode") ? obj.get("mode").getAsString() : "examples";
+            
             if (lastSourceLanguage == null || lastTargetLanguage == null) {
-                listener.onCardsReady(cards);
+                listener.onCardsReady(new ArrayList<>());
                 return;
             }
 
@@ -302,61 +337,25 @@ public class OfflineKaikkiSource implements DictionarySource {
             
             File dbFile = context.getDatabasePath(dbName);
             if (!dbFile.exists()) {
-                listener.onCardsReady(cards);
+                listener.onCardsReady(new ArrayList<>());
                 return;
             }
 
+            List<TranslationCard> cards = new ArrayList<>();
             try (SQLiteDatabase db = SQLiteDatabase.openDatabase(dbFile.getPath(), null, SQLiteDatabase.OPEN_READONLY)) {
-                for (JsonElement idElem : exampleIds) {
-                    String exIdStr = idElem.getAsString();
-                    long exId = Long.parseLong(exIdStr);
-
-                    String query = "SELECT e.source_text, e.target_text, le.lexical_category, h.headword, e.lexical_entry_id " +
-                                   "FROM examples e " +
-                                   "JOIN lexical_entries le ON e.lexical_entry_id = le.id " +
-                                   "JOIN headwords h ON le.headword_id = h.id " +
-                                   "WHERE e.id = ?";
-                    
-                    try (Cursor cursor = db.rawQuery(query, new String[]{exIdStr})) {
-                        if (cursor.moveToFirst()) {
-                            String sourceTextRaw = cursor.getString(0);
-                            String targetTextRaw = cursor.getString(1);
-                            String lexicalCategory = cursor.getString(2);
-                            String headword = cursor.getString(3);
-                            long entryId = cursor.getLong(4);
-
-                            String sourceText = applyBolding(sourceTextRaw, exId, "S", db);
-                            String targetText = applyBolding(targetTextRaw, exId, "T", db);
-
-                            // Audio
-                            String audioUrl = null;
-                            String audioQuery = "SELECT audio_url FROM pronunciations p JOIN headwords h ON p.headword_id = h.id WHERE h.headword = ? LIMIT 1";
-                            try (Cursor audioCursor = db.rawQuery(audioQuery, new String[]{headword})) {
-                                // TODO is taking the first, need something smarter
-                                if (audioCursor.moveToFirst()) {
-                                    audioUrl = audioCursor.getString(0);
-                                }
-                            }
-
-                            // Glosses
-                            StringBuilder glosses = new StringBuilder();
-                            String glossQuery = "SELECT gloss FROM glosses WHERE lexical_entry_id = ? ORDER BY gloss_index";
-                            try (Cursor glossCursor = db.rawQuery(glossQuery, new String[]{String.valueOf(entryId)})) {
-                                while (glossCursor.moveToNext()) {
-                                    if (glosses.length() > 0) glosses.append("<br/>");
-                                    glosses.append(applyLinks(glossCursor.getString(0), entryId, db));
-                                }
-                            }
-
-                            cards.add(new TranslationCard(
-                                headword,
-                                sourceText,
-                                targetText,
-                                glosses.toString(),
-                                lexicalCategory,
-                                audioUrl
-                            ));
-                        }
+                if (mode.equals("examples")) {
+                    JsonArray exampleIds = obj.getAsJsonArray("examples");
+                    for (JsonElement idElem : exampleIds) {
+                        cards.add(fetchCardForExample(db, idElem.getAsLong()));
+                    }
+                } else {
+                    JsonArray entries = obj.getAsJsonArray("entries");
+                    for (JsonElement entryElem : entries) {
+                        JsonObject entry = entryElem.getAsJsonObject();
+                        long entryId = entry.get("entryId").getAsLong();
+                        JsonElement exIdElem = entry.get("exampleId");
+                        Long exampleId = (exIdElem == null || exIdElem.isJsonNull()) ? null : exIdElem.getAsLong();
+                        cards.add(fetchCardForDefinition(db, entryId, exampleId));
                     }
                 }
             }
@@ -365,6 +364,83 @@ public class OfflineKaikkiSource implements DictionarySource {
             Log.e(TAG, "Error generating cards from selection", e);
             listener.onCardsReady(new ArrayList<>());
         }
+    }
+
+    private TranslationCard fetchCardForExample(SQLiteDatabase db, long exId) {
+        String query = "SELECT e.source_text, e.target_text, le.lexical_category, h.headword, e.lexical_entry_id " +
+                       "FROM examples e " +
+                       "JOIN lexical_entries le ON e.lexical_entry_id = le.id " +
+                       "JOIN headwords h ON le.headword_id = h.id " +
+                       "WHERE e.id = ?";
+        
+        try (Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(exId)})) {
+            if (cursor.moveToFirst()) {
+                String sourceTextRaw = cursor.getString(0);
+                String targetTextRaw = cursor.getString(1);
+                String lexicalCategory = cursor.getString(2);
+                String headword = cursor.getString(3);
+                long entryId = cursor.getLong(4);
+
+                String sourceText = applyBolding(sourceTextRaw, exId, "S", db);
+                String targetText = applyBolding(targetTextRaw, exId, "T", db);
+                String audioUrl = fetchAudioUrl(db, headword);
+                String glosses = fetchGlosses(db, entryId);
+
+                return new TranslationCard(headword, sourceText, targetText, glosses, lexicalCategory, audioUrl);
+            }
+        }
+        return null;
+    }
+
+    private TranslationCard fetchCardForDefinition(SQLiteDatabase db, long entryId, Long exampleId) {
+        String query = "SELECT le.lexical_category, h.headword " +
+                       "FROM lexical_entries le " +
+                       "JOIN headwords h ON le.headword_id = h.id " +
+                       "WHERE le.id = ?";
+        
+        try (Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(entryId)})) {
+            if (cursor.moveToFirst()) {
+                String lexicalCategory = cursor.getString(0);
+                String headword = cursor.getString(1);
+                
+                String sourceText = "";
+                String targetText = "";
+                if (exampleId != null) {
+                    try (Cursor exCursor = db.rawQuery("SELECT source_text, target_text FROM examples WHERE id = ?", new String[]{String.valueOf(exampleId)})) {
+                        if (exCursor.moveToFirst()) {
+                            sourceText = applyBolding(exCursor.getString(0), exampleId, "S", db);
+                            targetText = applyBolding(exCursor.getString(1), exampleId, "T", db);
+                        }
+                    }
+                }
+
+                String audioUrl = fetchAudioUrl(db, headword);
+                String glosses = fetchGlosses(db, entryId);
+
+                return new TranslationCard(headword, sourceText, targetText, glosses, lexicalCategory, audioUrl);
+            }
+        }
+        return null;
+    }
+
+    private String fetchAudioUrl(SQLiteDatabase db, String headword) {
+        String audioQuery = "SELECT audio_url FROM pronunciations p JOIN headwords h ON p.headword_id = h.id WHERE h.headword = ? LIMIT 1";
+        try (Cursor audioCursor = db.rawQuery(audioQuery, new String[]{headword})) {
+            if (audioCursor.moveToFirst()) return audioCursor.getString(0);
+        }
+        return null;
+    }
+
+    private String fetchGlosses(SQLiteDatabase db, long entryId) {
+        StringBuilder glosses = new StringBuilder();
+        String glossQuery = "SELECT gloss FROM glosses WHERE lexical_entry_id = ? ORDER BY gloss_index";
+        try (Cursor glossCursor = db.rawQuery(glossQuery, new String[]{String.valueOf(entryId)})) {
+            while (glossCursor.moveToNext()) {
+                if (glosses.length() > 0) glosses.append("<br/>");
+                glosses.append(applyLinks(glossCursor.getString(0), entryId, db));
+            }
+        }
+        return glosses.toString();
     }
 
     private void copyDatabaseIfNeeded(String dbName) {

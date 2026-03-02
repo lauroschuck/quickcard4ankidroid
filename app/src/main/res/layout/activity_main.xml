@@ -52,12 +52,57 @@
             android:contentDescription="Settings" />
     </LinearLayout>
 
+    <!-- Note Type Selector Header -->
+    <LinearLayout
+        android:id="@+id/noteTypeHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/headerContainer"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="#f8f9fa"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Note type:"
+            android:textStyle="bold"
+            android:textColor="@color/anki_dark_text"
+            android:layout_marginEnd="8dp"/>
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/noteTypeTabLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:tabMode="fixed"
+            app:tabGravity="fill"
+            android:background="@android:color/transparent"
+            app:tabIndicatorHeight="2dp"
+            app:tabIndicatorColor="@color/anki_blue"
+            app:tabSelectedTextColor="@color/anki_blue"
+            app:tabTextColor="@color/anki_light_text">
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Dictionary definitions" />
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Examples" />
+        </com.google.android.material.tabs.TabLayout>
+    </LinearLayout>
+
     <!-- Content Area -->
     <WebView
         android:id="@+id/webView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/headerContainer"
+        android:layout_below="@id/noteTypeHeader"
         android:visibility="gone" />
 
     <!-- Centered Search UI -->
@@ -114,7 +159,7 @@
         android:id="@+id/closeButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/headerContainer"
+        android:layout_below="@id/noteTypeHeader"
         android:layout_alignParentEnd="true"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
