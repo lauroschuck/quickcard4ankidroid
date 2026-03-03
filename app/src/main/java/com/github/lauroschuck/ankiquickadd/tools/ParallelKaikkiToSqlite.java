@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Parallel version of KaikkiToSqlite with memory-safe backpressure.
- * Usage: java ParallelKaikkiToSqlite <source_langs_csv> <num_threads> <targetLang1:dumpPath1> ...
+ * Usage: java ParallelKaikkiToSqlite <learning_langs_csv> <num_threads> <nativeLang1:dumpPath1> ...
  */
 public class ParallelKaikkiToSqlite {
 
@@ -29,8 +29,8 @@ public class ParallelKaikkiToSqlite {
 
     private static class DatabaseSession implements AutoCloseable {
         final String dbPath;
-        final String sourceLangCode;
-        final String sourceLangName;
+        final String learningLangCode;
+        final String learningLangName;
         final Connection conn;
         final PreparedStatement pHeadword, pEntry, pGloss, pExample, pSenseLink, pOffset, pPronunciation, pRelation;
         final Map<String, Long> headwordCache = new HashMap<>();
@@ -43,10 +43,10 @@ public class ParallelKaikkiToSqlite {
         long glossCount = 0;
         long exampleCount = 0;
 
-        DatabaseSession(String dbPath, String sourceLangCode) throws Exception {
+        DatabaseSession(String dbPath, String learningLangCode) throws Exception {
             this.dbPath = dbPath;
-            this.sourceLangCode = sourceLangCode;
-            this.sourceLangName = new Locale(sourceLangCode).getDisplayLanguage(Locale.ENGLISH);
+            this.learningLangCode = learningLangCode;
+            this.learningLangName = new Locale(learningLangCode).getDisplayLanguage(Locale.ENGLISH);
             this.conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
             this.conn.setAutoCommit(false);
             setupSchema(this.conn);
@@ -54,9 +54,9 @@ public class ParallelKaikkiToSqlite {
             this.pHeadword = conn.prepareStatement("INSERT OR IGNORE INTO headwords (headword) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
             this.pEntry = conn.prepareStatement("INSERT INTO lexical_entries (headword_id, lexical_category, sense_index) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
             this.pGloss = conn.prepareStatement("INSERT INTO glosses (lexical_entry_id, gloss, gloss_index) VALUES (?, ?, ?)");
-            this.pExample = conn.prepareStatement("INSERT INTO examples (lexical_entry_id, source_text, target_text) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
-            this.pSenseLink = conn.prepareStatement("INSERT INTO sense_links (lexical_entry_id, word, target_headword_id) VALUES (?, ?, ?)");
-            this.pOffset = conn.prepareStatement("INSERT INTO bold_offsets (example_id, is_translation, start_index, end_index) VALUES (?, ?, ?, ?)");
+            this.pExample = conn.prepareStatement("INSERT INTO examples (lexical_entry_id, learning_text, native_text) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+            this.pSenseLink = conn.prepareStatement("INSERT INTO sense_links (lexical_entry_id, word, native_headword_id) VALUES (?, ?, ?)");
+            this.pOffset = conn.prepareStatement("INSERT INTO bold_offsets (example_id, text_type, start_index, end_index) VALUES (?, ?, ?, ?)");
             this.pPronunciation = conn.prepareStatement("INSERT INTO pronunciations (headword_id, audio_url, description) VALUES (?, ?, ?)");
             this.pRelation = conn.prepareStatement("INSERT INTO relations (lexical_entry_id, type, word) VALUES (?, ?, ?)");
 
@@ -166,8 +166,8 @@ public class ParallelKaikkiToSqlite {
                     pExample.executeUpdate();
                     long exId;
                     try (ResultSet rs = pExample.getGeneratedKeys()) { rs.next(); exId = rs.getLong(1); }
-                    if (ex.has("bold_text_offsets")) saveOffsetsInternal(exId, "S", ex.getAsJsonArray("bold_text_offsets"));
-                    if (ex.has("bold_translation_offsets")) saveOffsetsInternal(exId, "T", ex.getAsJsonArray("bold_translation_offsets"));
+                    if (ex.has("bold_text_offsets")) saveOffsetsInternal(exId, "L", ex.getAsJsonArray("bold_text_offsets"));
+                    if (ex.has("bold_translation_offsets")) saveOffsetsInternal(exId, "N", ex.getAsJsonArray("bold_translation_offsets"));
                     exampleCount++;
                 }
             }
@@ -230,12 +230,12 @@ public class ParallelKaikkiToSqlite {
 
     public static void main(String[] args) {
         if (args.length < 3) {
-            System.out.println("Usage: java ParallelKaikkiToSqlite <source_langs_csv> <num_threads> <targetLang1:dumpPath1> ...");
+            System.out.println("Usage: java ParallelKaikkiToSqlite <learning_langs_csv> <num_threads> <nativeLang1:dumpPath1> ...");
             return;
         }
 
         Instant totalStart = Instant.now();
-        String[] sourceLangs = args[0].split(",");
+        String[] learningLangs = args[0].split(",");
         int numThreads = Integer.parseInt(args[1]);
         String timestamp = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date());
         String outDir = "out/" + timestamp;
@@ -250,33 +250,33 @@ public class ParallelKaikkiToSqlite {
             setupStatsSchema(statsConn);
             statsConn.commit();
 
-            PreparedStatement pStats = statsConn.prepareStatement("INSERT INTO stats (source_lang, target_lang, source_name, headwords, glosses, examples) VALUES (?, ?, ?, ?, ?, ?)");
+            PreparedStatement pStats = statsConn.prepareStatement("INSERT INTO stats (learning_lang, native_lang, learning_lang_name, headwords, glosses, examples) VALUES (?, ?, ?, ?, ?, ?)");
 
             int totalDumps = args.length - 2;
             for (int i = 2; i < args.length; i++) {
                 String[] pair = args[i].split(":", 2);
                 if (pair.length < 2) continue;
 
-                String targetLangCode = pair[0].toLowerCase().trim();
+                String nativeLangCode = pair[0].toLowerCase().trim();
                 String dumpPath = pair[1];
 
-                Locale targetLocale = new Locale(targetLangCode);
-                String targetLangName = targetLocale.getDisplayLanguage(Locale.ENGLISH);
-                System.out.println(String.format(Locale.US, "\nStarting pass of dump: %s (Target: %s, %s) with %d threads", dumpPath, targetLangCode, targetLangName, numThreads));
+                Locale nativeLocale = new Locale(nativeLangCode);
+                String nativeLangName = nativeLocale.getDisplayLanguage(Locale.ENGLISH);
+                System.out.println(String.format(Locale.US, "\nStarting pass of dump: %s (Native: %s, %s) with %d threads", dumpPath, nativeLangCode, nativeLangName, numThreads));
 
                 Instant dumpStart = Instant.now();
-                Map<String, DatabaseSession> sessions = converter.processDumpParallel(dumpPath, targetLangCode, sourceLangs, outDir, i - 1, totalDumps, numThreads);
+                Map<String, DatabaseSession> sessions = converter.processDumpParallel(dumpPath, nativeLangCode, learningLangs, outDir, i - 1, totalDumps, numThreads);
                 
                 for (Map.Entry<String, DatabaseSession> entry : sessions.entrySet()) {
-                    String srcCode = entry.getKey();
+                    String learningCode = entry.getKey();
                     DatabaseSession session = entry.getValue();
                     boolean kept = session.headwordCount >= MIN_HEADWORDS;
-                    summaryTable.computeIfAbsent(srcCode, k -> new TreeMap<>()).put(targetLangCode, kept);
+                    summaryTable.computeIfAbsent(learningCode, k -> new TreeMap<>()).put(nativeLangCode, kept);
 
                     if (kept) {
-                        pStats.setString(1, srcCode);
-                        pStats.setString(2, targetLangCode);
-                        pStats.setString(3, session.sourceLangName);
+                        pStats.setString(1, learningCode);
+                        pStats.setString(2, nativeLangCode);
+                        pStats.setString(3, session.learningLangName);
                         pStats.setLong(4, session.headwordCount);
                         pStats.setLong(5, session.glossCount);
                         pStats.setLong(6, session.exampleCount);
@@ -297,12 +297,12 @@ public class ParallelKaikkiToSqlite {
         System.out.println(String.format(Locale.US, "Entire process finished in %s", totalElapsed));
     }
 
-    private Map<String, DatabaseSession> processDumpParallel(String dumpPath, String targetLangCode, String[] sourceLangs, String outDir, int dumpIndex, int totalDumps, int numThreads) throws Exception {
+    private Map<String, DatabaseSession> processDumpParallel(String dumpPath, String nativeLangCode, String[] learningLangs, String outDir, int dumpIndex, int totalDumps, int numThreads) throws Exception {
         Map<String, DatabaseSession> sessions = new HashMap<>();
-        for (String src : sourceLangs) {
-            String srcLower = src.toLowerCase().trim();
-            if (srcLower.equals(targetLangCode)) continue;
-            sessions.put(srcLower, new DatabaseSession(outDir + File.separator + "wiktionary_kaikki_" + srcLower + "-" + targetLangCode + ".db", srcLower));
+        for (String learning : learningLangs) {
+            String learningLower = learning.toLowerCase().trim();
+            if (learningLower.equals(nativeLangCode)) continue;
+            sessions.put(learningLower, new DatabaseSession(outDir + File.separator + "wiktionary_kaikki_" + learningLower + "-" + nativeLangCode + ".db", learningLower));
         }
 
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
@@ -326,21 +326,21 @@ public class ParallelKaikkiToSqlite {
                     }
                     long current = linesCount.incrementAndGet();
                     if (current % 10000 == 0) {
-                        System.out.print(String.format(Locale.US, "\r[%d/%d] %s : processed %d lines...", dumpIndex, totalDumps, targetLangCode, current));
+                        System.out.print(String.format(Locale.US, "\r[%d/%d] %s : processed %d lines...", dumpIndex, totalDumps, nativeLangCode, current));
                     }
                 });
             }
             executor.shutdown();
             executor.awaitTermination(1, TimeUnit.HOURS);
-            System.out.print(String.format(Locale.US, "\r[%d/%d] %s : processed %d lines... Done.", dumpIndex, totalDumps, targetLangCode, linesCount.get()));
+            System.out.print(String.format(Locale.US, "\r[%d/%d] %s : processed %d lines... Done.", dumpIndex, totalDumps, nativeLangCode, linesCount.get()));
             
             System.out.println("\nSummary for dump: " + dumpPath);
             for (Map.Entry<String, DatabaseSession> entry : sessions.entrySet()) {
                 DatabaseSession session = entry.getValue();
                 session.close();
-                String srcCode = entry.getKey();
+                String learningCode = entry.getKey();
                 System.out.println(String.format(Locale.US, "- %s, %s: %d headwords, %d glosses, %d examples added.", 
-                        srcCode, session.sourceLangName, session.headwordCount, session.glossCount, session.exampleCount));
+                        learningCode, session.learningLangName, session.headwordCount, session.glossCount, session.exampleCount));
                 if (session.headwordCount < MIN_HEADWORDS) {
                     System.out.println(String.format(Locale.US, "  ! Deleting database (below min %d): %s", MIN_HEADWORDS, session.dbPath));
                     new File(session.dbPath).delete();
@@ -378,9 +378,9 @@ public class ParallelKaikkiToSqlite {
         st.execute("CREATE TABLE headwords (id INTEGER PRIMARY KEY AUTOINCREMENT, headword TEXT UNIQUE)");
         st.execute("CREATE TABLE lexical_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, headword_id INTEGER, lexical_category TEXT, sense_index INTEGER, FOREIGN KEY(headword_id) REFERENCES headwords(id))");
         st.execute("CREATE TABLE glosses (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, gloss TEXT, gloss_index INTEGER, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id))");
-        st.execute("CREATE TABLE examples (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, source_text TEXT, target_text TEXT, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id))");
-        st.execute("CREATE TABLE sense_links (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, word TEXT, target_headword_id INTEGER, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id), FOREIGN KEY(target_headword_id) REFERENCES headwords(id))");
-        st.execute("CREATE TABLE bold_offsets (id INTEGER PRIMARY KEY AUTOINCREMENT, example_id INTEGER, is_translation CHAR(1), start_index INTEGER, end_index INTEGER, FOREIGN KEY(example_id) REFERENCES examples(id))");
+        st.execute("CREATE TABLE examples (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, learning_text TEXT, native_text TEXT, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id))");
+        st.execute("CREATE TABLE sense_links (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, word TEXT, native_headword_id INTEGER, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id), FOREIGN KEY(native_headword_id) REFERENCES headwords(id))");
+        st.execute("CREATE TABLE bold_offsets (id INTEGER PRIMARY KEY AUTOINCREMENT, example_id INTEGER, text_type CHAR(1), start_index INTEGER, end_index INTEGER, FOREIGN KEY(example_id) REFERENCES examples(id))");
         st.execute("CREATE TABLE pronunciations (id INTEGER PRIMARY KEY AUTOINCREMENT, headword_id INTEGER, audio_url TEXT, description TEXT, FOREIGN KEY(headword_id) REFERENCES headwords(id))");
         st.execute("CREATE TABLE relations (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, type CHAR(1), word TEXT, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id))");
         st.execute("CREATE INDEX idx_hw_word ON headwords(headword)");
@@ -393,20 +393,20 @@ public class ParallelKaikkiToSqlite {
     private static void setupStatsSchema(Connection conn) throws Exception {
         Statement st = conn.createStatement();
         st.execute("DROP TABLE IF EXISTS stats");
-        st.execute("CREATE TABLE stats (source_lang TEXT, target_lang TEXT, source_name TEXT, headwords INTEGER, glosses INTEGER, examples INTEGER)");
+        st.execute("CREATE TABLE stats (learning_lang TEXT, native_lang TEXT, learning_lang_name TEXT, headwords INTEGER, glosses INTEGER, examples INTEGER)");
     }
 
     private static void printSummaryTable(Map<String, Map<String, Boolean>> status) {
         if (status.isEmpty()) return;
-        Set<String> targets = new TreeSet<>();
-        for (Map<String, Boolean> map : status.values()) targets.addAll(map.keySet());
+        Set<String> natives = new TreeSet<>();
+        for (Map<String, Boolean> map : status.values()) natives.addAll(map.keySet());
         System.out.println("\n--- EXTRACTION SUMMARY TABLE ---");
-        System.out.print("src\\trg |");
-        for (String t : targets) System.out.print(String.format(" %-4s |", t));
+        System.out.print("lrn\\nat |");
+        for (String t : natives) System.out.print(String.format(" %-4s |", t));
         System.out.println();
         for (Map.Entry<String, Map<String, Boolean>> entry : status.entrySet()) {
             System.out.print(String.format(" %-6s |", entry.getKey()));
-            for (String t : targets) {
+            for (String t : natives) {
                 Boolean kept = entry.getValue().get(t);
                 System.out.print(kept != null && kept ? "  X   |" : "      |");
             }

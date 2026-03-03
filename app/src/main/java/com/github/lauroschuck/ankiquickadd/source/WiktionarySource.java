@@ -26,7 +26,7 @@ public class WiktionarySource implements DictionarySource {
     private final OkHttpClient client = new OkHttpClient();
 
     @Override
-    public void fetch(String word, Language sourceLanguage, Language targetLanguage, OnResultListener listener) {
+    public void fetch(String word, Language learningLanguage, Language nativeLanguage, OnResultListener listener) {
         String url = "https://en.wiktionary.org/w/api.php?action=parse&prop=text&format=json&redirects=1&page=" + Uri.encode(word);
         Request request = new Request.Builder()
                 .url(url)
@@ -40,7 +40,7 @@ public class WiktionarySource implements DictionarySource {
                     listener.onError("Unexpected code " + response);
                     return;
                 }
-                processResponse(response.body().string(), word, sourceLanguage, listener);
+                processResponse(response.body().string(), word, learningLanguage, listener);
             }
 
             @Override
@@ -51,7 +51,7 @@ public class WiktionarySource implements DictionarySource {
     }
 
     @Override
-    public void fetchMore(String word, Language sourceLanguage, Language targetLanguage, int page, OnResultListener listener) {
+    public void fetchMore(String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener) {
 
     }
 
@@ -65,24 +65,24 @@ public class WiktionarySource implements DictionarySource {
                     document.querySelectorAll('input.example-checkbox:checked').forEach(cb => {
                         const container = cb.parentElement;
                         
-                        // 1. Extract sourceText HTML (preserve bolding)
-                        const sourceTextEl = container.querySelector('.e-example, [lang=sv], .ux-example');
-                        let sourceText = null;
-                        if (sourceTextEl) {
+                        // 1. Extract learningText HTML (preserve bolding)
+                        const learningTextEl = container.querySelector('.e-example, [lang=sv], .ux-example');
+                        let learningText = null;
+                        if (learningTextEl) {
                             const tempDiv = document.createElement('div');
-                            tempDiv.innerHTML = sourceTextEl.innerHTML;
+                            tempDiv.innerHTML = learningTextEl.innerHTML;
                             tempDiv.querySelectorAll('a').forEach(a => {
                                 a.parentNode.replaceChild(document.createTextNode(a.textContent), a);
                             });
-                            sourceText = tempDiv.innerHTML.trim();
+                            learningText = tempDiv.innerHTML.trim();
                         }
                         
-                        // 2. Extract targetText HTML
-                        let targetTextEl = container.querySelector('.e-translation, .h-usage-example-translation, .ux-translation, .mention-gloss, .translation');
-                        if (!targetTextEl && container.nextElementSibling && container.nextElementSibling.matches('.e-translation, .h-usage-example-translation, .ux-translation, .mention-gloss, .translation')) {
-                            targetTextEl = container.nextElementSibling;
+                        // 2. Extract nativeText HTML
+                        let nativeTextEl = container.querySelector('.e-translation, .h-usage-example-translation, .ux-translation, .mention-gloss, .translation');
+                        if (!nativeTextEl && container.nextElementSibling && container.nextElementSibling.matches('.e-translation, .h-usage-example-translation, .ux-translation, .mention-gloss, .translation')) {
+                            nativeTextEl = container.nextElementSibling;
                         }
-                        const targetText = targetTextEl ? targetTextEl.innerHTML.trim() : null;
+                        const nativeText = nativeTextEl ? nativeTextEl.innerHTML.trim() : null;
                         
                         // 3. Extract the definition (parent <li> text)
                         const li = container.closest('li');
@@ -114,7 +114,7 @@ public class WiktionarySource implements DictionarySource {
                             searchNode = ol.parentElement;
                         }
                         
-                        cards.push({ headword, sourceText, targetText, definition, lexicalCategory });
+                        cards.push({ headword, learningText, nativeText, definition, lexicalCategory });
                     });
                     
                     Android.processSelectedCards(JSON.stringify(cards));
@@ -126,7 +126,7 @@ public class WiktionarySource implements DictionarySource {
         listener.onCardsReady(TranslationCard.fromJson(json));
     }
 
-    private void processResponse(String json, String word, Language sourceLanguage, OnResultListener listener) {
+    private void processResponse(String json, String word, Language learningLanguage, OnResultListener listener) {
         try {
             JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
             if (obj.has("error")) {
@@ -139,22 +139,22 @@ public class WiktionarySource implements DictionarySource {
             Element root = doc.selectFirst(".mw-parser-output");
             if (root == null) root = doc.body();
 
-            // 1. Identify section of the source language
-            Element sourceLanguageHeader = findSourceLanguageHeader(root, sourceLanguage);
-            if (sourceLanguageHeader == null) {
-                listener.onError("No " + sourceLanguage.getDisplayName() + " section found.");
+            // 1. Identify section of the learning language
+            Element learningLanguageHeader = findLearningLanguageHeader(root, learningLanguage);
+            if (learningLanguageHeader == null) {
+                listener.onError("No " + learningLanguage.getDisplayName() + " section found.");
                 return;
             }
 
             // 2. Pre-process: remove unwanted elements
             cleanUnwantedElements(root);
 
-            // 3. Extract only the source language content
-            String sourceLanguageSection = extractLanguageSectionFrom(sourceLanguageHeader);
+            // 3. Extract only the learning language content
+            String learningLanguageSection = extractLanguageSectionFrom(learningLanguageHeader);
 
             // 4. Final transformations
-            Document swDoc = Jsoup.parseBodyFragment(sourceLanguageSection);
-            transformLinks(swDoc, sourceLanguage);
+            Document swDoc = Jsoup.parseBodyFragment(learningLanguageSection);
+            transformLinks(swDoc, learningLanguage);
             injectCheckboxes(swDoc);
 
             String finalHtml = buildHtmlPage(swDoc.body().html(), word);
@@ -166,8 +166,8 @@ public class WiktionarySource implements DictionarySource {
         }
     }
 
-    private Element findSourceLanguageHeader(Element root, Language sourceLanguage) {
-        String langName = sourceLanguage.getDisplayName();
+    private Element findLearningLanguageHeader(Element root, Language learningLanguage) {
+        String langName = learningLanguage.getDisplayName();
         Element header = root.selectFirst(".mw-heading2:has(#" + langName + "), h2:has(#" + langName + ")");
         if (header == null) {
             Element swId = root.selectFirst("#" + langName);
@@ -206,8 +206,8 @@ public class WiktionarySource implements DictionarySource {
         return sb.toString();
     }
 
-    private void transformLinks(Document doc, Language sourceLanguage) {
-        String langName = sourceLanguage.getDisplayName();
+    private void transformLinks(Document doc, Language learningLanguage) {
+        String langName = learningLanguage.getDisplayName();
         for (Element a : doc.select("a")) {
             String href = a.attr("href");
             if (href.contains("/wiki/") && href.contains("#" + langName)) {

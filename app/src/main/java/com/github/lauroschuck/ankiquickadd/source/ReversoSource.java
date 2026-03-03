@@ -28,8 +28,8 @@ public class ReversoSource implements DictionarySource {
     private final OkHttpClient client = new OkHttpClient();
 
     @Override
-    public void fetch(String word, Language sourceLanguage, Language targetLanguage, OnResultListener listener) {
-        String langPath = sourceLanguage.getDisplayName().toLowerCase() + "-" + targetLanguage.getDisplayName().toLowerCase();
+    public void fetch(String word, Language learningLanguage, Language nativeLanguage, OnResultListener listener) {
+        String langPath = learningLanguage.getDisplayName().toLowerCase() + "-" + nativeLanguage.getDisplayName().toLowerCase();
         String url = "https://dictionary.reverso.net/" + langPath + "/" + Uri.encode(word);
 
         Request request = new Request.Builder()
@@ -55,16 +55,16 @@ public class ReversoSource implements DictionarySource {
     }
 
     @Override
-    public void fetchMore(String word, Language sourceLanguage, Language targetLanguage, int page, OnResultListener listener) {
+    public void fetchMore(String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener) {
         // Reverso Context API endpoint for more examples
         String url = "https://context.reverso.net/bst-query-service";
         
         // Build JSON request body for Reverso API
         JsonObject jsonBody = new JsonObject();
-        jsonBody.addProperty("source_text", word);
-        jsonBody.addProperty("target_text", "");
-        jsonBody.addProperty("source_lang", sourceLanguage.getIsoCode());
-        jsonBody.addProperty("target_lang", targetLanguage.getIsoCode());
+        jsonBody.addProperty("learning_text", word);
+        jsonBody.addProperty("native_text", "");
+        jsonBody.addProperty("learning_lang", learningLanguage.getIsoCode());
+        jsonBody.addProperty("native_lang", nativeLanguage.getIsoCode());
         jsonBody.addProperty("npage", page);
         jsonBody.addProperty("mode", 0);
 
@@ -130,11 +130,11 @@ public class ReversoSource implements DictionarySource {
                     
                     document.querySelectorAll('input.example-checkbox:checked').forEach(cb => {
                         const container = cb.parentElement;
-                        const sourceEl = container.querySelector('.src .text, .example-src, .src');
-                        const targetEl = container.querySelector('.trg .text, .example-trg, .trg');
+                        const learningEl = container.querySelector('.src .text, .example-src, .src');
+                        const nativeEl = container.querySelector('.trg .text, .example-trg, .trg');
                         
-                        const sourceText = sourceEl ? sourceEl.innerHTML.trim() : null;
-                        const targetText = targetEl ? targetEl.innerHTML.trim() : null;
+                        const learningText = learningEl ? learningEl.innerHTML.trim() : null;
+                        const nativeText = nativeEl ? nativeEl.innerHTML.trim() : null;
                         
                         let definition = '';
                         const entry = container.closest('.entry, .direction-cnt');
@@ -143,7 +143,7 @@ public class ReversoSource implements DictionarySource {
                             if (defEl) definition = defEl.innerText.trim();
                         }
                         
-                        cards.push({ headword, sourceText, targetText, definition, lexicalCategory: 'Reverso' });
+                        cards.push({ headword, learningText, nativeText, definition, lexicalCategory: 'Reverso' });
                     });
                     
                     Android.processSelectedCards(JSON.stringify(cards));
@@ -166,13 +166,13 @@ public class ReversoSource implements DictionarySource {
 
             mainContent.select(".sharing-links, .favorite-button, .audio-button, .banner, script, style").remove();
 
-            // Inject checkboxes into translation pairs (rows that have both source and target markers)
+            // Inject checkboxes into translation pairs (rows that have both learning and native markers)
             for (Element ex : mainContent.select("div.example, .example, .cd-example")) {
                 // Verify it has both parts before adding checkbox
-                boolean hasSource = !ex.select(".src, .example-src").isEmpty();
-                boolean hasTarget = !ex.select(".trg, .example-trg").isEmpty();
+                boolean hasLearning = !ex.select(".src, .example-src").isEmpty();
+                boolean hasNative = !ex.select(".trg, .example-trg").isEmpty();
                 
-                if (hasSource && hasTarget && ex.select("input.example-checkbox").isEmpty()) {
+                if (hasLearning && hasNative && ex.select("input.example-checkbox").isEmpty()) {
                     ex.prepend("<input type='checkbox' class='example-checkbox'> ");
                 }
             }

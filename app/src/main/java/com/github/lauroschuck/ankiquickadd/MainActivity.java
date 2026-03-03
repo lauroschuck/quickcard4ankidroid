@@ -33,7 +33,6 @@ import androidx.core.content.ContextCompat;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiDroidHelper;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;
 import com.github.lauroschuck.ankiquickadd.model.Language;
-import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
 import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
 import com.github.lauroschuck.ankiquickadd.source.OfflineKaikkiSource;
 import com.github.lauroschuck.ankiquickadd.source.ReversoSource;
@@ -315,10 +314,10 @@ public class MainActivity extends AppCompatActivity {
         });
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        Language sourceLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_SOURCE_LANGUAGE, Language.SWEDISH);
-        Language targetLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_TARGET_LANGUAGE, Language.ENGLISH);
+        Language learningLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SWEDISH);
+        Language nativeLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.ENGLISH);
 
-        currentSource.fetch(word, sourceLanguage, targetLanguage, new DictionarySource.OnResultListener() {
+        currentSource.fetch(word, learningLanguage, nativeLanguage, new DictionarySource.OnResultListener() {
             @Override
             public void onSuccess(String html, String headword) {
                 runOnUiThread(() -> {

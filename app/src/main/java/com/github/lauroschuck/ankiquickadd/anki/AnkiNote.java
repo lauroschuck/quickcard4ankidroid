@@ -1,8 +1,9 @@
 package com.github.lauroschuck.ankiquickadd.anki;
 
-import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -12,9 +13,9 @@ import java.util.stream.Stream;
  */
 public enum AnkiNote {
 
-    SOURCE_TARGET_TEXT_V1(
-            "ankiquickadd.notes.SourceTargetTextV1",
-            List.of("SourceText", "SourceLang", "TargetText", "TargetLang", "LexicalCat",
+    LEARNING_NATIVE_TEXT_V1(
+            "ankiquickadd.notes.LearningNativeTextV1",
+            List.of("LearningText", "LearningLang", "NativeText", "NativeLang", "LexicalCat",
                     "NoteHeader", "Notes", "HiddenNotes", "Audio", "SourceUrl"),
             """
                     .card {
@@ -63,21 +64,19 @@ public enum AnkiNote {
                     }
                     """,
             List.of(new CardType(
-                    "Source-Target",
+                    "Learning-Native",
                     """
-                            {{SourceText}}
-                            <div class="text-hints">({{LexicalCat}})<br/>Lang: {{SourceLang}}</div>
-                            
-                            {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
+                            {{LearningText}}
+                            <div class="text-hints">({{LexicalCat}})<br/>Lang: {{LearningLang}}</div>
                             """,
                     """
-                            {{SourceText}}
-                            <div class="text-hints">({{LexicalCat}})<br/>Lang: {{SourceLang}}</div>
+                            {{LearningText}}
+                            <div class="text-hints">({{LexicalCat}})<br/>Lang: {{LearningLang}}</div>
                             
                             <hr id="answer"/>
                             
-                            {{TargetText}}
-                            <div class="text-hints">Lang: {{TargetLang}}</div>
+                            {{NativeText}}
+                            <div class="text-hints">Lang: {{NativeLang}}</div>
                             
                             <div class="notes-container">
                                 {{#NoteHeader}}
@@ -87,22 +86,26 @@ public enum AnkiNote {
                                 <div class="notes">{{Notes}}</div>
                                 {{/Notes}}
                             </div>
+                            
+                            {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
                             """
             ),
                     new CardType(
-                            "Target-Source",
+                            "Native-Learning",
                             """
-                                    {{TargetText}}
-                                    <div class="text-hints">({{LexicalCat}})<br/>Lang: {{TargetLang}}</div>
+                                    {{NativeText}}
+                                    <div class="text-hints">({{LexicalCat}})<br/>Lang: {{NativeLang}}</div>
+                                    
+                                    {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
                                     """,
                             """
-                                    {{TargetText}}
-                                    <div class="text-hints">({{LexicalCat}})<br/>Lang: {{TargetLang}}</div>
+                                    {{NativeText}}
+                                    <div class="text-hints">({{LexicalCat}})<br/>Lang: {{NativeLang}}</div>
                                     
                                     <hr id="answer"/>
                                     
-                                    {{SourceText}}
-                                    <div class="text-hints">Lang: {{SourceLang}}</div>
+                                    {{LearningText}}
+                                    <div class="text-hints">Lang: {{LearningLang}}</div>
                                     
                                     <div class="notes-container">
                                         {{#NoteHeader}}
@@ -112,21 +115,23 @@ public enum AnkiNote {
                                         <div class="notes">{{Notes}}</div>
                                         {{/Notes}}
                                     </div>
-                                    
-                                    {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
                                     """
                     )),
             Set.of()
     ),
     DICTIONARY_DEFINITION_V1(
             "ankiquickadd.notes.DictionatyDefinitionV1",
-            List.of("SourceWord", "SourceLang", "LexicalCat", "TargetLang",
-                    "Definition1", "Definition1_SourceText", "Definition1_TargetText",
-                    "Definition2", "Definition2_SourceText", "Definition2_TargetText",
-                    "Definition3", "Definition3_SourceText", "Definition3_TargetText",
-                    "Definition4", "Definition4_SourceText", "Definition4_TargetText",
-                    "Definition5", "Definition5_SourceText", "Definition5_TargetText",
-                    "NoteHeader", "Notes", "HiddenNotes", "Audio", "SourceUrl"),
+            Stream.of(Stream.of("Id", "LearningWord", "LearningLang", "LexicalCat", "NativeLang"),
+                    InternalHelper.getDictionaryDefinitionindexStream()
+                            .flatMap(index -> Stream.of(
+                                    String.format(Locale.US, "Definition%d", index),
+                                    String.format(Locale.US, "Definition%d_LearningText", index),
+                                    String.format(Locale.US, "Definition%d_NativeText", index))),
+                    Stream.of("NoteHeader", "Notes", "HiddenNotes", "Audio", "SourceUrl")
+                    )
+                    .flatMap(Function.identity())
+                    .collect(Collectors.toList())
+            ,
             """
                     .card {
                      font-family: arial;
@@ -272,23 +277,21 @@ public enum AnkiNote {
             Stream.concat(
                     Stream.of(
                             new CardType(
-                            "Source-Targets",
+                            "Learning-Natives",
                             """
                                     {{#LexicalCat}}
                                     <div class="gramatical-class">{{LexicalCat}}</div>
                                     {{/LexicalCat}}
                                     
-                                    {{SourceWord}}
-                                    <div class="language">({{SourceLang}})</div>
+                                    {{LearningWord}}
+                                    <div class="language">({{LearningLang}})</div>
                                     
                                     <div class="hint">
                                     <button>Hint</button>
                                     <div class="front example">
-                                    {{#Definition1_TargetText}}{{Definition1_TargetText}}<br/>{{/Definition1_TargetText}}
-                                    {{#Definition2_TargetText}}{{Definition2_TargetText}}<br/>{{/Definition2_TargetText}}
-                                    {{#Definition3_TargetText}}{{Definition3_TargetText}}<br/>{{/Definition3_TargetText}}
-                                    {{#Definition4_TargetText}}{{Definition4_TargetText}}<br/>{{/Definition4_TargetText}}
-                                    {{#Definition5_TargetText}}{{Definition5_TargetText}}<br/>{{/Definition5_TargetText}}
+                                    """
+                                    + InternalHelper.dictionarySectionRepetition("{{#DefinitionINDEX_NativeText}}{{DefinitionINDEX_NativeText}}<br/>{{/DefinitionINDEX_NativeText}}") +
+                                    """
                                     </div>
                                     </div>
                                    
@@ -307,95 +310,33 @@ public enum AnkiNote {
                                     <div class="gramatical-class">{{LexicalCat}}</div>
                                     {{/LexicalCat}}
                                     
-                                    {{SourceWord}}
-                                    <div class="language">({{SourceLang}})</div>
+                                    {{LearningWord}}
+                                    <div class="language">({{LearningLang}})</div>
                                     
                                     <hr id="answer"/>
     
                                     <table class="translations">
-                                      <tr class="meaning">
-                                        <td class="translation">{{Definition1}}</td>
-                                        <td class="examples">
-                                           <table class="examples">
-                                             <tr class="foreign">
-                                               <td class="language">{{#Definition1_SourceText}}(sv){{/Definition1_SourceText}}</td>
-                                               <td class="example">{{Definition1_SourceText}}</td>
-                                             </tr>
-                                             <tr class="familiar">
-                                               <td class="language">{{#Definition1_TargetText}}(en){{/Definition1_TargetText}}</td>
-                                               <td class="example">{{Definition1_TargetText}}</td>
-                                             </tr>
-                                           </table>
-                                         </td>
-                                      </tr>
-                                      {{#Definition2}}
-                                      <tr class="meaning">
-                                        <td class="translation">{{Definition2}}</td>
-                                        <td class="examples">
-                                           <table class="examples">
-                                             <tr class="foreign">
-                                               <td class="language">{{#Definition2_SourceText}}(sv){{/Definition2_SourceText}}</td>
-                                               <td class="example">{{Definition2_SourceText}}</td>
-                                             </tr>
-                                             <tr class="familiar">
-                                               <td class="language">{{#Definition2_TargetText}}(en){{/Definition2_TargetText}}</td>
-                                               <td class="example">{{Definition2_TargetText}}</td>
-                                             </tr>
-                                           </table>
-                                         </td>
-                                      </tr>
-                                      {{/Definition2}}
-                                      {{#Definition3}}
-                                      <tr class="meaning">
-                                        <td class="translation">{{Definition3}}</td>
-                                        <td class="examples">
-                                           <table class="examples">
-                                             <tr class="foreign">
-                                               <td class="language">{{#Definition3_SourceText}}(sv){{/Definition3_SourceText}}</td>
-                                               <td class="example">{{Definition3_SourceText}}</td>
-                                             </tr>
-                                             <tr class="familiar">
-                                               <td class="language">{{#Definition3_TargetText}}(en){{/Definition3_TargetText}}</td>
-                                               <td class="example">{{Definition3_TargetText}}</td>
-                                             </tr>
-                                           </table>
-                                         </td>
-                                      </tr>
-                                      {{/Definition3}}
-                                      {{#Definition4}}
-                                      <tr class="meaning">
-                                        <td class="translation">{{Definition4}}</td>
-                                        <td class="examples">
-                                           <table class="examples">
-                                             <tr class="foreign">
-                                               <td class="language">{{#Definition4_SourceText}}(sv){{/Definition4_SourceText}}</td>
-                                               <td class="example">{{Definition4_SourceText}}</td>
-                                             </tr>
-                                             <tr class="familiar">
-                                               <td class="language">{{#Definition4_TargetText}}(en){{/Definition4_TargetText}}</td>
-                                               <td class="example">{{Definition4_TargetText}}</td>
-                                             </tr>
-                                           </table>
-                                         </td>
-                                      </tr>
-                                      {{/Definition4}}
-                                      {{#Definition5}}
-                                      <tr class="meaning">
-                                        <td class="translation">{{Definition5}}</td>
-                                        <td class="examples">
-                                           <table class="examples">
-                                             <tr class="foreign">
-                                               <td class="language">{{#Definition5_SourceText}}(sv){{/Definition5_SourceText}}</td>
-                                               <td class="example">{{Definition5_SourceText}}</td>
-                                             </tr>
-                                             <tr class="familiar">
-                                               <td class="language">{{#Definition5_TargetText}}(en){{/Definition5_TargetText}}</td>
-                                               <td class="example">{{Definition5_TargetText}}</td>
-                                             </tr>
-                                           </table>
-                                         </td>
-                                      </tr>
-                                      {{/Definition5}}
+                                    """ +
+                                    InternalHelper.dictionarySectionRepetition("""
+                                              {{#DefinitionINDEX}}
+                                              <tr class="meaning">
+                                                <td class="translation">{{DefinitionINDEX}}</td>
+                                                <td class="examples">
+                                                   <table class="examples">
+                                                     <tr class="foreign">
+                                                       <td class="language">{{#DefinitionINDEX_LearningText}}({{LearningLang}}){{/DefinitionINDEX_LearningText}}</td>
+                                                       <td class="example">{{DefinitionINDEX_LearningText}}</td>
+                                                     </tr>
+                                                     <tr class="familiar">
+                                                       <td class="language">{{#DefinitionINDEX_NativeText}}({{NativeLang}}){{/DefinitionINDEX_NativeText}}</td>
+                                                       <td class="example">{{DefinitionINDEX_NativeText}}</td>
+                                                     </tr>
+                                                   </table>
+                                                 </td>
+                                              </tr>
+                                              {{/DefinitionINDEX}}
+                                            """) +
+                                    """
                                     </table>
     
                                     <div class="notes-container">
@@ -407,9 +348,9 @@ public enum AnkiNote {
                                         {{/Notes}}
                                     </div>
                                     """
-                    )), IntStream.range(1, 6).boxed()
+                    )), InternalHelper.getDictionaryDefinitionindexStream()
                             .map(index -> new CardType(
-                                    "TargetINDEX-Source".replace("INDEX", String.valueOf(index)),
+                                    "NativeINDEX-Learning".replace("INDEX", String.valueOf(index)),
                                     """
                                             {{#DefinitionINDEX}}
                                             
@@ -418,16 +359,16 @@ public enum AnkiNote {
                                             {{/LexicalCat}}
                                             
                                             {{DefinitionINDEX}}
-                                            <div class="language">({{TargetLang}})</div>
+                                            <div class="language">({{NativeLang}})</div>
                                             
-                                            {{#DefinitionINDEX_TargetText}}
+                                            {{#DefinitionINDEX_NativeText}}
                                             <div class="hint">
                                             <button>Hint</button>
                                             <div class="front example">
-                                            {{DefinitionINDEX_TargetText}}
+                                            {{DefinitionINDEX_NativeText}}
                                             </div>
                                             </div>
-                                            {{/DefinitionINDEX_TargetText}}
+                                            {{/DefinitionINDEX_NativeText}}
                                             
                                             
                                             <script>
@@ -446,24 +387,24 @@ public enum AnkiNote {
                                             {{/LexicalCat}}
                                             
                                             {{DefinitionINDEX}}
-                                            <div class="language">({{TargetLang}})</div>
+                                            <div class="language">({{NativeLang}})</div>
                                             
-                                            {{#DefinitionINDEX_TargetText}}
+                                            {{#DefinitionINDEX_NativeText}}
                                             <div class="example">
-                                            {{DefinitionINDEX_TargetText}}
+                                            {{DefinitionINDEX_NativeText}}
                                             </div>
-                                            {{/DefinitionINDEX_TargetText}}
+                                            {{/DefinitionINDEX_NativeText}}
                                             
                                             <hr id="answer"/>
                                             
-                                            {{SourceWord}}
-                                            <div class="language">({{SourceLang}})</div>
+                                            {{LearningWord}}
+                                            <div class="language">({{LearningLang}})</div>
                                             
-                                            {{#DefinitionINDEX_SourceText}}
+                                            {{#DefinitionINDEX_LearningText}}
                                             <div class="example">
-                                            {{DefinitionINDEX_SourceText}}
+                                            {{DefinitionINDEX_LearningText}}
                                             </div>
-                                            {{/DefinitionINDEX_SourceText}}
+                                            {{/DefinitionINDEX_LearningText}}
                                             
                                             <div class="notes-container">
                                                 {{#NoteHeader}}
@@ -528,4 +469,18 @@ public enum AnkiNote {
         String questionTemplate,
         String answerTemplate
     ) {}
+
+    static class InternalHelper {
+        static final int DICTIONARY_DEFINITION_COUNT = 5;
+
+        static Stream<Integer> getDictionaryDefinitionindexStream() {
+            return IntStream.range(1, DICTIONARY_DEFINITION_COUNT + 1).boxed();
+        }
+
+        static String dictionarySectionRepetition(String section) {
+            return getDictionaryDefinitionindexStream()
+                    .map(index -> section.replaceAll("INDEX", String.valueOf(index)))
+                    .collect(Collectors.joining("\n"));
+        }
+    }
 }

@@ -27,21 +27,21 @@ public interface DictionarySource {
     /**
      * Fetches definition or translation for a word.
      * @param word the word to look up
-     * @param sourceLanguage the source language selected in settings
-     * @param targetLanguage the target language selected in settings
+     * @param learningLanguage the learning language selected in settings
+     * @param nativeLanguage the native language selected in settings
      * @param listener the listener to receive the results
      */
-    void fetch(String word, Language sourceLanguage, Language targetLanguage, OnResultListener listener);
+    void fetch(String word, Language learningLanguage, Language nativeLanguage, OnResultListener listener);
 
     /**
      * Fetches more examples if available.
      * @param word the word to look up
-     * @param sourceLanguage the source language
-     * @param targetLanguage the target language
+     * @param learningLanguage the learning language
+     * @param nativeLanguage the native language
      * @param page the page number to fetch
      * @param listener the listener to receive results (HTML fragment or JSON)
      */
-    void fetchMore(String word, Language sourceLanguage, Language targetLanguage, int page, OnResultListener listener);
+    void fetchMore(String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener);
 
     /**
      * Returns the JavaScript code to extract card data or IDs from the rendered HTML.

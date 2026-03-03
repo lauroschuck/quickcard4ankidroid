@@ -12,11 +12,11 @@ import com.github.lauroschuck.ankiquickadd.model.Language;
 
 public class SettingsActivity extends AppCompatActivity {
 
-    public static final String KEY_SOURCE_LANGUAGE = "source_language";
-    public static final String KEY_TARGET_LANGUAGE = "target_language";
+    public static final String KEY_LEARNING_LANGUAGE = "learning_language";
+    public static final String KEY_NATIVE_LANGUAGE = "native_language";
 
-    private Spinner sourceSpinner;
-    private Spinner targetSpinner;
+    private Spinner learningLanguageSpinner;
+    private Spinner nativeLanguageSpinner;
     private SharedPreferences prefs;
 
     @Override
@@ -24,23 +24,23 @@ public class SettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
 
-        sourceSpinner = findViewById(R.id.sourceLanguageSpinner);
-        targetSpinner = findViewById(R.id.targetLanguageSpinner);
+        learningLanguageSpinner = findViewById(R.id.learningLanguageSpinner);
+        nativeLanguageSpinner = findViewById(R.id.nativeLanguageSpinner);
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
         ArrayAdapter<Language> adapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_item, Language.values());
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 
-        sourceSpinner.setAdapter(adapter);
-        targetSpinner.setAdapter(adapter);
+        learningLanguageSpinner.setAdapter(adapter);
+        nativeLanguageSpinner.setAdapter(adapter);
 
         // Load saved values
-        String sourceIso = prefs.getString(KEY_SOURCE_LANGUAGE, Language.SWEDISH.getIsoCode());
-        String targetIso = prefs.getString(KEY_TARGET_LANGUAGE, Language.ENGLISH.getIsoCode());
+        String learningIso = prefs.getString(KEY_LEARNING_LANGUAGE, Language.SWEDISH.getIsoCode());
+        String nativeIso = prefs.getString(KEY_NATIVE_LANGUAGE, Language.ENGLISH.getIsoCode());
 
-        setSpinnerToValue(sourceSpinner, sourceIso);
-        setSpinnerToValue(targetSpinner, targetIso);
+        setSpinnerToValue(learningLanguageSpinner, learningIso);
+        setSpinnerToValue(nativeLanguageSpinner, nativeIso);
     }
 
     private void setSpinnerToValue(Spinner spinner, String isoCode) {
@@ -57,12 +57,12 @@ public class SettingsActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         // Save values
-        Language source = (Language) sourceSpinner.getSelectedItem();
-        Language target = (Language) targetSpinner.getSelectedItem();
+        Language learningLang = (Language) learningLanguageSpinner.getSelectedItem();
+        Language nativeLang = (Language) nativeLanguageSpinner.getSelectedItem();
 
         prefs.edit()
-                .putString(KEY_SOURCE_LANGUAGE, source.getIsoCode())
-                .putString(KEY_TARGET_LANGUAGE, target.getIsoCode())
+                .putString(KEY_LEARNING_LANGUAGE, learningLang.getIsoCode())
+                .putString(KEY_NATIVE_LANGUAGE, nativeLang.getIsoCode())
                 .apply();
     }
 }

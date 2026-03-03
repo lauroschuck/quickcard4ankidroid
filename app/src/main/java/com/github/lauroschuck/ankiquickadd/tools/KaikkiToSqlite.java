@@ -18,7 +18,7 @@ import java.util.Date;
 
 /**
  * Script to convert Kaikki.org JSONL Wiktionary dump to relational SQLite Databases.
- * Usage: java KaikkiToSqlite <source_langs_csv> <targetLang1:dumpPath1> <targetLang2:dumpPath2> ...
+ * Usage: java KaikkiToSqlite <learning_langs_csv> <nativeLang1:dumpPath1> <nativeLang2:dumpPath2> ...
  */
 public class KaikkiToSqlite {
 
@@ -64,7 +64,7 @@ public class KaikkiToSqlite {
 
     public static void main(String[] args) {
         if (args.length < 2) {
-            System.out.println("Usage: java KaikkiToSqlite <source_langs_csv> <targetLang1:dumpPath1> <targetLang2:dumpPath2> ...");
+            System.out.println("Usage: java KaikkiToSqlite <learning_langs_csv> <nativeLang1:dumpPath1> <nativeLang2:dumpPath2> ...");
             return;
         }
 
@@ -84,35 +84,35 @@ public class KaikkiToSqlite {
             setupStatsSchema(statsConn);
             statsConn.commit();
 
-            PreparedStatement pStats = statsConn.prepareStatement("INSERT INTO stats (source_lang, target_lang, source_name, headwords, glosses, examples) VALUES (?, ?, ?, ?, ?, ?)");
+            PreparedStatement pStats = statsConn.prepareStatement("INSERT INTO stats (learning_lang, target_lang, source_name, headwords, glosses, examples) VALUES (?, ?, ?, ?, ?, ?)");
 
             int totalDumps = args.length - 1;
             for (int i = 1; i < args.length; i++) {
                 String[] pair = args[i].split(":", 2);
                 if (pair.length < 2) continue;
 
-                String targetLangCode = pair[0].toLowerCase().trim();
+                String nativeLangCode = pair[0].toLowerCase().trim();
                 String dumpPath = pair[1];
 
-                Locale targetLocale = new Locale(targetLangCode);
-                String targetLangName = targetLocale.getDisplayLanguage(Locale.ENGLISH);
-                System.out.println(String.format(Locale.US, "\nStarting pass of dump: %s (Target: %s, %s)", dumpPath, targetLangCode, targetLangName));
+                Locale targetLocale = new Locale(nativeLangCode);
+                String nativeLangName = targetLocale.getDisplayLanguage(Locale.ENGLISH);
+                System.out.println(String.format(Locale.US, "\nStarting pass of dump: %s (Target: %s, %s)", dumpPath, nativeLangCode, nativeLangName));
 
                 Instant dumpStart = Instant.now();
                 Map<String, DatabaseSession> sessions = null;
                 try {
-                    sessions = converter.processDump(dumpPath, targetLangCode, sourceLangs, outDir, i, totalDumps);
+                    sessions = converter.processDump(dumpPath, nativeLangCode, sourceLangs, outDir, i, totalDumps);
 
                     for (Map.Entry<String, DatabaseSession> entry : sessions.entrySet()) {
                         String srcCode = entry.getKey();
                         DatabaseSession session = entry.getValue();
                         boolean kept = session.headwordCount >= MIN_HEADWORDS;
-                        summaryTable.computeIfAbsent(srcCode, k -> new TreeMap<>()).put(targetLangCode, kept);
+                        summaryTable.computeIfAbsent(srcCode, k -> new TreeMap<>()).put(nativeLangCode, kept);
 
                         if (kept) {
                             String srcEngName = new Locale(srcCode).getDisplayLanguage(Locale.ENGLISH);
                             pStats.setString(1, srcCode);
-                            pStats.setString(2, targetLangCode);
+                            pStats.setString(2, nativeLangCode);
                             pStats.setString(3, srcEngName);
                             pStats.setLong(4, session.headwordCount);
                             pStats.setLong(5, session.glossCount);
@@ -142,7 +142,7 @@ public class KaikkiToSqlite {
     private static void setupStatsSchema(Connection conn) throws Exception {
         Statement st = conn.createStatement();
         st.execute("DROP TABLE IF EXISTS stats");
-        st.execute("CREATE TABLE stats (source_lang TEXT, target_lang TEXT, source_name TEXT, headwords INTEGER, glosses INTEGER, examples INTEGER)");
+        st.execute("CREATE TABLE stats (learning_lang TEXT, target_lang TEXT, source_name TEXT, headwords INTEGER, glosses INTEGER, examples INTEGER)");
     }
 
     private static void printSummaryTable(Map<String, Map<String, Boolean>> status) {
@@ -166,12 +166,12 @@ public class KaikkiToSqlite {
         System.out.println("--------------------------------\n");
     }
 
-    public Map<String, DatabaseSession> processDump(String dumpPath, String targetLangCode, String[] sourceLangs, String outDir, int dumpIndex, int totalDumps) throws Exception {
+    public Map<String, DatabaseSession> processDump(String dumpPath, String nativeLangCode, String[] sourceLangs, String outDir, int dumpIndex, int totalDumps) throws Exception {
         Map<String, DatabaseSession> sessions = new HashMap<>();
         for (String src : sourceLangs) {
             String srcLower = src.toLowerCase().trim();
-            if (srcLower.equals(targetLangCode)) continue;
-            sessions.put(srcLower, new DatabaseSession(outDir + File.separator + "wiktionary_kaikki_" + srcLower + "-" + targetLangCode + ".db"));
+            if (srcLower.equals(nativeLangCode)) continue;
+            sessions.put(srcLower, new DatabaseSession(outDir + File.separator + "wiktionary_kaikki_" + srcLower + "-" + nativeLangCode + ".db"));
         }
 
         try (BufferedReader br = new BufferedReader(new FileReader(dumpPath))) {
@@ -189,10 +189,10 @@ public class KaikkiToSqlite {
 
                 if (++linesCount % 10000 == 0) {
                     for (DatabaseSession session : sessions.values()) session.commit();
-                    System.out.print(String.format(Locale.US, "\r[%d/%d] %s : processed %d lines...", dumpIndex, totalDumps, targetLangCode, linesCount));
+                    System.out.print(String.format(Locale.US, "\r[%d/%d] %s : processed %d lines...", dumpIndex, totalDumps, nativeLangCode, linesCount));
                 }
             }
-            System.out.print(String.format(Locale.US, "\r[%d/%d] %s : processed %d lines... Done.", dumpIndex, totalDumps, targetLangCode, linesCount));
+            System.out.print(String.format(Locale.US, "\r[%d/%d] %s : processed %d lines... Done.", dumpIndex, totalDumps, nativeLangCode, linesCount));
 
             System.out.println("\nSummary for dump: " + dumpPath);
             for (Map.Entry<String, DatabaseSession> entry : sessions.entrySet()) {

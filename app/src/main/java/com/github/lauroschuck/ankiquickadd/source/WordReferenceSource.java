@@ -24,8 +24,8 @@ public class WordReferenceSource implements DictionarySource {
     private final OkHttpClient client = new OkHttpClient();
 
     @Override
-    public void fetch(String word, Language sourceLanguage, Language targetLanguage, OnResultListener listener) {
-        String langPair = sourceLanguage.getIsoCode() + targetLanguage.getIsoCode();
+    public void fetch(String word, Language learningLanguage, Language nativeLanguage, OnResultListener listener) {
+        String langPair = learningLanguage.getIsoCode() + nativeLanguage.getIsoCode();
         String url = "https://www.wordreference.com/" + langPair + "/" + Uri.encode(word);
 
         Request request = new Request.Builder()
@@ -51,7 +51,7 @@ public class WordReferenceSource implements DictionarySource {
     }
 
     @Override
-    public void fetchMore(String word, Language sourceLanguage, Language targetLanguage, int page, OnResultListener listener) {
+    public void fetchMore(String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener) {
 
     }
 
@@ -70,12 +70,12 @@ public class WordReferenceSource implements DictionarySource {
                         if (!toRow) return;
 
                         const sourceTextEl = frRow.querySelector('.FrEx');
-                        const targetTextEl = toRow.querySelector('.ToEx');
+                        const nativeTextEl = toRow.querySelector('.ToEx');
                         
-                        if (!sourceTextEl || !targetTextEl) return;
+                        if (!sourceTextEl || !nativeTextEl) return;
 
                         const sourceText = sourceTextEl.innerHTML.trim();
-                        const targetText = targetTextEl.innerHTML.trim();
+                        const nativeText = nativeTextEl.innerHTML.trim();
                         
                         // Find the definition (DS class) by looking back through preceding rows
                         let definition = '';
@@ -89,7 +89,7 @@ public class WordReferenceSource implements DictionarySource {
                             curr = curr.previousElementSibling;
                         }
                         
-                        cards.push({ headword, sourceText, targetText, definition, lexicalCategory: 'WordReference' });
+                        cards.push({ headword, sourceText, nativeText, definition, lexicalCategory: 'WordReference' });
                     });
                     
                     Android.processSelectedCards(JSON.stringify(cards));

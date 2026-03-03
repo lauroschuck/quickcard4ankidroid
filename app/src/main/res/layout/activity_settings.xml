@@ -9,12 +9,12 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Source Language"
+        android:text="Learning Language"
         android:textSize="18sp"
         android:textStyle="bold" />
 
     <Spinner
-        android:id="@+id/sourceLanguageSpinner"
+        android:id="@+id/learningLanguageSpinner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
@@ -23,12 +23,12 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Target Language"
+        android:text="Native Language"
         android:textSize="18sp"
         android:textStyle="bold" />
 
     <Spinner
-        android:id="@+id/targetLanguageSpinner"
+        android:id="@+id/nativeLanguageSpinner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp" />

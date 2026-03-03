@@ -10,8 +10,8 @@ import java.util.List;
  */
 public record TranslationCard(
     String headword,
-    String sourceText,
-    String targetText,
+    String learningText,
+    String nativeText,
     String definition,
     String lexicalCategory,
     String audioUrl

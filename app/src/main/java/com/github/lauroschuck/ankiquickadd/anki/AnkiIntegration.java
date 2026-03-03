@@ -64,7 +64,7 @@ public class AnkiIntegration {
     }
 
     private void addCardsToAnkiDroid(final List<TranslationCard> data, boolean isDefinitions) {
-        AnkiNote note = isDefinitions ? AnkiNote.DICTIONARY_DEFINITION_V1 : AnkiNote.SOURCE_TARGET_TEXT_V1;
+        AnkiNote note = isDefinitions ? AnkiNote.DICTIONARY_DEFINITION_V1 : AnkiNote.LEARNING_NATIVE_TEXT_V1;
         Long deckId = getDeckId();
         Long modelId = getModelId(note);
 
@@ -80,8 +80,8 @@ public class AnkiIntegration {
         }
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        String sourceLang = prefs.getString(SettingsActivity.KEY_SOURCE_LANGUAGE, Language.SWEDISH.getIsoCode());
-        String targetLang = prefs.getString(SettingsActivity.KEY_TARGET_LANGUAGE, Language.ENGLISH.getIsoCode());
+        String learningLang = prefs.getString(SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SWEDISH.getIsoCode());
+        String nativeLang = prefs.getString(SettingsActivity.KEY_NATIVE_LANGUAGE, Language.ENGLISH.getIsoCode());
 
         LinkedList<String[]> fieldsList = new LinkedList<>();
         LinkedList<Set<String>> tagsList = new LinkedList<>();
@@ -100,30 +100,31 @@ public class AnkiIntegration {
                 String[] fields = new String[fieldNames.length];
                 TranslationCard first = group.get(0);
                 
-                // 0: SourceWord, 1: SourceLang, 2: LexicalCat, 3: TargetLang
-                fields[0] = first.headword();
-                fields[1] = sourceLang;
-                fields[2] = first.lexicalCategory();
-                fields[3] = targetLang;
+                // 0: Id, 1: LearningWord, 2: LearningLang, 3: LexicalCat, 4: NativeLang
+                fields[0] = String.format("%s-%s-%s", learningLang, nativeLang, first.headword());
+                fields[1] = first.headword();
+                fields[2] = learningLang;
+                fields[3] = first.lexicalCategory();
+                fields[4] = nativeLang;
 
                 // Definitions and their examples (up to 5)
                 for (int i = 0; i < Math.min(group.size(), 5); i++) {
                     TranslationCard card = group.get(i);
-                    int baseIdx = 4 + (i * 3);
+                    int baseIdx = 5 + (i * 3);
                     fields[baseIdx] = card.definition();
-                    fields[baseIdx + 1] = card.sourceText();
-                    fields[baseIdx + 2] = card.targetText();
+                    fields[baseIdx + 1] = card.learningText();
+                    fields[baseIdx + 2] = card.nativeText();
                 }
 
-                fields[22] = String.format("https://%s.wiktionary.org/wiki/%s#Swedish", targetLang, first.headword()); // SourceUrl
+                fields[23] = String.format("https://%s.wiktionary.org/wiki/%s#Swedish", nativeLang, first.headword()); // SourceUrl
 
                 String headword = first.headword();
                 String soundTag = audioCache.get(headword);
                 if (soundTag == null) {
-                    soundTag = processAudio(first, sourceLang, ankiPkg);
+                    soundTag = processAudio(first, learningLang, ankiPkg);
                     if (!soundTag.isEmpty()) audioCache.put(headword, soundTag);
                 }
-                fields[21] = soundTag; // Audio
+                fields[22] = soundTag; // Audio
 
                 sanitizeFields(fields);
                 fieldsList.add(fields);
@@ -132,19 +133,20 @@ public class AnkiIntegration {
         } else {
             for (TranslationCard card : data) {
                 String[] fields = new String[fieldNames.length];
-                fields[0] = card.sourceText();
-                fields[1] = sourceLang;
-                fields[2] = card.targetText();
-                fields[3] = targetLang;
+                // 0: LearningText, 1: LearningLang, 2: NativeText, 3: NativeLang, 4: LexicalCat, 5: NoteHeader, 6: Notes, 7: HiddenNotes, 8: Audio, 9: SourceUrl
+                fields[0] = card.learningText();
+                fields[1] = learningLang;
+                fields[2] = card.nativeText();
+                fields[3] = nativeLang;
                 fields[4] = card.lexicalCategory();
                 fields[5] = card.headword();
                 fields[6] = card.definition();
-                fields[9] = String.format("https://%s.wiktionary.org/wiki/%s#Swedish", targetLang, card.headword());
+                fields[9] = String.format("https://%s.wiktionary.org/wiki/%s#Swedish", nativeLang, card.headword());
 
                 String headword = card.headword();
                 String soundTag = audioCache.get(headword);
                 if (soundTag == null) {
-                    soundTag = processAudio(card, sourceLang, ankiPkg);
+                    soundTag = processAudio(card, learningLang, ankiPkg);
                     if (!soundTag.isEmpty()) audioCache.put(headword, soundTag);
                 }
                 fields[8] = soundTag;
@@ -173,13 +175,13 @@ public class AnkiIntegration {
         }
     }
 
-    private String processAudio(TranslationCard card, String sourceLang, String ankiPkg) {
+    private String processAudio(TranslationCard card, String learningLang, String ankiPkg) {
         String urlString = card.audioUrl();
         if (urlString == null || urlString.isEmpty() || ankiPkg == null) return "";
         if (urlString.startsWith("//")) urlString = "https:" + urlString;
 
         try {
-            String fileName = sourceLang + "-" + card.headword() + "." + MimeTypeMap.getFileExtensionFromUrl(urlString);
+            String fileName = learningLang + "-" + card.headword() + "." + MimeTypeMap.getFileExtensionFromUrl(urlString);
             File localFile = downloadFile(urlString, fileName);
             Uri uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", localFile);
 
