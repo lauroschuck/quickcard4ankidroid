@@ -46,7 +46,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                         h3 { font-size: 1.25em; font-weight: bold; margin-top: 1.2em; }
                         ol { padding-left: 1.5em; }
                         li.definition { margin-bottom: 0.8em; position: relative; }
-                        .gloss { margin-bottom: 0.3em; display: inline-block; width: 90%; vertical-align: top; }
+                        .gloss { margin-bottom: 0.3em; }
                         dl { margin-top: 0.5em; margin-bottom: 0.5em; }
                         .h-usage-example { font-style: italic; display: block; margin-top: 0.5em; }
                         .h-usage-example-translation { font-style: normal; color: #54595d; display: block; font-size: 0.9em; margin-left: 2em; margin-top: 0.2em; }
@@ -55,9 +55,13 @@ public class OfflineKaikkiSource implements DictionarySource {
                         .example-checkbox, .sense-checkbox, .example-radio { margin-right: 8px; vertical-align: middle; }
                         
                         /* Mode Toggling */
-                        body.mode-examples .sense-checkbox, body.mode-examples .example-radio { display: none; }
-                        body.mode-definitions .example-checkbox { display: none; }
+                        body.mode-examples .sense-checkbox, body.mode-examples .example-radio { display: none !important; }
+                        body.mode-definitions .example-checkbox { display: none !important; }
                         
+                        /* Mode-specific gloss layout */
+                        body.mode-examples .gloss { display: block; }
+                        body.mode-definitions .gloss { display: inline-block; width: 90%; vertical-align: top; }
+
                         /* Definitions mode specifics */
                         body.mode-definitions .h-usage-example .example-radio { visibility: hidden; }
                         body.mode-definitions li.definition.selected .h-usage-example .example-radio { visibility: visible; }
