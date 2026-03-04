@@ -13,70 +13,35 @@ import java.util.stream.Stream;
  */
 public enum AnkiNote {
 
-    LEARNING_NATIVE_TEXT_V1(
-            "ankiquickadd.notes.LearningNativeTextV1",
+    LEARNING_NATIVE_TEXT(
+            "ankiquickadd.notes.LearningNativeTextV2",
             List.of("LearningText", "LearningLang", "NativeText", "NativeLang", "LexicalCat",
                     "NoteHeader", "Notes", "HiddenNotes", "Audio", "SourceUrl"),
-            """
-                    .card {
-                        font-family: arial;
-                        font-size: 20px;
-                        text-align: center;
-                        color: black;
-                        background-color: white;
-                    }
-                    
-                    .text-hints {
-                        font-size: 0.75em;
-                        color: gray;
-                    }
-                    
-                    .no-style b {
-                        font-weight: normal;
-                    }
-                    
-                    .notes-container {
-                         padding-top: 1em;
-                    }
-                    
-                    .note-header {
-                         font-weight: bold;
-                         background-color: #eee;
-                         padding: 0.5em 1em;
-                    }
-                    
-                    .night_mode .note-header {
-                         background-color: #555;
-                    }
-                    
-                    .notes {
-                         font-size: 0.8em;
-                         background-color: #eee;
-                         padding: 0.5em 1em;
-                    }
-                    
-                    .night_mode .notes {
-                         background-color: #555;
-                    }
-                    
-                    .audio {
-                        display: none;
-                    }
-                    """,
+            InternalHelper.COMMON_CSS,
             List.of(new CardType(
                     "Learning-Native",
                     """
+                            {{#LexicalCat}}
+                            <div class="gramatical-class">{{LexicalCat}}</div>
+                            {{/LexicalCat}}
+                            
                             {{LearningText}}
-                            <div class="text-hints">({{LexicalCat}})<br/>Lang: {{LearningLang}}</div>
+                            <div class="language">({{LearningLang}})</div>
+                            
+                            {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
                             """,
                     """
+                            {{#LexicalCat}}
+                            <div class="gramatical-class">{{LexicalCat}}</div>
+                            {{/LexicalCat}}
+                            
                             {{LearningText}}
-                            <div class="text-hints">({{LexicalCat}})<br/>Lang: {{LearningLang}}</div>
+                            <div class="language">({{LearningLang}})</div>
                             
                             <hr id="answer"/>
                             
                             {{NativeText}}
-                            <div class="text-hints">Lang: {{NativeLang}}</div>
+                            <div class="language">({{NativeLang}})</div>
                             
                             <div class="notes-container">
                                 {{#NoteHeader}}
@@ -93,19 +58,25 @@ public enum AnkiNote {
                     new CardType(
                             "Native-Learning",
                             """
-                                    {{NativeText}}
-                                    <div class="text-hints">({{LexicalCat}})<br/>Lang: {{NativeLang}}</div>
+                                    {{#LexicalCat}}
+                                    <div class="gramatical-class">{{LexicalCat}}</div>
+                                    {{/LexicalCat}}
                                     
-                                    {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
+                                    {{NativeText}}
+                                    <div class="language">({{NativeLang}})</div>
                                     """,
                             """
+                                    {{#LexicalCat}}
+                                    <div class="gramatical-class">{{LexicalCat}}</div>
+                                    {{/LexicalCat}}
+                                    
                                     {{NativeText}}
-                                    <div class="text-hints">({{LexicalCat}})<br/>Lang: {{NativeLang}}</div>
+                                    <div class="language">({{NativeLang}})</div>
                                     
                                     <hr id="answer"/>
                                     
                                     {{LearningText}}
-                                    <div class="text-hints">Lang: {{LearningLang}}</div>
+                                    <div class="language">({{LearningLang}})</div>
                                     
                                     <div class="notes-container">
                                         {{#NoteHeader}}
@@ -115,12 +86,14 @@ public enum AnkiNote {
                                         <div class="notes">{{Notes}}</div>
                                         {{/Notes}}
                                     </div>
+                                    
+                                    {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
                                     """
                     )),
             Set.of()
     ),
-    DICTIONARY_DEFINITION_V1(
-            "ankiquickadd.notes.DictionatyDefinitionV1",
+    DICTIONARY_DEFINITION(
+            "ankiquickadd.notes.DictionatyDefinitionV3",
             Stream.of(Stream.of("Id", "LearningWord", "LearningLang", "LexicalCat", "NativeLang"),
                     InternalHelper.getDictionaryDefinitionindexStream()
                             .flatMap(index -> Stream.of(
@@ -132,148 +105,7 @@ public enum AnkiNote {
                     .flatMap(Function.identity())
                     .collect(Collectors.toList())
             ,
-            """
-                    .card {
-                     font-family: arial;
-                     font-size: 20px;
-                     text-align: center;
-                     color: black;
-                     background-color: white;
-                    }
-                    
-                    .gramatical-class {
-                     font-size: smaller;
-                     padding: 0.5em;
-                     margin-bottom: 1em;
-                     color: #aaa;
-                     background-color: #eee;
-                    }
-                    
-                    .night_mode .gramatical-class {
-                     color: #ccc;
-                     background-color: #555;
-                    }
-                    
-                    .language {
-                     font-size: 0.75em;
-                     color: gray;
-                    }
-                    
-                    .night_mode .language {
-                     color: light-gray;
-                    }
-                    
-                    div.hint button {
-                     margin-top: 1em;
-                     heightx: 30px;
-                    }
-                    
-                    div.hint .example {
-                     display: none;
-                    }
-                    
-                    div.example {
-                     font-size: 0.75em;
-                     color: blue;
-                     padding-top: 0.5em;
-                    }
-                    
-                    .night_mode div.example {
-                     color: lightblue;
-                    }
-                    
-                    hr.alternative {
-                     border-top: 1px dashed lightgray;
-                    }
-                    
-                    table.translations {
-                     border-collapse: collapse;
-                     margin-left: auto;
-                     margin-right: auto;
-                    }
-                    
-                    table.translations tr.meaning {
-                     border-bottom: 1px solid lightgray;
-                    }
-                    
-                    table.translations tr.meaning:last-child {
-                     border-bottom: none;
-                    }
-                    
-                    table.translations td.translation {
-                     padding: 0.25em 0.25em 0.25em 0em;
-                     float: left;
-                    }
-                    
-                    table.translations td.examples {
-                     border-left: 1px solid lightgray;
-                    }
-                    
-                    table.examples {
-                     font-size: 0.75em;
-                     border-collapse: collapse;
-                    }
-                    
-                    table.examples tr.foreign td {
-                     padding-top: 0.5em;
-                     padding-bottom: 0.5em;
-                     padding-left: 0.5em;
-                    }
-                    
-                    table.examples tr.familiar td {
-                     padding-top: 0em;
-                     padding-bottom: 0.5em;
-                     padding-left: 0.5em;
-                    }
-                    
-                    table.examples td.example {
-                     text-align: left;
-                    }
-                    
-                    table.examples tr.foreign td.example {
-                     color: blue;
-                    }
-                    
-                    .night_mode table.examples tr.foreign td.example {
-                     color: lightblue;
-                    }
-                    
-                    table.examples tr.familiar td.example {
-                     color: gray;
-                    }
-                    
-                    .night_mode table.examples tr.familiar td.example {
-                     color: lightgray;
-                    }
-                    
-                    .notes-container {
-                         padding-top: 1em;
-                    }
-                    
-                    .note-header {
-                         font-weight: bold;
-                         background-color: #eee;
-                         padding: 0.5em 1em;
-                    }
-                    
-                    .night_mode .note-header {
-                         background-color: #555;
-                    }
-                    
-                    .notes {
-                         font-size: 0.8em;
-                         background-color: #eee;
-                         padding: 0.5em 1em;
-                    }
-                    
-                    .night_mode .notes {
-                         background-color: #555;
-                    }
-                    
-                    .audio {
-                        display: none;
-                    }
-                    """,
+            InternalHelper.COMMON_CSS,
             Stream.concat(
                     Stream.of(
                             new CardType(
@@ -472,6 +304,136 @@ public enum AnkiNote {
 
     static class InternalHelper {
         static final int DICTIONARY_DEFINITION_COUNT = 5;
+
+        static final String COMMON_CSS = """
+                    .card {
+                        font-family: arial;
+                        font-size: 20px;
+                        text-align: center;
+                        color: black;
+                        background-color: white;
+                    }
+                    
+                    .gramatical-class {
+                        font-size: smaller;
+                        padding: 0.5em;
+                        margin-bottom: 1em;
+                        color: #aaa;
+                        background-color: #f5f5f5;
+                        border-radius: 4px;
+                    }
+                    
+                    .night_mode .gramatical-class {
+                        color: #ccc;
+                        background-color: #333;
+                    }
+                    
+                    .language {
+                        font-size: 0.75em;
+                        color: gray;
+                        margin-top: 0.2em;
+                    }
+                    
+                    .night_mode .language {
+                        color: #999;
+                    }
+                    
+                    .notes-container {
+                         padding-top: 1.5em;
+                         text-align: left;
+                    }
+                    
+                    .note-header {
+                         font-weight: bold;
+                         background-color: #eee;
+                         padding: 0.5em 1em;
+                         border-radius: 4px 4px 0 0;
+                    }
+                    
+                    .night_mode .note-header {
+                         background-color: #444;
+                    }
+                    
+                    .notes {
+                         font-size: 0.8em;
+                         background-color: #f9f9f9;
+                         padding: 0.8em 1em;
+                         border: 1px solid #eee;
+                         border-top: none;
+                         border-radius: 0 0 4px 4px;
+                    }
+                    
+                    .night_mode .notes {
+                         background-color: #222;
+                         border-color: #444;
+                    }
+                    
+                    .audio {
+                        display: none;
+                    }
+                    
+                    /* Dictionary specific styles */
+                    div.hint button {
+                        margin-top: 1em;
+                        padding: 0.5em 1em;
+                        cursor: pointer;
+                    }
+                    
+                    div.hint .example {
+                        display: none;
+                    }
+                    
+                    div.example {
+                        font-size: 0.8em;
+                        color: #36c;
+                        padding-top: 0.5em;
+                        font-style: italic;
+                    }
+                    
+                    .night_mode div.example {
+                        color: #69f;
+                    }
+                    
+                    table.translations {
+                        border-collapse: collapse;
+                        margin: 1em auto;
+                        width: 100%;
+                    }
+                    
+                    table.translations tr.meaning {
+                        border-bottom: 1px solid #eee;
+                    }
+                    
+                    table.translations td.translation {
+                        padding: 0.5em;
+                        text-align: left;
+                        font-weight: bold;
+                    }
+                    
+                    table.translations td.examples {
+                        border-left: 1px solid #eee;
+                        padding-left: 0.5em;
+                    }
+                    
+                    table.examples {
+                        font-size: 0.75em;
+                        border-collapse: collapse;
+                        width: 100%;
+                    }
+                    
+                    table.examples td.example {
+                        text-align: left;
+                        padding: 0.2em 0.5em;
+                    }
+                    
+                    table.examples tr.foreign td.example {
+                        color: #36c;
+                    }
+                    
+                    .night_mode table.examples tr.foreign td.example {
+                        color: #69f;
+                    }
+                    """;
 
         static Stream<Integer> getDictionaryDefinitionindexStream() {
             return IntStream.range(1, DICTIONARY_DEFINITION_COUNT + 1).boxed();

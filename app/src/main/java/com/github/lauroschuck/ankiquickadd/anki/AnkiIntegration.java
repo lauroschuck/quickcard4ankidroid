@@ -64,7 +64,7 @@ public class AnkiIntegration {
     }
 
     private void addCardsToAnkiDroid(final List<TranslationCard> data, boolean isDefinitions) {
-        AnkiNote note = isDefinitions ? AnkiNote.DICTIONARY_DEFINITION_V1 : AnkiNote.LEARNING_NATIVE_TEXT_V1;
+        AnkiNote note = isDefinitions ? AnkiNote.DICTIONARY_DEFINITION : AnkiNote.LEARNING_NATIVE_TEXT;
         Long deckId = getDeckId();
         Long modelId = getModelId(note);
 
@@ -80,8 +80,8 @@ public class AnkiIntegration {
         }
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
-        String learningLang = prefs.getString(SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SWEDISH.getIsoCode());
-        String nativeLang = prefs.getString(SettingsActivity.KEY_NATIVE_LANGUAGE, Language.ENGLISH.getIsoCode());
+        String learningLang = prefs.getString(SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV.getIsoCode());
+        String nativeLang = prefs.getString(SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN.getIsoCode());
 
         LinkedList<String[]> fieldsList = new LinkedList<>();
         LinkedList<Set<String>> tagsList = new LinkedList<>();
@@ -108,7 +108,7 @@ public class AnkiIntegration {
                 fields[4] = nativeLang;
 
                 // Definitions and their examples (up to 5)
-                for (int i = 0; i < Math.min(group.size(), 5); i++) {
+                for (int i = 0; i < Math.min(group.size(), AnkiNote.InternalHelper.DICTIONARY_DEFINITION_COUNT); i++) {
                     TranslationCard card = group.get(i);
                     int baseIdx = 5 + (i * 3);
                     fields[baseIdx] = card.definition();
@@ -116,15 +116,15 @@ public class AnkiIntegration {
                     fields[baseIdx + 2] = card.nativeText();
                 }
 
-                fields[23] = String.format("https://%s.wiktionary.org/wiki/%s#Swedish", nativeLang, first.headword()); // SourceUrl
-
                 String headword = first.headword();
                 String soundTag = audioCache.get(headword);
                 if (soundTag == null) {
                     soundTag = processAudio(first, learningLang, ankiPkg);
                     if (!soundTag.isEmpty()) audioCache.put(headword, soundTag);
                 }
-                fields[22] = soundTag; // Audio
+                fields[23] = soundTag; // Audio
+
+                fields[24] = String.format("https://%s.wiktionary.org/wiki/%s#Swedish", nativeLang, first.headword()); // SourceUrl
 
                 sanitizeFields(fields);
                 fieldsList.add(fields);

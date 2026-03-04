@@ -6,18 +6,32 @@ import android.preference.PreferenceManager;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.github.lauroschuck.ankiquickadd.model.Language;
+
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.function.Supplier;
 
 public class SettingsActivity extends AppCompatActivity {
 
     public static final String KEY_LEARNING_LANGUAGE = "learning_language";
     public static final String KEY_NATIVE_LANGUAGE = "native_language";
 
+    private static final Language[] ALL_LANGUAGES = sortedLanguages(Language::values);
+    private static final Language[] NATIVE_LANGUAGES = sortedLanguages(Language::valuesAvailableAsNative);
+
     private Spinner learningLanguageSpinner;
     private Spinner nativeLanguageSpinner;
     private SharedPreferences prefs;
+
+    private static Language[] sortedLanguages(Supplier<Language[]> supplier) {
+        var languages = supplier.get();
+        Arrays.sort(languages, Comparator.comparing(Language::getDisplayName));
+        return languages;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,29 +42,28 @@ public class SettingsActivity extends AppCompatActivity {
         nativeLanguageSpinner = findViewById(R.id.nativeLanguageSpinner);
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
-        ArrayAdapter<Language> adapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item, Language.values());
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-
-        learningLanguageSpinner.setAdapter(adapter);
-        nativeLanguageSpinner.setAdapter(adapter);
+        learningLanguageSpinner.setAdapter(createArrayAdapter(ALL_LANGUAGES));
+        nativeLanguageSpinner.setAdapter(createArrayAdapter(NATIVE_LANGUAGES));
 
         // Load saved values
-        String learningIso = prefs.getString(KEY_LEARNING_LANGUAGE, Language.SWEDISH.getIsoCode());
-        String nativeIso = prefs.getString(KEY_NATIVE_LANGUAGE, Language.ENGLISH.getIsoCode());
+        String learningIso = prefs.getString(KEY_LEARNING_LANGUAGE, Language.SV.getIsoCode());
+        String nativeIso = prefs.getString(KEY_NATIVE_LANGUAGE, Language.EN.getIsoCode());
 
         setSpinnerToValue(learningLanguageSpinner, learningIso);
         setSpinnerToValue(nativeLanguageSpinner, nativeIso);
     }
 
+    @NonNull
+    private ArrayAdapter<Language> createArrayAdapter(Language[] languages) {
+        ArrayAdapter<Language> languageArrayAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item, languages);
+        languageArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        return languageArrayAdapter;
+    }
+
     private void setSpinnerToValue(Spinner spinner, String isoCode) {
-        Language[] languages = Language.values();
-        for (int i = 0; i < languages.length; i++) {
-            if (languages[i].getIsoCode().equals(isoCode)) {
-                spinner.setSelection(i);
-                break;
-            }
-        }
+        var position = ((ArrayAdapter) spinner.getAdapter()).getPosition(Language.ofIsoCode(isoCode));
+        spinner.setSelection(position);
     }
 
     @Override

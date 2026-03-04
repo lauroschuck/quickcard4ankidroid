@@ -1,37 +1,128 @@
 package com.github.lauroschuck.ankiquickadd.model;
 
+import java.util.Locale;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 public enum Language {
-    ENGLISH("English", "en"),
-    SPANISH("Spanish", "es"),
-    FRENCH("French", "fr"),
-    GERMAN("German", "de"),
-    SWEDISH("Swedish", "sv"),
-    NORWEGIAN("Norwegian", "no"),
-    DANISH("Danish", "da"),
-    PORTUGUESE("Portuguese", "pt"),
-    ITALIAN("Italian", "it"),
-    ARABIC("Arabic", "ar"),
-    CHINESE("Chinese", "zh"),
-    JAPANESE("Japanese", "ja");
+    AF,
+    AM,
+    AR,
+    AZ,
+    BE,
+    BG,
+    BN,
+    BS,
+    CA,
+    CS(true),
+    CY,
+    DA,
+    DE(true),
+    EL(true),
+    EN(true),
+    ES,
+    ET,
+    EU,
+    FA,
+    FI,
+    FR(true),
+    FY,
+    GA,
+    GD,
+    GL,
+    GN,
+    GU,
+    HA,
+    HE,
+    HI,
+    HR,
+    HU,
+    HY,
+    ID(true),
+    IG,
+    IS,
+    IT(true),
+    IW,
+    JA(true),
+    KA,
+    KM,
+    KN,
+    KO(true),
+    KY,
+    LB,
+    LN,
+    LO,
+    LT,
+    LV,
+    MK,
+    ML,
+    MN,
+    MR,
+    MS,
+    MT,
+    MY,
+    NB,
+    NE,
+    NL(true),
+    NO,
+    OR,
+    PA,
+    PL(true),
+    PT(true),
+    RO,
+    RU(true),
+    SK,
+    SL,
+    SO,
+    SQ,
+    SR,
+    SV,
+    SW,
+    TA,
+    TE,
+    TG,
+    TH,
+    TL,
+    TR(true),
+    UK,
+    UR,
+    UZ,
+    VI(true),
+    ZH(true),
+    ZU;
 
-    private final String displayName;
-    private final String isoCode;
+    private final Locale locale;
+    private final boolean availableAsNative;
 
-    Language(String displayName, String isoCode) {
-        this.displayName = displayName;
-        this.isoCode = isoCode;
+    Language() {
+        this(false);
+    }
+    Language(boolean availableAsNative) {
+        this.availableAsNative = availableAsNative;
+        locale = new Locale(getIsoCode());
+    }
+
+    public static Language ofIsoCode(String isoCode) {
+        return Language.valueOf(isoCode.toUpperCase(Locale.US));
+    }
+
+    public static Language[] valuesAvailableAsNative() {
+        return Stream.of(values())
+                .filter(l -> l.availableAsNative)
+                .collect(Collectors.toList())
+                .toArray(new Language[0]);
     }
 
     public String getDisplayName() {
-        return displayName;
+        return locale.getDisplayLanguage(Locale.US);
     }
 
     public String getIsoCode() {
-        return isoCode;
+        return name().toLowerCase(Locale.US);
     }
 
     @Override
     public String toString() {
-        return displayName;
+        return getDisplayName();
     }
 }
