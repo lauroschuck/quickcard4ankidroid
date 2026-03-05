@@ -42,7 +42,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                 <head>
                     <style>
                         body { font-family: sans-serif; padding: 12px; line-height: 1.5; color: #202122; transition: background 0.3s; }
-                        h2 { border-bottom: 1px solid #a2a9b1; margin-bottom: 0.25em; padding-top: 0.5em; font-size: 1.5em; }
+                        h2 { border-bottom: 1px solid #a2a9b1; margin-bottom: 0.25em; padding-top: 0.5em; font-size: 1.5em; display: flex; align-items: center; }
                         h3 { font-size: 1.25em; font-weight: bold; margin-top: 1.2em; }
                         ol { padding-left: 1.5em; }
                         li.definition { margin-bottom: 0.8em; position: relative; }
@@ -75,6 +75,10 @@ public class OfflineKaikkiSource implements DictionarySource {
                         .play-button { text-decoration: none; background: #36c; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 12px; margin-right: 8px; }
                         .pron-desc { font-size: 0.9em; color: #555; }
                         .no-desc { color: #999; font-style: italic; }
+                        
+                        .wiktionary-link { text-decoration: none; color: #36c; margin-left: 12px; font-family: serif; font-size: 0.6em; font-weight: bold; border: 1px solid #36c; padding: 0 6px; border-radius: 4px; background: #f0f7ff; vertical-align: middle; }
+                        .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; text-align: center; margin-bottom: 20px; }
+                        .footer a { color: #36c; font-size: 0.95em; }
                     </style>
                     <script>
                         function setMode(mode) {
@@ -90,7 +94,12 @@ public class OfflineKaikkiSource implements DictionarySource {
                     </script>
                 </head>
                 <body data-word="{{word}}" class="mode-examples">
-                    <h2>{{word}}</h2>
+                    <h2>
+                        {{word}} ({{langName}})
+                        {{#if wiktionaryUrl}}
+                        <a href="{{wiktionaryUrl}}" class="wiktionary-link" target="_blank">W</a>
+                        {{/if}}
+                    </h2>
                     {{#if pronunciations}}
                     <div class='pronunciation-box'>
                         {{#each pronunciations}}
@@ -140,6 +149,12 @@ public class OfflineKaikkiSource implements DictionarySource {
                         </ol>
                     </div>
                     {{/each}}
+                    
+                    {{#if wiktionaryUrl}}
+                    <div class="footer">
+                        <a href="{{wiktionaryUrl}}" target="_blank">View this word on Wiktionary</a>
+                    </div>
+                    {{/if}}
                 </body>
                 </html>
                 """);
@@ -170,6 +185,28 @@ public class OfflineKaikkiSource implements DictionarySource {
         try (SQLiteDatabase db = SQLiteDatabase.openDatabase(dbFile.getPath(), null, SQLiteDatabase.OPEN_READONLY)) {
             Map<String, Object> data = new HashMap<>();
             data.put("word", word);
+
+            // 0. Fetch language name for Wiktionary anchor and construct URL
+            String langName = "";
+            try (Cursor langCursor = db.rawQuery("SELECT name FROM languages WHERE iso = ?", new String[]{learningLanguage.getIsoCode()})) {
+                if (langCursor.moveToFirst()) {
+                    langName = langCursor.getString(0);
+                }
+            }
+            if (langName.isEmpty()) {
+                langName = learningLanguage.getDisplayName();
+            }
+            data.put("langName", langName);
+            
+            try {
+                String encodedWord = URLEncoder.encode(word, "UTF-8");
+                String encodedAnchor = URLEncoder.encode(langName.replace(" ", "_"), "UTF-8");
+                String wiktionaryUrl = String.format("https://%s.wiktionary.org/wiki/%s#%s", 
+                        nativeLanguage.getIsoCode().toLowerCase(), encodedWord, encodedAnchor);
+                data.put("wiktionaryUrl", wiktionaryUrl);
+            } catch (Exception e) {
+                Log.e(TAG, "URL encoding failed", e);
+            }
 
             // 1. Fetch Pronunciations
             List<Map<String, String>> pronunciations = new ArrayList<>();

@@ -32,7 +32,7 @@ public class ParallelKaikkiToSqlite {
         final String learningLangCode;
         final String learningLangName;
         final Connection conn;
-        final PreparedStatement pHeadword, pEntry, pGloss, pExample, pSenseLink, pOffset, pPronunciation, pRelation;
+        final PreparedStatement pHeadword, pEntry, pGloss, pExample, pSenseLink, pOffset, pPronunciation, pRelation, pLanguage;
         final Map<String, Long> headwordCache = new HashMap<>();
         final Map<String, Integer> headwordSenseCounter = new HashMap<>();
         final Map<Long, Set<String>> headwordAudioCache = new HashMap<>();
@@ -42,6 +42,8 @@ public class ParallelKaikkiToSqlite {
         long headwordCount = 0;
         long glossCount = 0;
         long exampleCount = 0;
+        long pronunciationCount = 0;
+        long linkCount = 0;
 
         DatabaseSession(String dbPath, String learningLangCode) throws Exception {
             this.dbPath = dbPath;
@@ -59,6 +61,7 @@ public class ParallelKaikkiToSqlite {
             this.pOffset = conn.prepareStatement("INSERT INTO bold_offsets (example_id, text_type, start_index, end_index) VALUES (?, ?, ?, ?)");
             this.pPronunciation = conn.prepareStatement("INSERT INTO pronunciations (headword_id, audio_url, description) VALUES (?, ?, ?)");
             this.pRelation = conn.prepareStatement("INSERT INTO relations (lexical_entry_id, type, word) VALUES (?, ?, ?)");
+            this.pLanguage = conn.prepareStatement("INSERT OR IGNORE INTO languages (iso, name) VALUES (?, ?)");
 
             this.writerThread = new Thread(this::consume);
             this.writerThread.start();
@@ -80,6 +83,13 @@ public class ParallelKaikkiToSqlite {
         private void processEntryInternal(JsonObject entry) throws Exception {
             String word = entry.get("word").getAsString();
             long headwordId = getOrCreateHeadwordIdInternal(word);
+            
+            if (entry.has("lang") && entry.has("lang_code")) {
+                pLanguage.setString(1, entry.get("lang_code").getAsString());
+                pLanguage.setString(2, entry.get("lang").getAsString());
+                pLanguage.addBatch();
+            }
+
             if (entry.has("sounds")) processPronunciationsInternal(headwordId, entry.getAsJsonArray("sounds"));
             if (entry.has("senses")) {
                 String pos = entry.has("pos") ? entry.get("pos").getAsString() : "unknown";
@@ -98,6 +108,7 @@ public class ParallelKaikkiToSqlite {
                     pPronunciation.setString(2, audioUrl);
                     pPronunciation.setString(3, aggregateSoundDescription(sound));
                     pPronunciation.addBatch();
+                    pronunciationCount++;
                 }
             }
         }
@@ -147,6 +158,7 @@ public class ParallelKaikkiToSqlite {
                         pSenseLink.setString(2, linkArr.get(0).getAsString());
                         pSenseLink.setLong(3, getOrCreateHeadwordIdInternal(lemma));
                         pSenseLink.addBatch();
+                        linkCount++;
                     }
                 }
             }
@@ -216,7 +228,7 @@ public class ParallelKaikkiToSqlite {
         }
 
         private void commitInternal() throws Exception {
-            pGloss.executeBatch(); pOffset.executeBatch(); pPronunciation.executeBatch(); pRelation.executeBatch(); pSenseLink.executeBatch();
+            pGloss.executeBatch(); pOffset.executeBatch(); pPronunciation.executeBatch(); pRelation.executeBatch(); pSenseLink.executeBatch(); pLanguage.executeBatch();
             conn.commit();
         }
 
@@ -339,8 +351,8 @@ public class ParallelKaikkiToSqlite {
                 DatabaseSession session = entry.getValue();
                 session.close();
                 String learningCode = entry.getKey();
-                System.out.println(String.format(Locale.US, "- %s, %s: %d headwords, %d glosses, %d examples added.", 
-                        learningCode, session.learningLangName, session.headwordCount, session.glossCount, session.exampleCount));
+                System.out.println(String.format(Locale.US, "- %s, %s: %d headwords, %d glosses, %d examples, %d pronunciations, %d links added.", 
+                        learningCode, session.learningLangName, session.headwordCount, session.glossCount, session.exampleCount, session.pronunciationCount, session.linkCount));
                 if (session.headwordCount < MIN_HEADWORDS) {
                     System.out.println(String.format(Locale.US, "  ! Deleting database (below min %d): %s", MIN_HEADWORDS, session.dbPath));
                     new File(session.dbPath).delete();
@@ -375,6 +387,7 @@ public class ParallelKaikkiToSqlite {
         st.execute("DROP TABLE IF EXISTS lexical_entries");
         st.execute("DROP TABLE IF EXISTS pronunciations");
         st.execute("DROP TABLE IF EXISTS headwords");
+        st.execute("DROP TABLE IF EXISTS languages");
         st.execute("CREATE TABLE headwords (id INTEGER PRIMARY KEY AUTOINCREMENT, headword TEXT UNIQUE)");
         st.execute("CREATE TABLE lexical_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, headword_id INTEGER, lexical_category TEXT, sense_index INTEGER, FOREIGN KEY(headword_id) REFERENCES headwords(id))");
         st.execute("CREATE TABLE glosses (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, gloss TEXT, gloss_index INTEGER, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id))");
@@ -383,6 +396,7 @@ public class ParallelKaikkiToSqlite {
         st.execute("CREATE TABLE bold_offsets (id INTEGER PRIMARY KEY AUTOINCREMENT, example_id INTEGER, text_type CHAR(1), start_index INTEGER, end_index INTEGER, FOREIGN KEY(example_id) REFERENCES examples(id))");
         st.execute("CREATE TABLE pronunciations (id INTEGER PRIMARY KEY AUTOINCREMENT, headword_id INTEGER, audio_url TEXT, description TEXT, FOREIGN KEY(headword_id) REFERENCES headwords(id))");
         st.execute("CREATE TABLE relations (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, type CHAR(1), word TEXT, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id))");
+        st.execute("CREATE TABLE languages (iso TEXT PRIMARY KEY, name TEXT)");
         st.execute("CREATE INDEX idx_hw_word ON headwords(headword)");
         st.execute("CREATE INDEX idx_le_hw ON lexical_entries(headword_id)");
         st.execute("CREATE INDEX idx_gl_le ON glosses(lexical_entry_id)");

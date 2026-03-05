@@ -27,6 +27,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
@@ -36,7 +37,6 @@ import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
 import com.github.lauroschuck.ankiquickadd.source.OfflineKaikkiSource;
 import com.github.lauroschuck.ankiquickadd.source.ReversoSource;
-import com.github.lauroschuck.ankiquickadd.source.WiktionarySource;
 import com.github.lauroschuck.ankiquickadd.source.WordReferenceSource;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Stack;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -69,6 +70,13 @@ public class MainActivity extends AppCompatActivity {
     
     private final List<DictionarySource> sources = new ArrayList<>();
     private DictionarySource currentSource;
+
+    private Language lastUsedLearningLanguage;
+    private Language lastUsedNativeLanguage;
+
+    private final Stack<String> wordHistory = new Stack<>();
+    private boolean isNavigatingBack = false;
+    private boolean rootIsSearch = false;
 
     public class WebAppInterface {
         @JavascriptInterface
@@ -125,12 +133,59 @@ public class MainActivity extends AppCompatActivity {
         configureWebView();
         setupSearch();
         setupTabs();
+        setupBackPressed();
         
         settingsButton.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
         createCardsFab.setOnClickListener(v -> triggerJsExtraction());
-        closeButton.setOnClickListener(v -> showCentralSearch(null));
+        closeButton.setOnClickListener(v -> {
+            rootIsSearch = true; // Manually closing a word results in search being the root now
+            showCentralSearch(null);
+        });
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        lastUsedLearningLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV);
+        lastUsedNativeLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN);
         
         handleIntent(getIntent());
+    }
+
+    private void setupBackPressed() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (!wordHistory.isEmpty()) {
+                    wordHistory.pop(); // Remove current word
+                    if (!wordHistory.isEmpty()) {
+                        isNavigatingBack = true;
+                        fetchDefinition(wordHistory.peek());
+                        return;
+                    }
+                }
+                
+                if (rootIsSearch && webView.getVisibility() == View.VISIBLE) {
+                    showCentralSearch(null);
+                } else {
+                    setEnabled(false);
+                    onBackPressed();
+                }
+            }
+        });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        Language currentLearning = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV);
+        Language currentNative = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN);
+
+        if (currentLearning != lastUsedLearningLanguage || currentNative != lastUsedNativeLanguage) {
+            if (!currentWord.isEmpty()) {
+                fetchDefinition(currentWord);
+            }
+            lastUsedLearningLanguage = currentLearning;
+            lastUsedNativeLanguage = currentNative;
+        }
     }
 
     private void setupTabs() {
@@ -186,11 +241,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupSources() {
         sources.add(new OfflineKaikkiSource(this));
-        sources.add(new WiktionarySource());
         sources.add(new WordReferenceSource());
         sources.add(new ReversoSource());
 
-        String[] sourceNames = {"Wiktionary", "Wiktionary (live)", "WordReference", "Reverso"};
+        String[] sourceNames = {"Wiktionary", "WordReference", "Reverso"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.spinner_item, sourceNames);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         sourceSpinner.setAdapter(adapter);
@@ -232,6 +286,10 @@ public class MainActivity extends AppCompatActivity {
                 } else if (url.startsWith("app://play/")) {
                     String audioUrl = Uri.decode(url.substring("app://play/".length()));
                     playAudio(audioUrl);
+                    return true;
+                } else if (url.startsWith("http://") || url.startsWith("https://")) {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                    startActivity(intent);
                     return true;
                 }
                 return true;
@@ -284,14 +342,17 @@ public class MainActivity extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         String selectedWord = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
         if (selectedWord != null) {
+            rootIsSearch = false;
             fetchDefinition(selectedWord.toLowerCase(Locale.ROOT));
         } else {
+            rootIsSearch = true;
             showCentralSearch(null);
         }
     }
 
     private void showCentralSearch(String warning) {
         currentWord = "";
+        wordHistory.clear();
         runOnUiThread(() -> {
             webView.setVisibility(View.GONE);
             noteTypeHeader.setVisibility(View.GONE);
@@ -310,6 +371,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void fetchDefinition(String word) {
+        fetchDefinition(word, true);
+    }
+
+    private void fetchDefinition(String word, boolean retryWithLowercase) {
+        if (!isNavigatingBack && (wordHistory.isEmpty() || !wordHistory.peek().equals(word))) {
+            wordHistory.push(word);
+        }
+        isNavigatingBack = false;
+
         currentWord = word;
         searchEditText.setText(word);
         runOnUiThread(() -> {
@@ -337,9 +407,25 @@ public class MainActivity extends AppCompatActivity {
             }
             @Override
             public void onError(String message) {
-                runOnUiThread(() -> {
-                    showCentralSearch("Word not found: " + word);
-                });
+                var lowercaseWord = word.toLowerCase(Locale.ROOT);
+                if (retryWithLowercase && !word.equals(lowercaseWord)) {
+                    // Pop the failed original casing from history
+                    if (!wordHistory.isEmpty()) wordHistory.pop();
+                    fetchDefinition(lowercaseWord, false);
+                } else {
+                    runOnUiThread(() -> {
+                        // Word failed, pop from history if it was just added
+                        if (!wordHistory.isEmpty() && wordHistory.peek().equals(word)) {
+                            wordHistory.pop();
+                        }
+                        
+                        if (wordHistory.isEmpty()) {
+                            showCentralSearch("Word not found: " + word);
+                        } else {
+                            showCentralSearch("Word not found: " + word);
+                        }
+                    });
+                }
             }
         });
     }
