@@ -255,6 +255,11 @@ public class OfflineKaikkiSource implements DictionarySource {
             data.put("posBlocks", posBlocks);
             Log.d(TAG, "Found " + posBlocks.size() + " POS blocks");
 
+            if (posBlocks.isEmpty()) {
+                listener.onError("Word not found in offline database: " + word);
+                return;
+            }
+
             String html = template.apply(data);
             Log.d(TAG, "Generated HTML length: " + html.length());
             listener.onSuccess(html, word);

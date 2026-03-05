@@ -116,6 +116,16 @@
         android:gravity="center">
 
         <TextView
+            android:id="@+id/warningText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:paddingBottom="8dp"
+            android:textColor="@color/error_red"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
             android:id="@+id/statusText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -180,7 +190,7 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentEnd="true"
-        android:padding="16dp"
+        padding="16dp"
         android:clipChildren="false"
         android:clipToPadding="false"
         android:visibility="gone">

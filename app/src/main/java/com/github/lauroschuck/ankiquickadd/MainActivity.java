@@ -53,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private View centralContainer;
     private TextView statusText;
+    private TextView warningText;
     private View createCardsFabContainer;
     private FloatingActionButton createCardsFab;
     private TextView badgeText;
@@ -108,6 +109,7 @@ public class MainActivity extends AppCompatActivity {
         webView = findViewById(R.id.webView);
         centralContainer = findViewById(R.id.centralContainer);
         statusText = findViewById(R.id.statusText);
+        warningText = findViewById(R.id.warningText);
         createCardsFabContainer = findViewById(R.id.createCardsFabContainer);
         createCardsFab = findViewById(R.id.createCardsFab);
         badgeText = findViewById(R.id.badgeText);
@@ -126,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
         
         settingsButton.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
         createCardsFab.setOnClickListener(v -> triggerJsExtraction());
-        closeButton.setOnClickListener(v -> showCentralSearch("Enter a word or select text in another app"));
+        closeButton.setOnClickListener(v -> showCentralSearch(null));
         
         handleIntent(getIntent());
     }
@@ -284,11 +286,11 @@ public class MainActivity extends AppCompatActivity {
         if (selectedWord != null) {
             fetchDefinition(selectedWord.toLowerCase(Locale.ROOT));
         } else {
-            showCentralSearch("Enter a word or select text in another app");
+            showCentralSearch(null);
         }
     }
 
-    private void showCentralSearch(String message) {
+    private void showCentralSearch(String warning) {
         currentWord = "";
         runOnUiThread(() -> {
             webView.setVisibility(View.GONE);
@@ -296,8 +298,14 @@ public class MainActivity extends AppCompatActivity {
             createCardsFabContainer.setVisibility(View.GONE);
             closeButton.setVisibility(View.GONE);
             centralContainer.setVisibility(View.VISIBLE);
-            statusText.setText(message);
+            statusText.setText("Enter a word or select text in another app");
             searchEditText.setText("");
+            if (warning != null && !warning.isEmpty()) {
+                warningText.setVisibility(View.VISIBLE);
+                warningText.setText(warning);
+            } else {
+                warningText.setVisibility(View.GONE);
+            }
         });
     }
 
@@ -330,8 +338,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onError(String message) {
                 runOnUiThread(() -> {
-                    showSnackbar("Error: " + message, true);
-                    showCentralSearch("Enter a word to start");
+                    showCentralSearch("Word not found: " + word);
                 });
             }
         });
