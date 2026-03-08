@@ -14,8 +14,8 @@ import java.util.stream.Stream;
 public enum AnkiNote {
 
     LEARNING_NATIVE_TEXT(
-            "ankiquickadd.notes.LearningNativeTextV2",
-            List.of("LearningText", "LearningLang", "NativeText", "NativeLang", "LexicalCat",
+            "ankiquickadd.notes.LearningNativeTextV3",
+            List.of("LearningText", "AltLearningText", "LearningLang", "NativeText", "AltNativeText", "NativeLang", "LexicalCat",
                     "NoteHeader", "Notes", "HiddenNotes", "Audio", "SourceUrl"),
             InternalHelper.COMMON_CSS,
             List.of(new CardType(
@@ -26,6 +26,9 @@ public enum AnkiNote {
                             {{/LexicalCat}}
                             
                             {{LearningText}}
+                            {{#AltLearningText}}
+                            <div class="alt-text">[{{AltLearningText}}]</div>
+                            {{/AltLearningText}}
                             <div class="language">({{LearningLang}})</div>
                             
                             {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
@@ -36,11 +39,17 @@ public enum AnkiNote {
                             {{/LexicalCat}}
                             
                             {{LearningText}}
+                            {{#AltLearningText}}
+                            <div class="alt-text">[{{AltLearningText}}]</div>
+                            {{/AltLearningText}}
                             <div class="language">({{LearningLang}})</div>
                             
                             <hr id="answer"/>
                             
                             {{NativeText}}
+                            {{#AltNativeText}}
+                            <div class="alt-text">[{{AltNativeText}}]</div>
+                            {{/AltNativeText}}
                             <div class="language">({{NativeLang}})</div>
                             
                             <div class="notes-container">
@@ -63,6 +72,9 @@ public enum AnkiNote {
                                     {{/LexicalCat}}
                                     
                                     {{NativeText}}
+                                    {{#AltNativeText}}
+                                    <div class="alt-text">[{{AltNativeText}}]</div>
+                                    {{/AltNativeText}}
                                     <div class="language">({{NativeLang}})</div>
                                     """,
                             """
@@ -71,11 +83,17 @@ public enum AnkiNote {
                                     {{/LexicalCat}}
                                     
                                     {{NativeText}}
+                                    {{#AltNativeText}}
+                                    <div class="alt-text">[{{AltNativeText}}]</div>
+                                    {{/AltNativeText}}
                                     <div class="language">({{NativeLang}})</div>
                                     
                                     <hr id="answer"/>
                                     
                                     {{LearningText}}
+                                    {{#AltLearningText}}
+                                    <div class="alt-text">[{{AltLearningText}}]</div>
+                                    {{/AltLearningText}}
                                     <div class="language">({{LearningLang}})</div>
                                     
                                     <div class="notes-container">
@@ -93,13 +111,15 @@ public enum AnkiNote {
             Set.of()
     ),
     DICTIONARY_DEFINITION(
-            "ankiquickadd.notes.DictionatyDefinitionV3",
+            "ankiquickadd.notes.DictionatyDefinitionV4",
             Stream.of(Stream.of("Id", "LearningWord", "LearningLang", "LexicalCat", "NativeLang"),
                     InternalHelper.getDictionaryDefinitionindexStream()
                             .flatMap(index -> Stream.of(
                                     String.format(Locale.US, "Definition%d", index),
                                     String.format(Locale.US, "Definition%d_LearningText", index),
-                                    String.format(Locale.US, "Definition%d_NativeText", index))),
+                                    String.format(Locale.US, "Definition%d_AltLearningText", index),
+                                    String.format(Locale.US, "Definition%d_NativeText", index),
+                                    String.format(Locale.US, "Definition%d_AltNativeText", index))),
                     Stream.of("NoteHeader", "Notes", "HiddenNotes", "Audio", "SourceUrl")
                     )
                     .flatMap(Function.identity())
@@ -122,7 +142,15 @@ public enum AnkiNote {
                                     <button>Hint</button>
                                     <div class="front example">
                                     """
-                                    + InternalHelper.dictionarySectionRepetition("{{#DefinitionINDEX_NativeText}}{{DefinitionINDEX_NativeText}}<br/>{{/DefinitionINDEX_NativeText}}") +
+                                    + InternalHelper.dictionarySectionRepetition("""
+                                        {{#DefinitionINDEX_NativeText}}
+                                        {{DefinitionINDEX_NativeText}}
+                                        {{#DefinitionINDEX_AltNativeText}}
+                                        <div class="alt-text">[{{DefinitionINDEX_AltNativeText}}]</div>
+                                        {{/DefinitionINDEX_AltNativeText}}
+                                        <br/>
+                                        {{/DefinitionINDEX_NativeText}}
+                                        """) +
                                     """
                                     </div>
                                     </div>
@@ -157,11 +185,21 @@ public enum AnkiNote {
                                                    <table class="examples">
                                                      <tr class="foreign">
                                                        <td class="language">{{#DefinitionINDEX_LearningText}}({{LearningLang}}){{/DefinitionINDEX_LearningText}}</td>
-                                                       <td class="example">{{DefinitionINDEX_LearningText}}</td>
+                                                       <td class="example">
+                                                         {{DefinitionINDEX_LearningText}}
+                                                         {{#DefinitionINDEX_AltLearningText}}
+                                                         <div class="alt-text">[{{DefinitionINDEX_AltLearningText}}]</div>
+                                                         {{/DefinitionINDEX_AltLearningText}}
+                                                       </td>
                                                      </tr>
                                                      <tr class="familiar">
                                                        <td class="language">{{#DefinitionINDEX_NativeText}}({{NativeLang}}){{/DefinitionINDEX_NativeText}}</td>
-                                                       <td class="example">{{DefinitionINDEX_NativeText}}</td>
+                                                       <td class="example">
+                                                         {{DefinitionINDEX_NativeText}}
+                                                         {{#DefinitionINDEX_AltNativeText}}
+                                                         <div class="alt-text">[{{DefinitionINDEX_AltNativeText}}]</div>
+                                                         {{/DefinitionINDEX_AltNativeText}}
+                                                       </td>
                                                      </tr>
                                                    </table>
                                                  </td>
@@ -198,6 +236,9 @@ public enum AnkiNote {
                                             <button>Hint</button>
                                             <div class="front example">
                                             {{DefinitionINDEX_NativeText}}
+                                            {{#DefinitionINDEX_AltNativeText}}
+                                            <div class="alt-text">[{{DefinitionINDEX_AltNativeText}}]</div>
+                                            {{/DefinitionINDEX_AltNativeText}}
                                             </div>
                                             </div>
                                             {{/DefinitionINDEX_NativeText}}
@@ -224,6 +265,9 @@ public enum AnkiNote {
                                             {{#DefinitionINDEX_NativeText}}
                                             <div class="example">
                                             {{DefinitionINDEX_NativeText}}
+                                            {{#DefinitionINDEX_AltNativeText}}
+                                            <div class="alt-text">[{{DefinitionINDEX_AltNativeText}}]</div>
+                                            {{/DefinitionINDEX_AltNativeText}}
                                             </div>
                                             {{/DefinitionINDEX_NativeText}}
                                             
@@ -235,6 +279,9 @@ public enum AnkiNote {
                                             {{#DefinitionINDEX_LearningText}}
                                             <div class="example">
                                             {{DefinitionINDEX_LearningText}}
+                                            {{#DefinitionINDEX_AltLearningText}}
+                                            <div class="alt-text">[{{DefinitionINDEX_AltLearningText}}]</div>
+                                            {{/DefinitionINDEX_AltLearningText}}
                                             </div>
                                             {{/DefinitionINDEX_LearningText}}
                                             
@@ -336,6 +383,13 @@ public enum AnkiNote {
                     
                     .night_mode .language {
                         color: #999;
+                    }
+                    
+                    .alt-text {
+                        font-size: 0.75em;
+                        color: #888;
+                        display: block;
+                        margin-top: 0.1em;
                     }
                     
                     .notes-container {

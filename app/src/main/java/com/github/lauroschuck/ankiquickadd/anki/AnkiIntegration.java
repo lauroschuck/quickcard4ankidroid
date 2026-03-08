@@ -89,7 +89,7 @@ public class AnkiIntegration {
         Map<String, String> audioCache = new HashMap<>();
 
         if (isDefinitions) {
-            // Group cards by headword and lexical category for DICTIONARY_DEFINITION_V1
+            // Group cards by headword and lexical category
             Map<String, List<TranslationCard>> groups = new LinkedHashMap<>();
             for (TranslationCard card : data) {
                 String key = card.headword() + "|" + card.lexicalCategory();
@@ -100,6 +100,7 @@ public class AnkiIntegration {
                 String[] fields = new String[fieldNames.length];
                 TranslationCard first = group.get(0);
                 
+                // Fields mapping for DICTIONARY_DEFINITION:
                 // 0: Id, 1: LearningWord, 2: LearningLang, 3: LexicalCat, 4: NativeLang
                 fields[0] = String.format("%s-%s-%s", learningLang, nativeLang, first.headword());
                 fields[1] = first.headword();
@@ -108,13 +109,22 @@ public class AnkiIntegration {
                 fields[4] = nativeLang;
 
                 // Definitions and their examples (up to 5)
+                // Each definition uses 5 fields: Def, Learning, AltLearning, Native, AltNative
                 for (int i = 0; i < Math.min(group.size(), AnkiNote.InternalHelper.DICTIONARY_DEFINITION_COUNT); i++) {
                     TranslationCard card = group.get(i);
-                    int baseIdx = 5 + (i * 3);
+                    int baseIdx = 5 + (i * 5);
                     fields[baseIdx] = card.definition();
                     fields[baseIdx + 1] = card.learningText();
-                    fields[baseIdx + 2] = card.nativeText();
+                    fields[baseIdx + 2] = ""; // AltLearningText
+                    fields[baseIdx + 3] = card.nativeText();
+                    fields[baseIdx + 4] = ""; // AltNativeText
                 }
+
+                // NoteHeader, Notes, HiddenNotes, Audio, SourceUrl follow the definitions
+                int offset = 5 + (AnkiNote.InternalHelper.DICTIONARY_DEFINITION_COUNT * 5);
+                fields[offset] = first.headword(); // NoteHeader
+                fields[offset + 4] = String.format("https://%s.wiktionary.org/wiki/%s#%s",
+                        nativeLang, first.headword(), learningLang); // SourceUrl (pseudo-anchor)
 
                 String headword = first.headword();
                 String soundTag = audioCache.get(headword);
@@ -122,9 +132,7 @@ public class AnkiIntegration {
                     soundTag = processAudio(first, learningLang, ankiPkg);
                     if (!soundTag.isEmpty()) audioCache.put(headword, soundTag);
                 }
-                fields[23] = soundTag; // Audio
-
-                fields[24] = String.format("https://%s.wiktionary.org/wiki/%s#Swedish", nativeLang, first.headword()); // SourceUrl
+                fields[offset + 3] = soundTag; // Audio
 
                 sanitizeFields(fields);
                 fieldsList.add(fields);
@@ -133,15 +141,20 @@ public class AnkiIntegration {
         } else {
             for (TranslationCard card : data) {
                 String[] fields = new String[fieldNames.length];
-                // 0: LearningText, 1: LearningLang, 2: NativeText, 3: NativeLang, 4: LexicalCat, 5: NoteHeader, 6: Notes, 7: HiddenNotes, 8: Audio, 9: SourceUrl
+                // Fields mapping for LEARNING_NATIVE_TEXT:
+                // 0: LearningText, 1: AltLearningText, 2: LearningLang, 3: NativeText, 4: AltNativeText, 
+                // 5: NativeLang, 6: LexicalCat, 7: NoteHeader, 8: Notes, 9: HiddenNotes, 10: Audio, 11: SourceUrl
                 fields[0] = card.learningText();
-                fields[1] = learningLang;
-                fields[2] = card.nativeText();
-                fields[3] = nativeLang;
-                fields[4] = card.lexicalCategory();
-                fields[5] = card.headword();
-                fields[6] = card.definition();
-                fields[9] = String.format("https://%s.wiktionary.org/wiki/%s#Swedish", nativeLang, card.headword());
+                fields[1] = ""; // AltLearningText
+                fields[2] = learningLang;
+                fields[3] = card.nativeText();
+                fields[4] = ""; // AltNativeText
+                fields[5] = nativeLang;
+                fields[6] = card.lexicalCategory();
+                fields[7] = card.headword();
+                fields[8] = card.definition();
+                fields[11] = String.format("https://%s.wiktionary.org/wiki/%s#%s", 
+                        nativeLang, card.headword(), learningLang);
 
                 String headword = card.headword();
                 String soundTag = audioCache.get(headword);
@@ -149,7 +162,7 @@ public class AnkiIntegration {
                     soundTag = processAudio(card, learningLang, ankiPkg);
                     if (!soundTag.isEmpty()) audioCache.put(headword, soundTag);
                 }
-                fields[8] = soundTag;
+                fields[10] = soundTag;
 
                 sanitizeFields(fields);
                 fieldsList.add(fields);
