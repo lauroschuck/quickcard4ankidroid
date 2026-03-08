@@ -76,7 +76,10 @@ public class OfflineKaikkiSource implements DictionarySource {
                         .pron-desc { font-size: 0.9em; color: #555; }
                         .no-desc { color: #999; font-style: italic; }
                         
-                        .wiktionary-link { text-decoration: none; color: #36c; margin-left: 12px; font-family: serif; font-size: 0.6em; font-weight: bold; border: 1px solid #36c; padding: 0 6px; border-radius: 4px; background: #f0f7ff; vertical-align: middle; }
+                        .wiktionary-link { text-decoration: none; color: #36c; margin-left: 12px; font-size: 0.6em; font-weight: bold; border: 1px solid #36c; padding: 0 6px; border-radius: 4px; background: #f0f7ff; vertical-align: middle; }
+                        .did-you-mean { margin-bottom: 1em; font-size: 0.9em; color: #555; font-style: italic; }
+                        .did-you-mean a { font-style: normal; font-weight: bold; margin-right: 8px; }
+                        
                         .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; text-align: center; margin-bottom: 20px; }
                         .footer a { color: #36c; font-size: 0.95em; }
                     </style>
@@ -100,6 +103,16 @@ public class OfflineKaikkiSource implements DictionarySource {
                         <a href="{{wiktionaryUrl}}" class="wiktionary-link" target="_blank">W</a>
                         {{/if}}
                     </h2>
+                    
+                    {{#if variations}}
+                    <div class="did-you-mean">
+                        Did you mean:
+                        {{#each variations}}
+                        <a href="app://fetch/{{this}}">{{this}}</a>
+                        {{/each}}
+                    </div>
+                    {{/if}}
+
                     {{#if pronunciations}}
                     <div class='pronunciation-box'>
                         {{#each pronunciations}}
@@ -210,7 +223,7 @@ public class OfflineKaikkiSource implements DictionarySource {
 
             // 1. Fetch Pronunciations
             List<Map<String, String>> pronunciations = new ArrayList<>();
-            String pronQuery = "SELECT audio_url, description FROM pronunciations p JOIN headwords h ON p.headword_id = h.id WHERE h.headword = ? COLLATE NOCASE";
+            String pronQuery = "SELECT audio_url, description FROM pronunciations p JOIN headwords h ON p.headword_id = h.id WHERE h.headword = ? COLLATE BINARY";
             try (Cursor cursor = db.rawQuery(pronQuery, new String[]{word})) {
                 while (cursor.moveToNext()) {
                     Map<String, String> pron = new HashMap<>();
@@ -224,9 +237,21 @@ public class OfflineKaikkiSource implements DictionarySource {
             data.put("pronunciations", pronunciations);
             Log.d(TAG, "Found " + pronunciations.size() + " pronunciations");
 
-            // 2. Fetch Lexical Entries and nest everything
+            // 2. Fetch variations (other casings)
+            List<String> variations = new ArrayList<>();
+            String varQuery = "SELECT headword FROM headwords WHERE headword = ? COLLATE NOCASE AND headword != ? COLLATE BINARY";
+            try (Cursor cursor = db.rawQuery(varQuery, new String[]{word, word})) {
+                while (cursor.moveToNext()) {
+                    variations.add(cursor.getString(0));
+                }
+            }
+            if (!variations.isEmpty()) {
+                data.put("variations", variations);
+            }
+
+            // 3. Fetch Lexical Entries and nest everything
             List<Map<String, Object>> posBlocks = new ArrayList<>();
-            String mainQuery = "SELECT le.id, le.lexical_category FROM lexical_entries le JOIN headwords h ON le.headword_id = h.id WHERE h.headword = ? COLLATE NOCASE ORDER BY le.lexical_category, le.sense_index";
+            String mainQuery = "SELECT le.id, le.lexical_category FROM lexical_entries le JOIN headwords h ON le.headword_id = h.id WHERE h.headword = ? COLLATE BINARY ORDER BY le.lexical_category, le.sense_index";
             
             try (Cursor cursor = db.rawQuery(mainQuery, new String[]{word})) {
                 Map<String, List<Map<String, Object>>> posMap = new LinkedHashMap<>();
@@ -293,7 +318,13 @@ public class OfflineKaikkiSource implements DictionarySource {
             Log.d(TAG, "Found " + posBlocks.size() + " POS blocks");
 
             if (posBlocks.isEmpty()) {
-                listener.onError("Word not found in offline database: " + word);
+                // If word not found exactly, but we have variations, show them in a special "not found" page
+                if (!variations.isEmpty()) {
+                    String html = template.apply(data);
+                    listener.onSuccess(html, word);
+                } else {
+                    listener.onError("Word not found in offline database: " + word);
+                }
                 return;
             }
 

@@ -80,6 +80,7 @@ public class MainActivity extends AppCompatActivity {
 
     public class WebAppInterface {
         @JavascriptInterface
+        @SuppressWarnings("unused")
         public void processSelectedCards(String json) {
             runOnUiThread(() -> {
                 Log.d(TAG, "Selected cards JSON: " + json);
@@ -95,6 +96,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
+        @SuppressWarnings("unused")
         public void updateSelectedCount(int count) {
             runOnUiThread(() -> {
                 if (count > 0) {
