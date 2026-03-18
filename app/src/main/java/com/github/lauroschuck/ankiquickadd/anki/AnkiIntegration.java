@@ -20,6 +20,9 @@ import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
 import com.google.android.material.snackbar.Snackbar;
 import com.ichi2.anki.api.AddContentApi;
 
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -113,10 +116,10 @@ public class AnkiIntegration {
                 for (int i = 0; i < Math.min(group.size(), AnkiNote.InternalHelper.DICTIONARY_DEFINITION_COUNT); i++) {
                     TranslationCard card = group.get(i);
                     int baseIdx = 5 + (i * 5);
-                    fields[baseIdx] = card.definition();
-                    fields[baseIdx + 1] = card.learningText();
+                    fields[baseIdx] = cleanHtml(card.definition());
+                    fields[baseIdx + 1] = cleanHtml(card.learningText());
                     fields[baseIdx + 2] = ""; // AltLearningText
-                    fields[baseIdx + 3] = card.nativeText();
+                    fields[baseIdx + 3] = cleanHtml(card.nativeText());
                     fields[baseIdx + 4] = ""; // AltNativeText
                 }
 
@@ -144,15 +147,15 @@ public class AnkiIntegration {
                 // Fields mapping for LEARNING_NATIVE_TEXT:
                 // 0: LearningText, 1: AltLearningText, 2: LearningLang, 3: NativeText, 4: AltNativeText, 
                 // 5: NativeLang, 6: LexicalCat, 7: NoteHeader, 8: Notes, 9: HiddenNotes, 10: Audio, 11: SourceUrl
-                fields[0] = card.learningText();
+                fields[0] = cleanHtml(card.learningText());
                 fields[1] = ""; // AltLearningText
                 fields[2] = learningLang;
-                fields[3] = card.nativeText();
+                fields[3] = cleanHtml(card.nativeText());
                 fields[4] = ""; // AltNativeText
                 fields[5] = nativeLang;
                 fields[6] = card.lexicalCategory();
                 fields[7] = card.headword();
-                fields[8] = card.definition();
+                fields[8] = cleanHtml(card.definition());
                 fields[11] = String.format("https://%s.wiktionary.org/wiki/%s#%s", 
                         nativeLang, card.headword(), learningLang);
 
@@ -188,6 +191,12 @@ public class AnkiIntegration {
         }
     }
 
+    private String cleanHtml(String html) {
+        if (html == null || html.isEmpty()) return "";
+        // Allow only <b> and <br> tags. Strips links and other tags.
+        return Jsoup.clean(html, Safelist.none().addTags("b", "br"));
+    }
+
     private String processAudio(TranslationCard card, String learningLang, String ankiPkg) {
         String urlString = card.audioUrl();
         if (urlString == null || urlString.isEmpty() || ankiPkg == null) return "";
@@ -203,6 +212,7 @@ public class AnkiIntegration {
                 String internalName = mAnkiDroid.getApi().addMediaFromUri(uri, fileName, "audio");
                 if (internalName != null) return internalName;
             } finally {
+                // Revoke permission after synchronous call is finished
                 context.revokeUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
             }
         } catch (Exception e) {
@@ -223,7 +233,9 @@ public class AnkiIntegration {
              FileOutputStream output = new FileOutputStream(file)) {
             byte[] buffer = new byte[1024];
             int count;
-            while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
+            while ((count = input.read(buffer)) != -1) {
+                output.write(buffer, 0, count);
+            }
             output.flush();
         }
         return file;
