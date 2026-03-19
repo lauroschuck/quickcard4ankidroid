@@ -14,52 +14,52 @@ import java.util.stream.Stream;
 public enum AnkiNote {
 
     LEARNING_NATIVE_TEXT(
-            "ankiquickadd.notes.LearningNativeTextV3",
+            "ankiquickadd.notes.LearningNativeTextV19",
             List.of("LearningText", "AltLearningText", "LearningLang", "NativeText", "AltNativeText", "NativeLang", "LexicalCat",
-                    "NoteHeader", "Notes", "HiddenNotes", "Audio", "SourceUrl"),
+                    "NoteHeader", "PersonalNotes", "HiddenNotes", "Audio", "SourceUrl"),
             InternalHelper.COMMON_CSS,
             List.of(new CardType(
                     "Learning-Native",
                     """
-                            {{#LexicalCat}}
-                            <div class="gramatical-class">{{LexicalCat}}</div>
-                            {{/LexicalCat}}
-                            
-                            {{LearningText}}
-                            {{#AltLearningText}}
-                            <div class="alt-text">[{{AltLearningText}}]</div>
-                            {{/AltLearningText}}
-                            <div class="language">({{LearningLang}})</div>
-                            
-                            {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
+                            <div class="main-content">
+                                <div class="phrase learning">
+                                    {{LearningText}}
+                                    {{#AltLearningText}}
+                                    <div class="alt-text">[{{AltLearningText}}]</div>
+                                    {{/AltLearningText}}
+                                </div>
+                                <div class="lang-hint"><span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})</div>
+                            </div>
                             """,
                     """
-                            {{#LexicalCat}}
-                            <div class="gramatical-class">{{LexicalCat}}</div>
-                            {{/LexicalCat}}
-                            
-                            {{LearningText}}
-                            {{#AltLearningText}}
-                            <div class="alt-text">[{{AltLearningText}}]</div>
-                            {{/AltLearningText}}
-                            <div class="language">({{LearningLang}})</div>
+                            <div class="main-content">
+                                <div class="phrase learning">
+                                    {{LearningText}}
+                                    {{#AltLearningText}}
+                                    <div class="alt-text">[{{AltLearningText}}]</div>
+                                    {{/AltLearningText}}
+                                </div>
+                                <div class="lang-hint"><span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})</div>
+                            </div>
                             
                             <hr id="answer"/>
                             
-                            {{NativeText}}
-                            {{#AltNativeText}}
-                            <div class="alt-text">[{{AltNativeText}}]</div>
-                            {{/AltNativeText}}
-                            <div class="language">({{NativeLang}})</div>
-                            
-                            <div class="notes-container">
-                                {{#NoteHeader}}
-                                <div class="note-header">{{NoteHeader}}</div>
-                                {{/NoteHeader}}
-                                {{#Notes}}
-                                <div class="notes">{{Notes}}</div>
-                                {{/Notes}}
+                            <div class="main-content">
+                                <div class="phrase native">
+                                    {{NativeText}}
+                                    {{#AltNativeText}}
+                                    <div class="alt-text">[{{AltNativeText}}]</div>
+                                    {{/AltNativeText}}
+                                </div>
+                                <div class="lang-hint">({{NativeLang}})</div>
                             </div>
+                            
+                            {{#PersonalNotes}}
+                            <div class="notes-container">
+                                <div class="note-label">Personal Notes</div>
+                                <div class="notes personal-notes">{{PersonalNotes}}</div>
+                            </div>
+                            {{/PersonalNotes}}
                             
                             {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
                             """
@@ -67,51 +67,54 @@ public enum AnkiNote {
                     new CardType(
                             "Native-Learning",
                             """
-                                    {{#LexicalCat}}
-                                    <div class="gramatical-class">{{LexicalCat}}</div>
-                                    {{/LexicalCat}}
-                                    
-                                    {{NativeText}}
-                                    {{#AltNativeText}}
-                                    <div class="alt-text">[{{AltNativeText}}]</div>
-                                    {{/AltNativeText}}
-                                    <div class="language">({{NativeLang}})</div>
+                                    <div class="main-content">
+                                        <div class="phrase native">
+                                            {{NativeText}}
+                                            {{#AltNativeText}}
+                                            <div class="alt-text">[{{AltNativeText}}]</div>
+                                            {{/AltNativeText}}
+                                        </div>
+                                        <div class="lang-hint">({{NativeLang}})</div>
+                                    </div>
                                     """,
                             """
-                                    {{#LexicalCat}}
-                                    <div class="gramatical-class">{{LexicalCat}}</div>
-                                    {{/LexicalCat}}
-                                    
-                                    {{NativeText}}
-                                    {{#AltNativeText}}
-                                    <div class="alt-text">[{{AltNativeText}}]</div>
-                                    {{/AltNativeText}}
-                                    <div class="language">({{NativeLang}})</div>
+                                    <div class="main-content">
+                                        <div class="phrase native">
+                                            {{NativeText}}
+                                            {{#AltNativeText}}
+                                            <div class="alt-text">[{{AltNativeText}}]</div>
+                                            {{/AltNativeText}}
+                                        </div>
+                                        <div class="lang-hint">({{NativeLang}})</div>
+                                    </div>
                                     
                                     <hr id="answer"/>
                                     
-                                    {{LearningText}}
-                                    {{#AltLearningText}}
-                                    <div class="alt-text">[{{AltLearningText}}]</div>
-                                    {{/AltLearningText}}
-                                    <div class="language">({{LearningLang}})</div>
-                                    
-                                    <div class="notes-container">
-                                        {{#NoteHeader}}
-                                        <div class="note-header">{{NoteHeader}}</div>
-                                        {{/NoteHeader}}
-                                        {{#Notes}}
-                                        <div class="notes">{{Notes}}</div>
-                                        {{/Notes}}
+                                    <div class="main-content">
+                                        <div class="phrase learning">
+                                            {{LearningText}}
+                                            {{#AltLearningText}}
+                                            <div class="alt-text">[{{AltLearningText}}]</div>
+                                            {{/AltLearningText}}
+                                        </div>
+                                        <div class="lang-hint"><span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})</div>
                                     </div>
-                                    
-                                    {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
+
+                                    {{#PersonalNotes}}
+                                        <div class="personal-notes">
+                                            {{PersonalNotes}}
+                                        </div>
+                                    {{/PersonalNotes}}
+                                
+                                    {{#Audio}}
+                                        <div class="audio">{{Audio}}</div>
+                                    {{/Audio}}
                                     """
                     )),
             Set.of()
     ),
     DICTIONARY_DEFINITION(
-            "ankiquickadd.notes.DictionatyDefinitionV4",
+            "ankiquickadd.notes.DictionaryDefinitionV19",
             Stream.of(Stream.of("Id", "LearningWord", "LearningLang", "LexicalCat", "NativeLang"),
                     InternalHelper.getDictionaryDefinitionindexStream()
                             .flatMap(index -> Stream.of(
@@ -120,7 +123,7 @@ public enum AnkiNote {
                                     String.format(Locale.US, "Definition%d_AltLearningText", index),
                                     String.format(Locale.US, "Definition%d_NativeText", index),
                                     String.format(Locale.US, "Definition%d_AltNativeText", index))),
-                    Stream.of("NoteHeader", "Notes", "HiddenNotes", "Audio", "SourceUrl")
+                    Stream.of("NoteHeader", "PersonalNotes", "HiddenNotes", "Audio", "SourceUrl")
                     )
                     .flatMap(Function.identity())
                     .collect(Collectors.toList())
@@ -129,173 +132,159 @@ public enum AnkiNote {
             Stream.concat(
                     Stream.of(
                             new CardType(
-                            "Learning-Natives",
+                            "LearningWord-NativeDefinitions",
                             """
-                                    {{#LexicalCat}}
-                                    <div class="gramatical-class">{{LexicalCat}}</div>
-                                    {{/LexicalCat}}
-                                    
-                                    {{LearningWord}}
-                                    <div class="language">({{LearningLang}})</div>
-                                    
-                                    <div class="hint">
+                                <div class="main-content">
+                                    <div class="objective">{{LearningWord}}</div>
+                                    <div class="lang-hint">
+                                        <span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})
+                                    </div>
+                                </div>
+                                
+                                <div class="example-hint">
                                     <button>Hint</button>
-                                    <div class="front example">
-                                    """
+                                    <div class="content learning">                            
+                                """
                                     + InternalHelper.dictionarySectionRepetition("""
-                                        {{#DefinitionINDEX_NativeText}}
-                                        {{DefinitionINDEX_NativeText}}
-                                        {{#DefinitionINDEX_AltNativeText}}
-                                        <div class="alt-text">[{{DefinitionINDEX_AltNativeText}}]</div>
-                                        {{/DefinitionINDEX_AltNativeText}}
-                                        <br/>
-                                        {{/DefinitionINDEX_NativeText}}
+                                            {{#DefinitionINDEX_LearningText}}
+                                                <div class="row">
+                                                    {{DefinitionINDEX_LearningText}}
+                                                    {{#DefinitionINDEX_AltLearningText}}
+                                                        <div class="alt-text">{{DefinitionINDEX_AltLearningText}}</div>
+                                                    {{/DefinitionINDEX_AltLearningText}}
+                                                </div>
+                                            {{/DefinitionINDEX_LearningText}}
                                         """) +
                                     """
                                     </div>
-                                    </div>
-                                   
-                                    {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
-                                   
-                                    <script>
-                                    $(".hint button").click(function() {
-                                    		 $(this).fadeOut(400, function() {
-                                            $(this).next().fadeIn();
+                                </div>
+                                
+                                <script>
+                                    if ($(".example-hint .content *").length > 0) {
+                                        // Only show button if there is any text to be shown
+                                        $(".example-hint button").show().click(function() {
+                                            $(this).fadeOut(400, function() {
+                                                $(".example-hint .content").fadeIn();
+                                            });
                                         });
-                                    });
-                                    </script>
-                                    """,
+                                    }
+                                </script>
+                                """,
                             """
-                                    {{#LexicalCat}}
-                                    <div class="gramatical-class">{{LexicalCat}}</div>
-                                    {{/LexicalCat}}
-                                    
-                                    {{LearningWord}}
-                                    <div class="language">({{LearningLang}})</div>
-                                    
-                                    <hr id="answer"/>
-    
-                                    <table class="translations">
-                                    """ +
-                                    InternalHelper.dictionarySectionRepetition("""
-                                              {{#DefinitionINDEX}}
-                                              <tr class="meaning">
-                                                <td class="translation">{{DefinitionINDEX}}</td>
-                                                <td class="examples">
-                                                   <table class="examples">
-                                                     <tr class="foreign">
-                                                       <td class="language">{{#DefinitionINDEX_LearningText}}({{LearningLang}}){{/DefinitionINDEX_LearningText}}</td>
-                                                       <td class="example">
-                                                         {{DefinitionINDEX_LearningText}}
-                                                         {{#DefinitionINDEX_AltLearningText}}
-                                                         <div class="alt-text">[{{DefinitionINDEX_AltLearningText}}]</div>
-                                                         {{/DefinitionINDEX_AltLearningText}}
-                                                       </td>
-                                                     </tr>
-                                                     <tr class="familiar">
-                                                       <td class="language">{{#DefinitionINDEX_NativeText}}({{NativeLang}}){{/DefinitionINDEX_NativeText}}</td>
-                                                       <td class="example">
-                                                         {{DefinitionINDEX_NativeText}}
-                                                         {{#DefinitionINDEX_AltNativeText}}
-                                                         <div class="alt-text">[{{DefinitionINDEX_AltNativeText}}]</div>
-                                                         {{/DefinitionINDEX_AltNativeText}}
-                                                       </td>
-                                                     </tr>
-                                                   </table>
-                                                 </td>
-                                              </tr>
-                                              {{/DefinitionINDEX}}
-                                            """) +
-                                    """
-                                    </table>
-    
-                                    <div class="notes-container">
-                                        {{#NoteHeader}}
-                                        <div class="note-header">{{NoteHeader}}</div>
-                                        {{/NoteHeader}}
-                                        {{#Notes}}
-                                        <div class="notes">{{Notes}}</div>
-                                        {{/Notes}}
+                                <div class="main-content">
+                                    <div class="objective">{{LearningWord}}</div>
+                                    <div class="lang-hint">
+                                        <span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})
                                     </div>
+                                </div>
+                                
+                                <hr id="answer"/>
+                                
+                                <ol class="definitions">
+                                """ +
+                                    InternalHelper.dictionarySectionRepetition("""
+                                        {{#DefinitionINDEX}}
+                                            <li>
+                                                <div class="definition">{{DefinitionINDEX}}</div>
+                                                <div class="example">
+                                                    {{#DefinitionINDEX_LearningText}}
+                                                        <div class="learning">
+                                                            {{DefinitionINDEX_LearningText}}
+                                                            {{#DefinitionINDEX_AltLearningText}}
+                                                                <div class="alt-text">{{DefinitionINDEX_AltLearningText}}</div>
+                                                            {{/DefinitionINDEX_AltLearningText}}
+                                                        </div>
+                                                    {{/DefinitionINDEX_LearningText}}
+                                                    {{#DefinitionINDEX_NativeText}}
+                                                        <div class="native">
+                                                            {{DefinitionINDEX_NativeText}}
+                                                            {{#DefinitionINDEX_AltNativeText}}
+                                                                <div class="alt-text">{{DefinitionINDEX_AltNativeText}}</div>
+                                                            {{/DefinitionINDEX_AltNativeText}}
+                                                        </div>
+                                                    {{/DefinitionINDEX_NativeText}}
+                                                </div>
+                                            </li>
+                                        {{/DefinitionINDEX}}
+                                    """) +
                                     """
+                                </ol>
+                                
+                                {{#PersonalNotes}}
+                                    <div class="personal-notes">
+                                        {{PersonalNotes}}
+                                    </div>
+                                {{/PersonalNotes}}
+                                
+                                {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
+                                """
                     )), InternalHelper.getDictionaryDefinitionindexStream()
                             .map(index -> new CardType(
-                                    "NativeINDEX-Learning".replace("INDEX", String.valueOf(index)),
-                                    """
-                                            {{#DefinitionINDEX}}
-                                            
-                                            {{#LexicalCat}}
-                                            <div class="gramatical-class">{{LexicalCat}}</div>
-                                            {{/LexicalCat}}
-                                            
-                                            {{DefinitionINDEX}}
-                                            <div class="language">({{NativeLang}})</div>
-                                            
-                                            {{#DefinitionINDEX_NativeText}}
-                                            <div class="hint">
-                                            <button>Hint</button>
-                                            <div class="front example">
+                                    "NativeDefinitionINDEX-LearningWord".replace("INDEX", String.valueOf(index)),
+                                """
+                                {{#DefinitionINDEX}}
+                                    <div class="main-content">
+                                        <div class="objective">{{DefinitionINDEX}}</div>
+                                        <div class="lang-hint">
+                                            <span class="lexical-cat">{{LexicalCat}}</span> ({{NativeLang}})
+                                        </div>
+                                    </div>
+                                
+                                    {{#DefinitionINDEX_NativeText}}
+                                        <div class="text">
                                             {{DefinitionINDEX_NativeText}}
                                             {{#DefinitionINDEX_AltNativeText}}
                                             <div class="alt-text">[{{DefinitionINDEX_AltNativeText}}]</div>
                                             {{/DefinitionINDEX_AltNativeText}}
-                                            </div>
-                                            </div>
-                                            {{/DefinitionINDEX_NativeText}}
-                                            
-                                            
-                                            <script>
-                                            $(".hint button").click(function() {
-                                                     $(this).fadeOut(400, function() {
-                                                    $(this).next().fadeIn();
-                                                });
-                                            });
-                                            </script>
-                                            
-                                            {{/DefinitionINDEX}}
-                                            """.replaceAll("INDEX", String.valueOf(index)),
+                                        </div>
+                                    {{/DefinitionINDEX_NativeText}}
+                                {{/DefinitionINDEX}}
+                                """.replaceAll("INDEX", String.valueOf(index)),
                                     """
-                                            {{#LexicalCat}}
-                                            <div class="gramatical-class">{{LexicalCat}}</div>
-                                            {{/LexicalCat}}
-                                            
-                                            {{DefinitionINDEX}}
-                                            <div class="language">({{NativeLang}})</div>
-                                            
-                                            {{#DefinitionINDEX_NativeText}}
-                                            <div class="example">
-                                            {{DefinitionINDEX_NativeText}}
-                                            {{#DefinitionINDEX_AltNativeText}}
-                                            <div class="alt-text">[{{DefinitionINDEX_AltNativeText}}]</div>
-                                            {{/DefinitionINDEX_AltNativeText}}
+                                    {{#DefinitionINDEX}}
+                                        <div class="main-content">
+                                            <div class="objective">{{DefinitionINDEX}}</div>
+                                            <div class="lang-hint">
+                                                <span class="lexical-cat">{{LexicalCat}}</span> ({{NativeLang}})
                                             </div>
-                                            {{/DefinitionINDEX_NativeText}}
-                                            
-                                            <hr id="answer"/>
-                                            
-                                            {{LearningWord}}
-                                            <div class="language">({{LearningLang}})</div>
-                                            
-                                            {{#DefinitionINDEX_LearningText}}
-                                            <div class="example">
-                                            {{DefinitionINDEX_LearningText}}
-                                            {{#DefinitionINDEX_AltLearningText}}
-                                            <div class="alt-text">[{{DefinitionINDEX_AltLearningText}}]</div>
-                                            {{/DefinitionINDEX_AltLearningText}}
+                                        </div>
+                                    
+                                        {{#DefinitionINDEX_NativeText}}
+                                            <div class="text">
+                                                {{DefinitionINDEX_NativeText}}
+                                                {{#DefinitionINDEX_AltNativeText}}
+                                                <div class="alt-text">{{DefinitionINDEX_AltNativeText}}</div>
+                                                {{/DefinitionINDEX_AltNativeText}}
                                             </div>
-                                            {{/DefinitionINDEX_LearningText}}
-                                            
-                                            <div class="notes-container">
-                                                {{#NoteHeader}}
-                                                <div class="note-header">{{NoteHeader}}</div>
-                                                {{/NoteHeader}}
-                                                {{#Notes}}
-                                                <div class="notes">{{Notes}}</div>
-                                                {{/Notes}}
+                                        {{/DefinitionINDEX_NativeText}}
+                                    
+                                        <hr id="answer"/>
+                                    
+                                        <div class="main-content">
+                                            <div class="objective">{{LearningWord}}</div>
+                                        </div>
+                                    
+                                        {{#DefinitionINDEX_LearningText}}
+                                            <div class="text">
+                                                {{DefinitionINDEX_LearningText}}
+                                                {{#DefinitionINDEX_AltLearningText}}
+                                                <div class="alt-text">{{DefinitionINDEX_AltLearningText}}</div>
+                                                {{/DefinitionINDEX_AltLearningText}}
                                             </div>
-                                            
-                                            {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
-                                            """.replaceAll("INDEX", String.valueOf(index))
+                                        {{/DefinitionINDEX_LearningText}}
+                                                                        
+                                        {{#PersonalNotes}}
+                                            <div class="personal-notes">
+                                                {{PersonalNotes}}
+                                            </div>
+                                        {{/PersonalNotes}}
+                                    
+                                        {{#Audio}}
+                                            <div class="audio">{{Audio}}</div>
+                                        {{/Audio}}                                    
+
+                                    {{/DefinitionINDEX}}
+                                    """.replaceAll("INDEX", String.valueOf(index))
                             ))
             ).collect(Collectors.toList()),
             Set.of()
@@ -353,141 +342,158 @@ public enum AnkiNote {
         static final int DICTIONARY_DEFINITION_COUNT = 5;
 
         static final String COMMON_CSS = """
-                    .card {
-                        font-family: arial;
-                        font-size: 20px;
-                        text-align: center;
-                        color: black;
-                        background-color: white;
-                    }
-                    
-                    .gramatical-class {
-                        font-size: smaller;
-                        padding: 0.5em;
-                        margin-bottom: 1em;
-                        color: #aaa;
-                        background-color: #f5f5f5;
-                        border-radius: 4px;
-                    }
-                    
-                    .night_mode .gramatical-class {
-                        color: #ccc;
-                        background-color: #333;
-                    }
-                    
-                    .language {
-                        font-size: 0.75em;
-                        color: gray;
-                        margin-top: 0.2em;
-                    }
-                    
-                    .night_mode .language {
-                        color: #999;
-                    }
-                    
-                    .alt-text {
-                        font-size: 0.75em;
-                        color: #888;
-                        display: block;
-                        margin-top: 0.1em;
-                    }
-                    
-                    .notes-container {
-                         padding-top: 1.5em;
-                         text-align: left;
-                    }
-                    
-                    .note-header {
-                         font-weight: bold;
-                         background-color: #eee;
-                         padding: 0.5em 1em;
-                         border-radius: 4px 4px 0 0;
-                    }
-                    
-                    .night_mode .note-header {
-                         background-color: #444;
-                    }
-                    
-                    .notes {
-                         font-size: 0.8em;
-                         background-color: #f9f9f9;
-                         padding: 0.8em 1em;
-                         border: 1px solid #eee;
-                         border-top: none;
-                         border-radius: 0 0 4px 4px;
-                    }
-                    
-                    .night_mode .notes {
-                         background-color: #222;
-                         border-color: #444;
-                    }
-                    
-                    .audio {
-                        display: none;
-                    }
-                    
-                    /* Dictionary specific styles */
-                    div.hint button {
-                        margin-top: 1em;
-                        padding: 0.5em 1em;
-                        cursor: pointer;
-                    }
-                    
-                    div.hint .example {
-                        display: none;
-                    }
-                    
-                    div.example {
-                        font-size: 0.8em;
-                        color: #36c;
-                        padding-top: 0.5em;
-                        font-style: italic;
-                    }
-                    
-                    .night_mode div.example {
-                        color: #69f;
-                    }
-                    
-                    table.translations {
-                        border-collapse: collapse;
-                        margin: 1em auto;
-                        width: 100%;
-                    }
-                    
-                    table.translations tr.meaning {
-                        border-bottom: 1px solid #eee;
-                    }
-                    
-                    table.translations td.translation {
-                        padding: 0.5em;
-                        text-align: left;
-                        font-weight: bold;
-                    }
-                    
-                    table.translations td.examples {
-                        border-left: 1px solid #eee;
-                        padding-left: 0.5em;
-                    }
-                    
-                    table.examples {
-                        font-size: 0.75em;
-                        border-collapse: collapse;
-                        width: 100%;
-                    }
-                    
-                    table.examples td.example {
-                        text-align: left;
-                        padding: 0.2em 0.5em;
-                    }
-                    
-                    table.examples tr.foreign td.example {
-                        color: #36c;
-                    }
-                    
-                    .night_mode table.examples tr.foreign td.example {
-                        color: #69f;
-                    }
-                    """;
+                  /*
+                   * Basics
+                   */
+                
+                  .card {
+                      font-family: arial;
+                      font-size: 18px;
+                      text-align: center;
+                      color: #202122;
+                      background-color: white;
+                  }
+                
+                  .learning {
+                      font-style: italic;
+                  }
+                
+                  .lexical-cat {
+                      font-style: italic;
+                  }
+                
+                  .text {
+                      font-size: 0.9em;
+                      margin-top: 0.7em;
+                  }
+                
+                  .alt-text {
+                      font-size: 0.85em;
+                      color: #888;
+                      display: block;
+                      margin-top: 0.1em;
+                  }
+                
+                  .alt-text::before {
+                    content: "["
+                  }
+                
+                  .alt-text::after {
+                    content: "]"
+                  }
+                
+                  /*
+                   * Front
+                   */
+                
+                  .main-content {
+                      margin: 0.5em 0;
+                  }
+                
+                  .objective {
+                      font-size: 1.2em;
+                  }
+                
+                  .lang-hint {
+                      font-size: 0.75em;
+                      color: gray;
+                      margin-top: 0.2em;
+                  }
+                
+                  .example-hint button {
+                      display: none;
+                  }
+                
+                  .example-hint .content {
+                      display: none;
+                  }
+                
+                  /* Full dictionary entry, learning word to definitions */
+                  .example-hint .content .row {
+                      font-size: 0.9em;
+                      text-align: left;
+                      margin-top: 0.7em;
+                      padding-left: 0.5em;
+                      border-left: 3px solid #eee;
+                  }
+                
+                  /*
+                   * Back
+                   */
+                
+                  .definitions {
+                      text-align: left;
+                      padding-left: 0em;
+                      margin: 0;
+                      list-style-position: inside;
+                  }
+                
+                  .definitions li {
+                      margin-bottom: 0.8em;
+                      padding-left: 0.8em;
+                      border-left: 3px solid #ddd;
+                  }
+                
+                  .definitions li .definition {
+                      margin-bottom: 0.5em;
+                      display: inline;
+                  }
+                
+                  .definitions li .example {
+                      font-size: 0.9em;
+                  }
+                
+                  .definitions li .example .learning {
+                      margin-top: 0.5em;
+                      margin-left: 2em;
+                  }
+                
+                  .definitions li .example .native {
+                      margin-top: 0.3em;
+                      margin-left: 3em;
+                  }
+                
+                  /*
+                   * Others
+                   */
+                
+                  .personal-notes {
+                      padding-top: 1.5em;
+                      text-align: left;
+                      font-size: 0.8em;
+                      background-color: #f9f9f9;
+                      padding: 0.8em 1em;
+                      border-radius: 0.5em;
+                  }
+                
+                  .audio {
+                      display: none;
+                  }
+                
+                  /*
+                   * Night mode
+                   */
+                
+                  .night_mode .objective {
+                      color: #eee;
+                  }
+                
+                  .night_mode .lang-hint {
+                      color: #999;
+                  }
+                
+                  .night_mode .alt-text {
+                      color: #bbb;
+                  }
+                  
+                  .night_mode .definitions li {
+                      border-left: 3px solid #444;
+                  }
+                
+                  .night_mode .personal-notes {
+                       background-color: #222;
+                  }
+                  """;
 
         static Stream<Integer> getDictionaryDefinitionindexStream() {
             return IntStream.range(1, DICTIONARY_DEFINITION_COUNT + 1).boxed();
