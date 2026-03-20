@@ -15,6 +15,9 @@ import androidx.core.content.FileProvider;
 import com.github.lauroschuck.ankiquickadd.MainActivity;
 import com.github.lauroschuck.ankiquickadd.R;
 import com.github.lauroschuck.ankiquickadd.SettingsActivity;
+import com.github.lauroschuck.ankiquickadd.anki.notes.AbstractAnkiNote;
+import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
+import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
 import com.google.android.material.snackbar.Snackbar;
@@ -49,25 +52,29 @@ public class AnkiIntegration {
 
     private final AnkiDroidHelper mAnkiDroid;
     private final MainActivity context;
+    private final DictionaryNote dictionaryNote;
+    private final TextNote textNote;
 
-    public AnkiIntegration(MainActivity context) {
+    public AnkiIntegration(MainActivity context, DictionaryNote dictionaryNote, TextNote textNote) {
         this.context = context;
         this.mAnkiDroid = new AnkiDroidHelper(context);
+        this.dictionaryNote = dictionaryNote;
+        this.textNote = textNote;
         if (mAnkiDroid.shouldRequestPermission()) {
             mAnkiDroid.requestPermission(context, AD_PERM_REQUEST);
         }
     }
 
-    public static void createAnkiCards(MainActivity context, List<TranslationCard> cards, boolean isDefinitions) {
+    public static void createAnkiCards(MainActivity context, DictionaryNote dictionaryNote, TextNote textNote, List<TranslationCard> cards, boolean isDefinitions) {
         if (cards == null || cards.isEmpty()) {
             showSnackbar(context, "No cards selected.", true);
             return;
         }
-        new Thread(() -> new AnkiIntegration(context).addCardsToAnkiDroid(cards, isDefinitions)).start();
+        new Thread(() -> new AnkiIntegration(context, dictionaryNote, textNote).addCardsToAnkiDroid(cards, isDefinitions)).start();
     }
 
     private void addCardsToAnkiDroid(final List<TranslationCard> data, boolean isDefinitions) {
-        AnkiNote note = isDefinitions ? AnkiNote.DICTIONARY_DEFINITION : AnkiNote.LEARNING_NATIVE_TEXT;
+        var note = isDefinitions ? dictionaryNote : textNote;
         Long deckId = getDeckId();
         Long modelId = getModelId(note);
 
@@ -113,7 +120,7 @@ public class AnkiIntegration {
 
                 // Definitions and their examples (up to 5)
                 // Each definition uses 5 fields: Def, Learning, AltLearning, Native, AltNative
-                for (int i = 0; i < Math.min(group.size(), AnkiNote.InternalHelper.DICTIONARY_DEFINITION_COUNT); i++) {
+                for (int i = 0; i < Math.min(group.size(), DictionaryNote.DEFINITION_FIELDS); i++) {
                     TranslationCard card = group.get(i);
                     int baseIdx = 5 + (i * 5);
                     fields[baseIdx] = cleanHtml(card.definition());
@@ -124,7 +131,7 @@ public class AnkiIntegration {
                 }
 
                 // NoteHeader, Notes, HiddenNotes, Audio, SourceUrl follow the definitions
-                int offset = 5 + (AnkiNote.InternalHelper.DICTIONARY_DEFINITION_COUNT * 5);
+                int offset = 5 + (DictionaryNote.DEFINITION_FIELDS * 5);
                 fields[offset] = first.headword(); // NoteHeader
                 fields[offset + 4] = String.format("https://%s.wiktionary.org/wiki/%s#%s",
                         nativeLang, first.headword(), learningLang); // SourceUrl (pseudo-anchor)
@@ -250,7 +257,7 @@ public class AnkiIntegration {
         return did;
     }
 
-    private Long getModelId(AnkiNote note) {
+    private Long getModelId(AbstractAnkiNote note) {
         Long mid = mAnkiDroid.findModelIdByName(note.getModelName(), note.getFieldNames().length);
         if (mid == null) {
             mid = mAnkiDroid.getApi().addNewCustomModel(

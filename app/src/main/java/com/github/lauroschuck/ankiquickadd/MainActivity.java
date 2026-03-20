@@ -33,6 +33,9 @@ import androidx.core.content.ContextCompat;
 
 import com.github.lauroschuck.ankiquickadd.anki.AnkiDroidHelper;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;
+import com.github.lauroschuck.ankiquickadd.anki.notes.CardAssets;
+import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
+import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
 import com.github.lauroschuck.ankiquickadd.source.OfflineKaikkiSource;
@@ -71,6 +74,10 @@ public class MainActivity extends AppCompatActivity {
     private final List<DictionarySource> sources = new ArrayList<>();
     private DictionarySource currentSource;
 
+    private CardAssets cardAssets;
+    private DictionaryNote dictionaryNote;
+    private TextNote textNote;
+
     private Language lastUsedLearningLanguage;
     private Language lastUsedNativeLanguage;
 
@@ -88,7 +95,7 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(() -> {
                         if (AnkiDroidHelper.isApiAvailable(MainActivity.this)) {
                             boolean isDefinitions = noteTypeTabLayout.getSelectedTabPosition() == 0;
-                            AnkiIntegration.createAnkiCards(MainActivity.this, cards, isDefinitions);
+                            AnkiIntegration.createAnkiCards(MainActivity.this, dictionaryNote, textNote, cards, isDefinitions);
                         }
                     });
                 });
@@ -115,6 +122,10 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        cardAssets = new CardAssets(getApplicationContext());
+        dictionaryNote = new DictionaryNote(cardAssets);
+        textNote = new TextNote(cardAssets);
 
         webView = findViewById(R.id.webView);
         centralContainer = findViewById(R.id.centralContainer);

@@ -1,0 +1,147 @@
+/*
+ * Basics
+ */
+
+.card {
+    font-family: arial;
+    font-size: 18px;
+    text-align: center;
+    color: #202122;
+    background-color: white;
+}
+
+.learning {
+    font-style: italic;
+}
+
+.lexical-cat {
+    font-style: italic;
+}
+
+.text {
+    font-size: 0.9em;
+    margin-top: 0.7em;
+}
+
+.alt-text {
+    font-size: 0.85em;
+    color: #888;
+    display: block;
+    margin-top: 0.1em;
+}
+
+.alt-text::before {
+  content: "["
+}
+
+.alt-text::after {
+  content: "]"
+}
+
+/*
+ * Front
+ */
+
+.main-content {
+    margin: 0.5em 0;
+}
+
+.objective {
+    font-size: 1.2em;
+}
+
+.lang-hint {
+    font-size: 0.75em;
+    color: gray;
+    margin-top: 0.2em;
+}
+
+.example-hint button {
+    display: none;
+}
+
+.example-hint .content {
+    display: none;
+}
+
+/* Full dictionary entry, learning word to definitions */
+.example-hint .content .row {
+    font-size: 0.9em;
+    text-align: left;
+    margin-top: 0.7em;
+    padding-left: 0.5em;
+    border-left: 3px solid #eee;
+}
+
+/*
+ * Back
+ */
+
+.definitions {
+    text-align: left;
+    padding-left: 0em;
+    margin: 0;
+    list-style-position: inside;
+}
+
+.definitions li {
+    margin-bottom: 1.5em;
+    padding-left: 0.8em;
+    border-left: 3px solid #eee;
+}
+
+.definitions li .definition {
+    margin-bottom: 0.5em;
+    display: inline;
+}
+
+.definitions li .example {
+    font-size: 0.9em;
+}
+
+.definitions li .example .learning {
+    margin-top: 0.5em;
+    margin-left: 2em;
+}
+
+.definitions li .example .native {
+    margin-top: 0.3em;
+    margin-left: 3em;
+}
+
+/*
+ * Others
+ */
+
+.personal-notes {
+    padding-top: 1.5em;
+    text-align: left;
+    font-size: 0.8em;
+    background-color: #f9f9f9;
+    padding: 0.8em 1em;
+    border-radius: 0.5em;
+}
+
+.audio {
+    display: none;
+}
+
+/*
+ * Night mode
+ */
+
+.night_mode .objective {
+    color: #eee;
+}
+
+.night_mode .lang-hint {
+    color: #999;
+}
+
+.night_mode .alt-text {
+    color: #bbb;
+}
+
+.night_mode .personal-notes {
+     background-color: #222;
+}

@@ -1,0 +1,33 @@
+<div class="main-content">
+    <div class="objective">{{LearningWord}}</div>
+    <div class="lang-hint">
+        <span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})
+    </div>
+</div>
+
+<div class="example-hint">
+    <button>Hint</button>
+    <div class="content learning">
+        [[#repeat REPEAT_SIZE]]
+            {{#Definition[[INDEX]]_LearningText}}
+                <div class="row">
+                    {{Definition[[INDEX]]_LearningText}}
+                    {{#Definition[[INDEX]]_AltLearningText}}
+                        <div class="alt-text">{{Definition[[INDEX]]_AltLearningText}}</div>
+                    {{/Definition[[INDEX]]_AltLearningText}}
+                </div>
+            {{/Definition[[INDEX]]_LearningText}}
+        [[/repeat]]
+    </div>
+</div>
+
+<script>
+    if ($(".example-hint .content .row").length > 0) {
+        // Only show button if there is any text to be shown
+        $(".example-hint button").show().click(function() {
+            $(this).fadeOut(400, function() {
+                $(".example-hint .content").fadeIn();
+            });
+        });
+    }
+</script>

@@ -1,0 +1,31 @@
+<div class="main-content">
+    <div class="phrase native">
+        {{NativeText}}
+        {{#AltNativeText}}
+            <div class="alt-text">[{{AltNativeText}}]</div>
+        {{/AltNativeText}}
+    </div>
+    <div class="lang-hint">({{NativeLang}})</div>
+</div>
+
+<hr id="answer"/>
+
+<div class="main-content">
+    <div class="phrase learning">
+        {{LearningText}}
+        {{#AltLearningText}}
+            <div class="alt-text">[{{AltLearningText}}]</div>
+        {{/AltLearningText}}
+    </div>
+    <div class="lang-hint"><span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})</div>
+</div>
+
+{{#PersonalNotes}}
+    <div class="personal-notes">
+        {{PersonalNotes}}
+    </div>
+{{/PersonalNotes}}
+
+{{#Audio}}
+    <div class="audio">{{Audio}}</div>
+{{/Audio}}
