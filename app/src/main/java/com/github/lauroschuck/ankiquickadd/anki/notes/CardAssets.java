@@ -1,7 +1,6 @@
 package com.github.lauroschuck.ankiquickadd.anki.notes;
 
 import android.content.Context;
-import android.util.Log;
 
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.EscapingStrategy;
@@ -39,10 +38,6 @@ public class CardAssets {
 
         // Helper to handle the "INDEX" repetitions (1 to count)
         hb.registerHelper("repeat", (context, options) -> {
-            Log.i("TemplateProcessor", "context: " + context);
-            Log.i("TemplateProcessor", "options: " + options);
-            Log.i("TemplateProcessor", "options.context: " + options.context);
-            Log.i("TemplateProcessor", "options.context: " + options.context);
             int count = Integer.parseInt(context.toString());
             StringBuilder sb = new StringBuilder();
             for (int i = 1; i <= count; i++) {
@@ -94,6 +89,8 @@ public class CardAssets {
         DICTIONARY_WORD_TO_DEFINITIONS_BACK(R.raw.dictionary_word_to_definitions_back),
         DICTIONARY_DEFINITION_TO_WORD_FRONT(R.raw.dictionary_definition_to_word_front),
         DICTIONARY_DEFINITION_TO_WORD_BACK(R.raw.dictionary_definition_to_word_back),
+        DICTIONARY_LEARNING_TEXT_TO_NATIVE_TEXT_FRONT(R.raw.dictionary_learning_text_to_native_text_front),
+        DICTIONARY_LEARNING_TEXT_TO_NATIVE_TEXT_BACK(R.raw.dictionary_learning_text_to_native_text_back),
         TEXT_LEARNING_TO_NATIVE_FRONT(R.raw.text_learning_to_native_front),
         TEXT_LEARNING_TO_NATIVE_BACK(R.raw.text_learning_to_native_back),
         TEXT_NATIVE_TO_LEARNING_FRONT(R.raw.text_native_to_learning_front),

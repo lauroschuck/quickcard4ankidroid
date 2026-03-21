@@ -4,12 +4,12 @@ import java.util.List;
 
 public final class TextNote extends AbstractAnkiNote {
     public TextNote(CardAssets assets) {
-        super("ankiquickadd.notes.TextV19", generateFieldNames(), assets.getCss(), generateCardTypes(assets));
+        super("ankiquickadd.notes.TextV32", generateFieldNames(), assets.getCss(), generateCardTypes(assets));
     }
 
     private static List<String> generateFieldNames() {
         return List.of("LearningText", "AltLearningText", "LearningLang", "NativeText", "AltNativeText", "NativeLang", "LexicalCat",
-                "NoteHeader", "PersonalNotes", "HiddenNotes", "Audio", "SourceUrl");
+                "LearningWord", "Definition", "PersonalNotes", "HiddenNotes", "Audio", "SourceUrl");
     }
 
     private static List<CardType> generateCardTypes(CardAssets assets) {

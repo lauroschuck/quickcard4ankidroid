@@ -1,23 +1,31 @@
 <div class="main-content">
-    <div class="phrase learning">
+    <div class="text">
         {{LearningText}}
         {{#AltLearningText}}
-            <div class="alt-text">[{{AltLearningText}}]</div>
+            <div class="alt-text">{{AltLearningText}}</div>
         {{/AltLearningText}}
     </div>
-    <div class="lang-hint"><span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})</div>
+    <div class="lang-hint">
+        <span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})
+    </div>
 </div>
 
 <hr id="answer"/>
 
 <div class="main-content">
-    <div class="phrase native">
-        {{NativeText}}
-        {{#AltNativeText}}
-            <div class="alt-text">[{{AltNativeText}}]</div>
-        {{/AltNativeText}}
+    <div class="learning-word">
+        {{#SourceUrl}}<a href="{{SourceUrl}}">{{LearningWord}}</a>{{/SourceUrl}}
+        {{^SourceUrl}}{{LearningWord}}{{/SourceUrl}}
     </div>
-    <div class="lang-hint">({{NativeLang}})</div>
+</div>
+
+<div class="definition">{{Definition}}</div>
+
+<div class="text">
+    {{NativeText}}
+    {{#AltNativeText}}
+        <div class="alt-text">{{AltNativeText}}</div>
+    {{/AltNativeText}}
 </div>
 
 {{#PersonalNotes}}

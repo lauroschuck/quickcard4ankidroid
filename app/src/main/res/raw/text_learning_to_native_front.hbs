@@ -1,9 +1,11 @@
 <div class="main-content">
-    <div class="phrase learning">
+    <div class="text">
         {{LearningText}}
         {{#AltLearningText}}
-            <div class="alt-text">[{{AltLearningText}}]</div>
+            <div class="alt-text">{{AltLearningText}}</div>
         {{/AltLearningText}}
     </div>
-    <div class="lang-hint"><span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})</div>
+    <div class="lang-hint">
+        <span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})
+    </div>
 </div>

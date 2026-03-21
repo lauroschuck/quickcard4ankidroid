@@ -1,9 +1,11 @@
 <div class="main-content">
-    <div class="phrase native">
+    <div class="text">
         {{NativeText}}
         {{#AltNativeText}}
-            <div class="alt-text">[{{AltNativeText}}]</div>
+            <div class="alt-text">{{AltNativeText}}</div>
         {{/AltNativeText}}
     </div>
-    <div class="lang-hint">({{NativeLang}})</div>
+    <div class="lang-hint">
+        <span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})
+    </div>
 </div>

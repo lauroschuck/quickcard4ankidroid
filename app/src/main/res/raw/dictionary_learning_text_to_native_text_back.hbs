@@ -1,0 +1,40 @@
+{{#Definition[[INDEX]]_LearningText}}
+    <div class="main-content">
+        <div class="text">
+            {{Definition[[INDEX]]_LearningText}}
+            {{#Definition[[INDEX]]_AltLearningText}}
+                <div class="alt-text">{{Definition[[INDEX]]_AltLearningText}}</div>
+            {{/Definition[[INDEX]]_AltLearningText}}
+        </div>
+        <div class="lang-hint">
+            <span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})
+        </div>
+    </div>
+
+    <hr id="answer"/>
+
+    <div class="main-content">
+        <div class="learning-word">
+            {{#SourceUrl}}<a href="{{SourceUrl}}">{{LearningWord}}</a>{{/SourceUrl}}
+            {{^SourceUrl}}{{LearningWord}}{{/SourceUrl}}
+        </div>
+    </div>
+
+    <div class="definition">{{Definition[[INDEX]]}}</div>
+
+    <div class="text">
+        {{Definition[[INDEX]]_NativeText}}
+        {{#Definition[[INDEX]]_AltNativeText}}
+            <div class="alt-text">{{Definition[[INDEX]]_AltNativeText}}</div>
+        {{/Definition[[INDEX]]_AltNativeText}}
+    </div>
+
+    {{#PersonalNotes}}
+        <div class="personal-notes">
+            {{PersonalNotes}}
+        </div>
+    {{/PersonalNotes}}
+
+    {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
+
+{{/Definition[[INDEX]]_LearningText}}

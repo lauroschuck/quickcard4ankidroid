@@ -1,5 +1,8 @@
 <div class="main-content">
-    <div class="objective">{{LearningWord}}</div>
+    <div class="learning-word">
+        {{#SourceUrl}}<a href="{{SourceUrl}}">{{LearningWord}}</a>{{/SourceUrl}}
+        {{^SourceUrl}}{{LearningWord}}{{/SourceUrl}}
+    </div>
     <div class="lang-hint">
         <span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})
     </div>

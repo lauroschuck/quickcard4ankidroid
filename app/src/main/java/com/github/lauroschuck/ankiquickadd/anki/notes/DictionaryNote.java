@@ -12,7 +12,7 @@ public final class DictionaryNote extends AbstractAnkiNote {
     public static final int DEFINITION_FIELDS = 5;
 
     public DictionaryNote(CardAssets assets) {
-        super("ankiquickadd.notes.DictionaryDefinitionV19", generateFieldNames(), assets.getCss(), generateCardTypes(assets));
+        super("ankiquickadd.notes.DictionaryDefinitionV32", generateFieldNames(), assets.getCss(), generateCardTypes(assets));
     }
 
     static Stream<Integer> getDefinitionSizedStream() {
@@ -28,17 +28,20 @@ public final class DictionaryNote extends AbstractAnkiNote {
                                         String.format(Locale.US, "Definition%d_AltLearningText", index),
                                         String.format(Locale.US, "Definition%d_NativeText", index),
                                         String.format(Locale.US, "Definition%d_AltNativeText", index))),
-                        Stream.of("NoteHeader", "PersonalNotes", "HiddenNotes", "Audio", "SourceUrl")
+                        Stream.of("PersonalNotes", "HiddenNotes", "Audio", "SourceUrl")
                 )
                 .flatMap(Function.identity())
                 .collect(Collectors.toList());
     }
 
     private static List<CardType> generateCardTypes(CardAssets assets) {
-        return Stream.concat(
+        return Stream.of(
                 Stream.of(generateLearningWordToNativeDefinitionsCard(assets)),
-                getDefinitionSizedStream()
-                        .map(index -> generateIndexedNativeDefinitionToLearningWordCard(assets, index)))
+                        getDefinitionSizedStream()
+                                .map(index -> generateIndexedNativeDefinitionToLearningWordCard(assets, index)),
+                        getDefinitionSizedStream()
+                                .map(index -> generateIndexedLearningTextToNativeTextCard(assets, index)))
+                .flatMap(Function.identity())
                 .toList();
     }
 
@@ -54,6 +57,13 @@ public final class DictionaryNote extends AbstractAnkiNote {
                 "NativeDefinition%d-LearningWord".formatted(index),
                 assets.getIndexedTemplate(CardAssets.TemplateId.DICTIONARY_DEFINITION_TO_WORD_FRONT, index),
                 assets.getIndexedTemplate(CardAssets.TemplateId.DICTIONARY_DEFINITION_TO_WORD_BACK, index));
+    }
+
+    private static CardType generateIndexedLearningTextToNativeTextCard(CardAssets assets, int index) {
+        return new CardType(
+                "LearningText%d-NativeText".formatted(index),
+                assets.getIndexedTemplate(CardAssets.TemplateId.DICTIONARY_LEARNING_TEXT_TO_NATIVE_TEXT_FRONT, index),
+                assets.getIndexedTemplate(CardAssets.TemplateId.DICTIONARY_LEARNING_TEXT_TO_NATIVE_TEXT_BACK, index));
     }
 
 }

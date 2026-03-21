@@ -120,9 +120,10 @@ public class AnkiIntegration {
 
                 // Definitions and their examples (up to 5)
                 // Each definition uses 5 fields: Def, Learning, AltLearning, Native, AltNative
+                var preDefinitionsOffset = 5;
                 for (int i = 0; i < Math.min(group.size(), DictionaryNote.DEFINITION_FIELDS); i++) {
                     TranslationCard card = group.get(i);
-                    int baseIdx = 5 + (i * 5);
+                    int baseIdx = preDefinitionsOffset + (i * 5);
                     fields[baseIdx] = cleanHtml(card.definition());
                     fields[baseIdx + 1] = cleanHtml(card.learningText());
                     fields[baseIdx + 2] = ""; // AltLearningText
@@ -130,10 +131,9 @@ public class AnkiIntegration {
                     fields[baseIdx + 4] = ""; // AltNativeText
                 }
 
-                // NoteHeader, Notes, HiddenNotes, Audio, SourceUrl follow the definitions
-                int offset = 5 + (DictionaryNote.DEFINITION_FIELDS * 5);
-                fields[offset] = first.headword(); // NoteHeader
-                fields[offset + 4] = String.format("https://%s.wiktionary.org/wiki/%s#%s",
+                // PersonalNotes, HiddenNotes, Audio, SourceUrl follow the definitions
+                int offset = preDefinitionsOffset + (DictionaryNote.DEFINITION_FIELDS * 5);
+                fields[offset + 3] = String.format("https://%s.wiktionary.org/wiki/%s#%s",
                         nativeLang, first.headword(), learningLang); // SourceUrl (pseudo-anchor)
 
                 String headword = first.headword();
@@ -142,7 +142,7 @@ public class AnkiIntegration {
                     soundTag = processAudio(first, learningLang, ankiPkg);
                     if (!soundTag.isEmpty()) audioCache.put(headword, soundTag);
                 }
-                fields[offset + 3] = soundTag; // Audio
+                fields[offset + 2] = soundTag; // Audio
 
                 sanitizeFields(fields);
                 fieldsList.add(fields);
@@ -153,7 +153,8 @@ public class AnkiIntegration {
                 String[] fields = new String[fieldNames.length];
                 // Fields mapping for LEARNING_NATIVE_TEXT:
                 // 0: LearningText, 1: AltLearningText, 2: LearningLang, 3: NativeText, 4: AltNativeText, 
-                // 5: NativeLang, 6: LexicalCat, 7: NoteHeader, 8: Notes, 9: HiddenNotes, 10: Audio, 11: SourceUrl
+                // 5: NativeLang, 6: LexicalCat, 7: LearningWord, 8: Definition, 9: PersonalNotes,
+                // 10: HiddenNotes, 11: Audio, 12: SourceUrl
                 fields[0] = cleanHtml(card.learningText());
                 fields[1] = ""; // AltLearningText
                 fields[2] = learningLang;
@@ -163,7 +164,7 @@ public class AnkiIntegration {
                 fields[6] = card.lexicalCategory();
                 fields[7] = card.headword();
                 fields[8] = cleanHtml(card.definition());
-                fields[11] = String.format("https://%s.wiktionary.org/wiki/%s#%s", 
+                fields[12] = String.format("https://%s.wiktionary.org/wiki/%s#%s",
                         nativeLang, card.headword(), learningLang);
 
                 String headword = card.headword();
@@ -172,7 +173,7 @@ public class AnkiIntegration {
                     soundTag = processAudio(card, learningLang, ankiPkg);
                     if (!soundTag.isEmpty()) audioCache.put(headword, soundTag);
                 }
-                fields[10] = soundTag;
+                fields[11] = soundTag;
 
                 sanitizeFields(fields);
                 fieldsList.add(fields);
