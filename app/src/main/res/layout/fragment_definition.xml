@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Note Type Selector Header -->
+    <LinearLayout
+        android:id="@+id/noteTypeHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="#f8f9fa">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Note type:"
+            android:textStyle="bold"
+            android:textColor="@color/anki_dark_text"
+            android:layout_marginEnd="8dp"/>
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/noteTypeTabLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:tabMode="fixed"
+            app:tabGravity="fill"
+            android:background="@android:color/transparent"
+            app:tabIndicatorHeight="2dp"
+            app:tabIndicatorColor="@color/anki_blue"
+            app:tabSelectedTextColor="@color/anki_blue"
+            app:tabTextColor="@color/anki_light_text">
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Dictionary definitions" />
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Example phrases" />
+        </com.google.android.material.tabs.TabLayout>
+    </LinearLayout>
+
+    <WebView
+        android:id="@+id/webView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/noteTypeHeader" />
+
+    <!-- Floating Close Button (Top Right) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/closeButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/noteTypeHeader"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        app:tint="@color/white"
+        app:backgroundTint="@color/anki_blue"
+        app:borderWidth="2dp"
+        app:strokeColor="@android:color/white"
+        app:elevation="4dp"
+        app:useCompatPadding="true"
+        app:fabSize="mini" />
+
+    <!-- Floating Create Cards Button with Badge (Bottom Right) -->
+    <FrameLayout
+        android:id="@+id/createCardsFabContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true"
+        android:padding="16dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:visibility="gone">
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/createCardsFab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@android:drawable/ic_input_add"
+            app:tint="@android:color/white"
+            app:backgroundTint="@color/anki_blue"
+            app:borderWidth="3dp"
+            app:strokeColor="@android:color/white"
+            app:maxImageSize="48dp"
+            android:contentDescription="Create Cards"
+            app:fabSize="normal"
+            app:elevation="4dp"
+            app:useCompatPadding="true" />
+
+        <TextView
+            android:id="@+id/badgeText"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:background="@android:drawable/presence_online"
+            android:backgroundTint="#FF4081"
+            android:gravity="center"
+            android:text="0"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:elevation="12dp"
+            android:visibility="gone" />
+    </FrameLayout>
+
+</RelativeLayout>

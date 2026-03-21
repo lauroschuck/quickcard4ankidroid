@@ -3,36 +3,21 @@ package com.github.lauroschuck.ankiquickadd;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.media.AudioAttributes;
-import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
-import android.view.inputmethod.InputMethodManager;
-import android.webkit.ConsoleMessage;
-import android.webkit.JavascriptInterface;
-import android.webkit.WebChromeClient;
-import android.webkit.WebResourceRequest;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ImageButton;
 import android.widget.Spinner;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.lifecycle.ViewModelProvider;
 
-import com.github.lauroschuck.ankiquickadd.anki.AnkiDroidHelper;
-import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;
 import com.github.lauroschuck.ankiquickadd.anki.notes.CardAssets;
 import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
@@ -41,142 +26,62 @@ import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
 import com.github.lauroschuck.ankiquickadd.source.OfflineKaikkiSource;
 import com.github.lauroschuck.ankiquickadd.source.ReversoSource;
 import com.github.lauroschuck.ankiquickadd.source.WordReferenceSource;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
-import com.google.android.material.tabs.TabLayout;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
-import java.util.Stack;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "AnkiQuickAdd";
-    private WebView webView;
-    private View centralContainer;
-    private TextView statusText;
-    private TextView warningText;
-    private View createCardsFabContainer;
-    private FloatingActionButton createCardsFab;
-    private TextView badgeText;
-    private FloatingActionButton closeButton;
     private Spinner sourceSpinner;
-    private ImageButton settingsButton;
-    private EditText searchEditText;
-    private Button searchButton;
-    private View noteTypeHeader;
-    private TabLayout noteTypeTabLayout;
-    private String currentWord = "";
-    private MediaPlayer mediaPlayer;
+    private MainViewModel viewModel;
     
-    private final List<DictionarySource> sources = new ArrayList<>();
-    private DictionarySource currentSource;
-
     private CardAssets cardAssets;
     private DictionaryNote dictionaryNote;
     private TextNote textNote;
-
-    private Language lastUsedLearningLanguage;
-    private Language lastUsedNativeLanguage;
-
-    private final Stack<String> wordHistory = new Stack<>();
-    private boolean isNavigatingBack = false;
-    private boolean rootIsSearch = false;
-
-    public class WebAppInterface {
-        @JavascriptInterface
-        @SuppressWarnings("unused")
-        public void processSelectedCards(String json) {
-            runOnUiThread(() -> {
-                Log.d(TAG, "Selected cards JSON: " + json);
-                currentSource.getCardsFromSelection(json, cards -> {
-                    runOnUiThread(() -> {
-                        if (AnkiDroidHelper.isApiAvailable(MainActivity.this)) {
-                            boolean isDefinitions = noteTypeTabLayout.getSelectedTabPosition() == 0;
-                            AnkiIntegration.createAnkiCards(MainActivity.this, dictionaryNote, textNote, cards, isDefinitions);
-                        }
-                    });
-                });
-            });
-        }
-
-        @JavascriptInterface
-        @SuppressWarnings("unused")
-        public void updateSelectedCount(int count) {
-            runOnUiThread(() -> {
-                if (count > 0) {
-                    createCardsFabContainer.setVisibility(View.VISIBLE);
-                    badgeText.setVisibility(View.VISIBLE);
-                    badgeText.setText(String.valueOf(count));
-                } else {
-                    createCardsFabContainer.setVisibility(View.GONE);
-                    badgeText.setVisibility(View.GONE);
-                }
-            });
-        }
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        viewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        
         cardAssets = new CardAssets(getApplicationContext());
         dictionaryNote = new DictionaryNote(cardAssets);
         textNote = new TextNote(cardAssets);
 
-        webView = findViewById(R.id.webView);
-        centralContainer = findViewById(R.id.centralContainer);
-        statusText = findViewById(R.id.statusText);
-        warningText = findViewById(R.id.warningText);
-        createCardsFabContainer = findViewById(R.id.createCardsFabContainer);
-        createCardsFab = findViewById(R.id.createCardsFab);
-        badgeText = findViewById(R.id.badgeText);
-        closeButton = findViewById(R.id.closeButton);
         sourceSpinner = findViewById(R.id.sourceSpinner);
-        settingsButton = findViewById(R.id.settingsButton);
-        searchEditText = findViewById(R.id.searchEditText);
-        searchButton = findViewById(R.id.searchButton);
-        noteTypeHeader = findViewById(R.id.noteTypeHeader);
-        noteTypeTabLayout = findViewById(R.id.noteTypeTabLayout);
+        View settingsButton = findViewById(R.id.settingsButton);
 
         setupSources();
-        configureWebView();
-        setupSearch();
-        setupTabs();
         setupBackPressed();
         
         settingsButton.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
-        createCardsFab.setOnClickListener(v -> triggerJsExtraction());
-        closeButton.setOnClickListener(v -> {
-            rootIsSearch = true; // Manually closing a word results in search being the root now
-            showCentralSearch(null);
-        });
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        lastUsedLearningLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV);
-        lastUsedNativeLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN);
+        viewModel.setLastUsedLearningLanguage(getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV));
+        viewModel.setLastUsedNativeLanguage(getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN));
         
         handleIntent(getIntent());
     }
+
+    public DictionaryNote getDictionaryNote() { return dictionaryNote; }
+    public TextNote getTextNote() { return textNote; }
 
     private void setupBackPressed() {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (!wordHistory.isEmpty()) {
-                    wordHistory.pop(); // Remove current word
-                    if (!wordHistory.isEmpty()) {
-                        isNavigatingBack = true;
-                        fetchDefinition(wordHistory.peek());
+                if (!viewModel.getWordHistory().isEmpty()) {
+                    viewModel.getWordHistory().pop(); // Remove current word
+                    if (!viewModel.getWordHistory().isEmpty()) {
+                        fetchDefinition(viewModel.getWordHistory().peek(), true);
                         return;
                     }
                 }
                 
-                if (rootIsSearch && webView.getVisibility() == View.VISIBLE) {
-                    showCentralSearch(null);
+                if (viewModel.isRootIsSearch() && getCurrentFragment() instanceof DefinitionFragment) {
+                    showSearchFragment(null);
                 } else {
                     setEnabled(false);
                     onBackPressed();
@@ -192,84 +97,35 @@ public class MainActivity extends AppCompatActivity {
         Language currentLearning = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV);
         Language currentNative = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN);
 
-        if (currentLearning != lastUsedLearningLanguage || currentNative != lastUsedNativeLanguage) {
-            if (!currentWord.isEmpty()) {
-                fetchDefinition(currentWord);
+        if (currentLearning != viewModel.getLastUsedLearningLanguage() || currentNative != viewModel.getLastUsedNativeLanguage()) {
+            String word = viewModel.getCurrentWord().getValue();
+            if (word != null && !word.isEmpty()) {
+                fetchDefinition(word, true);
             }
-            lastUsedLearningLanguage = currentLearning;
-            lastUsedNativeLanguage = currentNative;
-        }
-    }
-
-    private void setupTabs() {
-        // "Dictionary Definitions" is at index 0, "Examples" is at index 1
-        noteTypeTabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-            @Override
-            public void onTabSelected(TabLayout.Tab tab) {
-                if (!currentWord.isEmpty()) {
-                    webView.setVisibility(View.VISIBLE);
-                    String mode = tab.getPosition() == 0 ? "definitions" : "examples";
-                    webView.evaluateJavascript("setMode('" + mode + "')", null);
-                    // Reset selected count when switching tabs since we haven't implemented cross-tab selection
-                    createCardsFabContainer.setVisibility(View.GONE);
-                    badgeText.setVisibility(View.GONE);
-                } else {
-                    webView.setVisibility(View.GONE);
-                }
-            }
-
-            @Override
-            public void onTabUnselected(TabLayout.Tab tab) {}
-
-            @Override
-            public void onTabReselected(TabLayout.Tab tab) {}
-        });
-        
-        // Select "Examples" by default for now
-        TabLayout.Tab examplesTab = noteTypeTabLayout.getTabAt(1);
-        if (examplesTab != null) examplesTab.select();
-    }
-
-    private void setupSearch() {
-        searchButton.setOnClickListener(v -> performSearch());
-        searchEditText.setOnEditorActionListener((v, actionId, event) -> {
-            if (actionId == EditorInfo.IME_ACTION_SEARCH) {
-                performSearch();
-                return true;
-            }
-            return false;
-        });
-    }
-
-    private void performSearch() {
-        String query = searchEditText.getText().toString().trim();
-        if (!query.isEmpty()) {
-            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (imm != null) {
-                imm.hideSoftInputFromWindow(searchEditText.getWindowToken(), 0);
-            }
-            fetchDefinition(query);
+            viewModel.setLastUsedLearningLanguage(currentLearning);
+            viewModel.setLastUsedNativeLanguage(currentNative);
         }
     }
 
     private void setupSources() {
-        sources.add(new OfflineKaikkiSource(this));
-        sources.add(new WordReferenceSource());
-        sources.add(new ReversoSource());
+        viewModel.getSources().add(new OfflineKaikkiSource(this));
+        viewModel.getSources().add(new WordReferenceSource());
+        viewModel.getSources().add(new ReversoSource());
 
         String[] sourceNames = {"Wiktionary", "WordReference", "Reverso"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.spinner_item, sourceNames);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         sourceSpinner.setAdapter(adapter);
 
-        currentSource = sources.get(0);
+        viewModel.setCurrentSource(viewModel.getSources().get(0));
 
         sourceSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                currentSource = sources.get(position);
-                if (!currentWord.isEmpty()) {
-                    fetchDefinition(currentWord);
+                viewModel.setCurrentSource(viewModel.getSources().get(position));
+                String word = viewModel.getCurrentWord().getValue();
+                if (word != null && !word.isEmpty()) {
+                    fetchDefinition(word, true);
                 }
             }
 
@@ -278,182 +134,85 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void configureWebView() {
-        webView.getSettings().setJavaScriptEnabled(true);
-        webView.addJavascriptInterface(new WebAppInterface(), "Android");
-        webView.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-                Log.d("WebViewConsole", consoleMessage.message());
-                return true;
-            }
-        });
-        webView.setWebViewClient(new WebViewClient() {
-            @Override
-            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                String url = request.getUrl().toString();
-                if (url.startsWith("app://fetch/")) {
-                    String word = Uri.decode(url.substring("app://fetch/".length()));
-                    fetchDefinition(word);
-                    return true;
-                } else if (url.startsWith("app://play/")) {
-                    String audioUrl = Uri.decode(url.substring("app://play/".length()));
-                    playAudio(audioUrl);
-                    return true;
-                } else if (url.startsWith("http://") || url.startsWith("https://")) {
-                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                    startActivity(intent);
-                    return true;
-                }
-                return true;
-            }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-                // Inject selection change listener
-                injectCheckboxListener();
-                // Set initial mode based on selected tab
-                String mode = noteTypeTabLayout.getSelectedTabPosition() == 0 ? "definitions" : "examples";
-                webView.evaluateJavascript("setMode('" + mode + "')", null);
-            }
-        });
-    }
-
-    private void playAudio(String url) {
-        if (mediaPlayer != null) {
-            mediaPlayer.release();
-        }
-        mediaPlayer = new MediaPlayer();
-        mediaPlayer.setAudioAttributes(new AudioAttributes.Builder()
-                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                .setUsage(AudioAttributes.USAGE_MEDIA)
-                .build());
-        try {
-            mediaPlayer.setDataSource(url);
-            mediaPlayer.prepareAsync();
-            mediaPlayer.setOnPreparedListener(MediaPlayer::start);
-            mediaPlayer.setOnErrorListener((mp, what, extra) -> {
-                showSnackbar("Audio playback failed", true);
-                return true;
-            });
-        } catch (IOException e) {
-            Log.e(TAG, "Audio error", e);
-        }
-    }
-
-    private void injectCheckboxListener() {
-        String js = "document.addEventListener('change', function(e) {" +
-                    "  if (e.target.classList.contains('example-checkbox')) {" +
-                    "    var count = document.querySelectorAll('input.example-checkbox:checked').length;" +
-                    "    Android.updateSelectedCount(count);" +
-                    "  }" +
-                    "});";
-        webView.evaluateJavascript(js, null);
-    }
-
     private void handleIntent(Intent intent) {
         String selectedWord = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
         if (selectedWord != null) {
-            rootIsSearch = false;
-            fetchDefinition(selectedWord.toLowerCase(Locale.ROOT));
+            viewModel.setRootIsSearch(false);
+            fetchDefinition(selectedWord.toLowerCase(Locale.ROOT), false);
         } else {
-            rootIsSearch = true;
-            showCentralSearch(null);
+            viewModel.setRootIsSearch(true);
+            showSearchFragment(null);
         }
     }
 
-    private void showCentralSearch(String warning) {
-        currentWord = "";
-        wordHistory.clear();
-        runOnUiThread(() -> {
-            webView.setVisibility(View.GONE);
-            noteTypeHeader.setVisibility(View.GONE);
-            createCardsFabContainer.setVisibility(View.GONE);
-            closeButton.setVisibility(View.GONE);
-            centralContainer.setVisibility(View.VISIBLE);
-            statusText.setText("Enter a word or select text in another app");
-            searchEditText.setText("");
-            if (warning != null && !warning.isEmpty()) {
-                warningText.setVisibility(View.VISIBLE);
-                warningText.setText(warning);
-            } else {
-                warningText.setVisibility(View.GONE);
-            }
-        });
+    public void showSearchFragment(String warning) {
+        viewModel.setCurrentWord("");
+        viewModel.getWordHistory().clear();
+        viewModel.setSearchWarning(warning);
+        
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragmentContainer, new SearchFragment())
+                .commit();
     }
 
-    private void fetchDefinition(String word) {
-        fetchDefinition(word, true);
+    public void closeDefinition() {
+        viewModel.setRootIsSearch(true);
+        showSearchFragment(null);
     }
 
-    private void fetchDefinition(String word, boolean retryWithLowercase) {
-        if (!isNavigatingBack && (wordHistory.isEmpty() || !wordHistory.peek().equals(word))) {
-            wordHistory.push(word);
+    public void fetchDefinition(String word) {
+        fetchDefinition(word, false);
+    }
+
+    public void fetchDefinition(String word, boolean isFromHistory) {
+        if (!isFromHistory && (viewModel.getWordHistory().isEmpty() || !viewModel.getWordHistory().peek().equals(word))) {
+            viewModel.getWordHistory().push(word);
         }
-        isNavigatingBack = false;
 
-        currentWord = word;
-        searchEditText.setText(word);
-        runOnUiThread(() -> {
-            centralContainer.setVisibility(View.GONE);
-            webView.setVisibility(View.INVISIBLE);
-            noteTypeHeader.setVisibility(View.GONE);
-            createCardsFabContainer.setVisibility(View.GONE);
-            closeButton.setVisibility(View.GONE);
-            badgeText.setVisibility(View.GONE);
-        });
+        viewModel.setCurrentWord(word);
+        viewModel.setSearchWarning(null);
+
+        // Ensure we are in DefinitionFragment
+        if (!(getCurrentFragment() instanceof DefinitionFragment)) {
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.fragmentContainer, new DefinitionFragment())
+                    .commitNow();
+        }
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         Language learningLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV);
         Language nativeLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN);
 
-        currentSource.fetch(word, learningLanguage, nativeLanguage, new DictionarySource.OnResultListener() {
+        viewModel.getCurrentSource().fetch(word, learningLanguage, nativeLanguage, new DictionarySource.OnResultListener() {
             @Override
             public void onSuccess(String html, String headword) {
                 runOnUiThread(() -> {
-                    noteTypeHeader.setVisibility(View.VISIBLE);
-                    webView.setVisibility(View.VISIBLE);
-                    webView.loadDataWithBaseURL("https://en.wiktionary.org/", html, "text/html", "UTF-8", null);
-                    closeButton.setVisibility(View.VISIBLE);
+                    Fragment current = getCurrentFragment();
+                    if (current instanceof DefinitionFragment) {
+                        ((DefinitionFragment) current).loadHtml(html);
+                    }
                 });
             }
+
             @Override
             public void onError(String message) {
                 var lowercaseWord = word.toLowerCase(Locale.ROOT);
-                if (retryWithLowercase && !word.equals(lowercaseWord)) {
-                    // Pop the failed original casing from history
-                    if (!wordHistory.isEmpty()) wordHistory.pop();
-                    fetchDefinition(lowercaseWord, false);
+                if (!word.equals(lowercaseWord)) {
+                    fetchDefinition(lowercaseWord, true);
                 } else {
                     runOnUiThread(() -> {
-                        // Word failed, pop from history if it was just added
-                        if (!wordHistory.isEmpty() && wordHistory.peek().equals(word)) {
-                            wordHistory.pop();
+                        if (!viewModel.getWordHistory().isEmpty() && viewModel.getWordHistory().peek().equals(word)) {
+                            viewModel.getWordHistory().pop();
                         }
-                        
-                        if (wordHistory.isEmpty()) {
-                            showCentralSearch("Word not found: " + word);
-                        } else {
-                            showCentralSearch("Word not found: " + word);
-                        }
+                        showSearchFragment("Word not found: " + word);
                     });
                 }
             }
         });
     }
 
-    private void showSnackbar(String message, boolean isError) {
-        View rootView = findViewById(android.R.id.content);
-        if (rootView != null) {
-            Snackbar snackbar = Snackbar.make(rootView, message, Snackbar.LENGTH_LONG);
-            int bgColor = isError ? R.color.error_red : R.color.anki_blue;
-            snackbar.setBackgroundTint(ContextCompat.getColor(this, bgColor));
-            snackbar.setTextColor(ContextCompat.getColor(this, R.color.white));
-            snackbar.show();
-        } else {
-            Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-        }
+    private Fragment getCurrentFragment() {
+        return getSupportFragmentManager().findFragmentById(R.id.fragmentContainer);
     }
 
     private Language getLanguageFromPref(SharedPreferences prefs, String key, Language defaultLang) {
@@ -464,16 +223,8 @@ public class MainActivity extends AppCompatActivity {
         return defaultLang;
     }
 
-    private void triggerJsExtraction() {
-        webView.evaluateJavascript(currentSource.getExtractionJs(), null);
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (mediaPlayer != null) {
-            mediaPlayer.release();
-            mediaPlayer = null;
-        }
+    public void showSnackbar(String message, boolean isError) {
+        // Implement snackbar logic if needed, or use Toast
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }
