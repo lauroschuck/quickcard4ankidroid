@@ -8,13 +8,10 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.util.SparseArray;
-
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-
 import com.ichi2.anki.api.AddContentApi;
 import com.ichi2.anki.api.NoteInfo;
-
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -66,9 +63,8 @@ public class AnkiDroidHelper {
      * @param callbackCode The callback code to be used in onRequestPermissionsResult()
      */
     public void requestPermission(Activity callbackActivity, int callbackCode) {
-        ActivityCompat.requestPermissions(callbackActivity, new String[]{READ_WRITE_PERMISSION}, callbackCode);
+        ActivityCompat.requestPermissions(callbackActivity, new String[] {READ_WRITE_PERMISSION}, callbackCode);
     }
-
 
     /**
      * Save a mapping from deckName to getDeckId in the SharedPreferences
@@ -92,10 +88,10 @@ public class AnkiDroidHelper {
      * @param tags List of tags to remove duplicates from
      * @param modelId ID of model to search for duplicates on
      */
-    public void removeDuplicates(LinkedList<String []> fields, LinkedList<Set<String>> tags, long modelId) {
+    public void removeDuplicates(LinkedList<String[]> fields, LinkedList<Set<String>> tags, long modelId) {
         // Build a list of the duplicate keys (first fields) and find all notes that have a match with each key
         List<String> keys = new ArrayList<>(fields.size());
-        for (String[] f: fields) {
+        for (String[] f : fields) {
             keys.add(f[0]);
         }
         SparseArray<List<NoteInfo>> duplicateNotes = getApi().findDuplicateNotes(modelId, keys);
@@ -124,7 +120,6 @@ public class AnkiDroidHelper {
             tagIterator.remove();
         }
     }
-
 
     /**
      * Try to find the given model by name, accounting for renaming of the model:
@@ -158,7 +153,6 @@ public class AnkiDroidHelper {
         // model no longer exists (by name nor old id), the number of fields was reduced, or API error
         return null;
     }
-
 
     /**
      * Try to find the given deck by name, accounting for potential renaming of the deck by the user as follows:
@@ -205,4 +199,3 @@ public class AnkiDroidHelper {
         return null;
     }
 }
-

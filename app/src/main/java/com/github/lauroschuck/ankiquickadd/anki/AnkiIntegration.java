@@ -8,10 +8,8 @@ import android.util.Log;
 import android.view.View;
 import android.webkit.MimeTypeMap;
 import android.widget.Toast;
-
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
-
 import com.github.lauroschuck.ankiquickadd.MainActivity;
 import com.github.lauroschuck.ankiquickadd.R;
 import com.github.lauroschuck.ankiquickadd.SettingsActivity;
@@ -22,10 +20,6 @@ import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
 import com.google.android.material.snackbar.Snackbar;
 import com.ichi2.anki.api.AddContentApi;
-
-import org.jsoup.Jsoup;
-import org.jsoup.safety.Safelist;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -40,6 +34,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 
 /**
  * Handles the integration with AnkiDroid for creating language flashcards.
@@ -65,12 +61,19 @@ public class AnkiIntegration {
         }
     }
 
-    public static void createAnkiCards(MainActivity context, DictionaryNote dictionaryNote, TextNote textNote, List<TranslationCard> cards, boolean isDefinitions) {
+    public static void createAnkiCards(
+            MainActivity context,
+            DictionaryNote dictionaryNote,
+            TextNote textNote,
+            List<TranslationCard> cards,
+            boolean isDefinitions) {
         if (cards == null || cards.isEmpty()) {
             showSnackbar(context, "No cards selected.", true);
             return;
         }
-        new Thread(() -> new AnkiIntegration(context, dictionaryNote, textNote).addCardsToAnkiDroid(cards, isDefinitions)).start();
+        new Thread(() -> new AnkiIntegration(context, dictionaryNote, textNote)
+                        .addCardsToAnkiDroid(cards, isDefinitions))
+                .start();
     }
 
     private void addCardsToAnkiDroid(final List<TranslationCard> data, boolean isDefinitions) {
@@ -109,7 +112,7 @@ public class AnkiIntegration {
             for (List<TranslationCard> group : groups.values()) {
                 String[] fields = new String[fieldNames.length];
                 TranslationCard first = group.get(0);
-                
+
                 // Fields mapping for DICTIONARY_DEFINITION:
                 // 0: Id, 1: LearningWord, 2: LearningLang, 3: LexicalCat, 4: NativeLang
                 fields[0] = String.format("%s-%s-%s", learningLang, nativeLang, first.headword());
@@ -133,7 +136,8 @@ public class AnkiIntegration {
 
                 // PersonalNotes, HiddenNotes, Audio, SourceUrl follow the definitions
                 int offset = preDefinitionsOffset + (DictionaryNote.DEFINITION_FIELDS * 5);
-                fields[offset + 3] = String.format("https://%s.wiktionary.org/wiki/%s#%s",
+                fields[offset + 3] = String.format(
+                        "https://%s.wiktionary.org/wiki/%s#%s",
                         nativeLang, first.headword(), learningLang); // SourceUrl (pseudo-anchor)
 
                 String headword = first.headword();
@@ -152,7 +156,7 @@ public class AnkiIntegration {
             for (TranslationCard card : data) {
                 String[] fields = new String[fieldNames.length];
                 // Fields mapping for LEARNING_NATIVE_TEXT:
-                // 0: LearningText, 1: AltLearningText, 2: LearningLang, 3: NativeText, 4: AltNativeText, 
+                // 0: LearningText, 1: AltLearningText, 2: LearningLang, 3: NativeText, 4: AltNativeText,
                 // 5: NativeLang, 6: LexicalCat, 7: LearningWord, 8: Definition, 9: PersonalNotes,
                 // 10: HiddenNotes, 11: Audio, 12: SourceUrl
                 fields[0] = cleanHtml(card.learningText());
@@ -164,8 +168,8 @@ public class AnkiIntegration {
                 fields[6] = card.lexicalCategory();
                 fields[7] = card.headword();
                 fields[8] = cleanHtml(card.definition());
-                fields[12] = String.format("https://%s.wiktionary.org/wiki/%s#%s",
-                        nativeLang, card.headword(), learningLang);
+                fields[12] = String.format(
+                        "https://%s.wiktionary.org/wiki/%s#%s", nativeLang, card.headword(), learningLang);
 
                 String headword = card.headword();
                 String soundTag = audioCache.get(headword);
@@ -211,7 +215,8 @@ public class AnkiIntegration {
         if (urlString.startsWith("//")) urlString = "https:" + urlString;
 
         try {
-            String fileName = learningLang + "-" + card.headword() + "." + MimeTypeMap.getFileExtensionFromUrl(urlString);
+            String fileName =
+                    learningLang + "-" + card.headword() + "." + MimeTypeMap.getFileExtensionFromUrl(urlString);
             File localFile = downloadFile(urlString, fileName);
             Uri uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", localFile);
 
@@ -238,7 +243,7 @@ public class AnkiIntegration {
 
         File file = new File(context.getCacheDir(), fileName);
         try (InputStream input = new BufferedInputStream(url.openStream(), 8192);
-             FileOutputStream output = new FileOutputStream(file)) {
+                FileOutputStream output = new FileOutputStream(file)) {
             byte[] buffer = new byte[1024];
             int count;
             while ((count = input.read(buffer)) != -1) {
@@ -261,16 +266,17 @@ public class AnkiIntegration {
     private Long getModelId(AbstractAnkiNote note) {
         Long mid = mAnkiDroid.findModelIdByName(note.getModelName(), note.getFieldNames().length);
         if (mid == null) {
-            mid = mAnkiDroid.getApi().addNewCustomModel(
-                    note.getModelName(),
-                    note.getFieldNames(),
-                    note.getCardNames(),
-                    note.getQuestionTemplates(),
-                    note.getAnswerTemplates(),
-                    note.getCss(),
-                    getDeckId(),
-                    null
-            );
+            mid = mAnkiDroid
+                    .getApi()
+                    .addNewCustomModel(
+                            note.getModelName(),
+                            note.getFieldNames(),
+                            note.getCardNames(),
+                            note.getQuestionTemplates(),
+                            note.getAnswerTemplates(),
+                            note.getCss(),
+                            getDeckId(),
+                            null);
             mAnkiDroid.storeModelReference(note.getModelName(), mid);
         }
         return mid;

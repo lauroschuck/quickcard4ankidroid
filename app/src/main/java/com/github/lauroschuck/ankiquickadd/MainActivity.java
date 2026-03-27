@@ -1,23 +1,18 @@
 package com.github.lauroschuck.ankiquickadd;
 
-import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.Toast;
-
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.ViewModelProvider;
-
 import com.github.lauroschuck.ankiquickadd.anki.notes.CardAssets;
 import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
@@ -26,7 +21,6 @@ import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
 import com.github.lauroschuck.ankiquickadd.source.OfflineKaikkiSource;
 import com.github.lauroschuck.ankiquickadd.source.ReversoSource;
 import com.github.lauroschuck.ankiquickadd.source.WordReferenceSource;
-
 import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
@@ -34,7 +28,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "AnkiQuickAdd";
     private Spinner sourceSpinner;
     private MainViewModel viewModel;
-    
+
     private CardAssets cardAssets;
     private DictionaryNote dictionaryNote;
     private TextNote textNote;
@@ -45,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         viewModel = new ViewModelProvider(this).get(MainViewModel.class);
-        
+
         cardAssets = new CardAssets(getApplicationContext());
         dictionaryNote = new DictionaryNote(cardAssets);
         textNote = new TextNote(cardAssets);
@@ -55,18 +49,25 @@ public class MainActivity extends AppCompatActivity {
 
         setupSources();
         setupBackPressed();
-        
+
         settingsButton.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        viewModel.setLastUsedLearningLanguage(getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV));
-        viewModel.setLastUsedNativeLanguage(getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN));
-        
+        viewModel.setLastUsedLearningLanguage(
+                getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV));
+        viewModel.setLastUsedNativeLanguage(
+                getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN));
+
         handleIntent(getIntent());
     }
 
-    public DictionaryNote getDictionaryNote() { return dictionaryNote; }
-    public TextNote getTextNote() { return textNote; }
+    public DictionaryNote getDictionaryNote() {
+        return dictionaryNote;
+    }
+
+    public TextNote getTextNote() {
+        return textNote;
+    }
 
     private void setupBackPressed() {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -79,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
                 }
-                
+
                 if (viewModel.isRootIsSearch() && getCurrentFragment() instanceof DefinitionFragment) {
                     showSearchFragment(null);
                 } else {
@@ -97,7 +98,8 @@ public class MainActivity extends AppCompatActivity {
         Language currentLearning = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV);
         Language currentNative = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN);
 
-        if (currentLearning != viewModel.getLastUsedLearningLanguage() || currentNative != viewModel.getLastUsedNativeLanguage()) {
+        if (currentLearning != viewModel.getLastUsedLearningLanguage()
+                || currentNative != viewModel.getLastUsedNativeLanguage()) {
             String word = viewModel.getCurrentWord().getValue();
             if (word != null && !word.isEmpty()) {
                 fetchDefinition(word, true);
@@ -149,8 +151,9 @@ public class MainActivity extends AppCompatActivity {
         viewModel.setCurrentWord("");
         viewModel.getWordHistory().clear();
         viewModel.setSearchWarning(warning);
-        
-        getSupportFragmentManager().beginTransaction()
+
+        getSupportFragmentManager()
+                .beginTransaction()
                 .replace(R.id.fragmentContainer, new SearchFragment())
                 .commit();
     }
@@ -165,7 +168,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void fetchDefinition(String word, boolean isFromHistory) {
-        if (!isFromHistory && (viewModel.getWordHistory().isEmpty() || !viewModel.getWordHistory().peek().equals(word))) {
+        if (!isFromHistory
+                && (viewModel.getWordHistory().isEmpty()
+                        || !viewModel.getWordHistory().peek().equals(word))) {
             viewModel.getWordHistory().push(word);
         }
 
@@ -174,7 +179,8 @@ public class MainActivity extends AppCompatActivity {
 
         // Ensure we are in DefinitionFragment
         if (!(getCurrentFragment() instanceof DefinitionFragment)) {
-            getSupportFragmentManager().beginTransaction()
+            getSupportFragmentManager()
+                    .beginTransaction()
                     .replace(R.id.fragmentContainer, new DefinitionFragment())
                     .commitNow();
         }
@@ -183,32 +189,35 @@ public class MainActivity extends AppCompatActivity {
         Language learningLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV);
         Language nativeLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN);
 
-        viewModel.getCurrentSource().fetch(word, learningLanguage, nativeLanguage, new DictionarySource.OnResultListener() {
-            @Override
-            public void onSuccess(String html, String headword) {
-                runOnUiThread(() -> {
-                    Fragment current = getCurrentFragment();
-                    if (current instanceof DefinitionFragment) {
-                        ((DefinitionFragment) current).loadHtml(html);
+        viewModel
+                .getCurrentSource()
+                .fetch(word, learningLanguage, nativeLanguage, new DictionarySource.OnResultListener() {
+                    @Override
+                    public void onSuccess(String html, String headword) {
+                        runOnUiThread(() -> {
+                            Fragment current = getCurrentFragment();
+                            if (current instanceof DefinitionFragment) {
+                                ((DefinitionFragment) current).loadHtml(html);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        var lowercaseWord = word.toLowerCase(Locale.ROOT);
+                        if (!word.equals(lowercaseWord)) {
+                            fetchDefinition(lowercaseWord, true);
+                        } else {
+                            runOnUiThread(() -> {
+                                if (!viewModel.getWordHistory().isEmpty()
+                                        && viewModel.getWordHistory().peek().equals(word)) {
+                                    viewModel.getWordHistory().pop();
+                                }
+                                showSearchFragment("Word not found: " + word);
+                            });
+                        }
                     }
                 });
-            }
-
-            @Override
-            public void onError(String message) {
-                var lowercaseWord = word.toLowerCase(Locale.ROOT);
-                if (!word.equals(lowercaseWord)) {
-                    fetchDefinition(lowercaseWord, true);
-                } else {
-                    runOnUiThread(() -> {
-                        if (!viewModel.getWordHistory().isEmpty() && viewModel.getWordHistory().peek().equals(word)) {
-                            viewModel.getWordHistory().pop();
-                        }
-                        showSearchFragment("Word not found: " + word);
-                    });
-                }
-            }
-        });
     }
 
     private Fragment getCurrentFragment() {

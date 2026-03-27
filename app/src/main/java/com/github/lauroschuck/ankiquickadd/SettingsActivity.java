@@ -5,12 +5,9 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.github.lauroschuck.ankiquickadd.model.Language;
-
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.function.Supplier;
@@ -55,8 +52,8 @@ public class SettingsActivity extends AppCompatActivity {
 
     @NonNull
     private ArrayAdapter<Language> createArrayAdapter(Language[] languages) {
-        ArrayAdapter<Language> languageArrayAdapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item, languages);
+        ArrayAdapter<Language> languageArrayAdapter =
+                new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, languages);
         languageArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         return languageArrayAdapter;
     }

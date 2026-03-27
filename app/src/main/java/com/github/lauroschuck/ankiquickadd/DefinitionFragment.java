@@ -16,19 +16,14 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-
 import com.github.lauroschuck.ankiquickadd.anki.AnkiDroidHelper;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;
-import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
-import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
-
 import java.io.IOException;
 
 public class DefinitionFragment extends Fragment {
@@ -53,7 +48,12 @@ public class DefinitionFragment extends Fragment {
                             boolean isDefinitions = noteTypeTabLayout.getSelectedTabPosition() == 0;
                             // These are usually initialized in MainActivity or provided via ViewModel
                             MainActivity activity = (MainActivity) requireActivity();
-                            AnkiIntegration.createAnkiCards(activity, activity.getDictionaryNote(), activity.getTextNote(), cards, isDefinitions);
+                            AnkiIntegration.createAnkiCards(
+                                    activity,
+                                    activity.getDictionaryNote(),
+                                    activity.getTextNote(),
+                                    cards,
+                                    isDefinitions);
                         }
                     });
                 });
@@ -71,7 +71,8 @@ public class DefinitionFragment extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(
+            @NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_definition, container, false);
     }
 
@@ -126,7 +127,7 @@ public class DefinitionFragment extends Fragment {
             @Override
             public void onTabReselected(TabLayout.Tab tab) {}
         });
-        
+
         TabLayout.Tab examplesTab = noteTypeTabLayout.getTabAt(1);
         if (examplesTab != null) examplesTab.select();
     }
@@ -194,12 +195,12 @@ public class DefinitionFragment extends Fragment {
     }
 
     private void injectCheckboxListener() {
-        String js = "document.addEventListener('change', function(e) {" +
-                    "  if (e.target.classList.contains('example-checkbox') || e.target.classList.contains('sense-checkbox')) {" +
-                    "    var count = document.querySelectorAll('input.example-checkbox:checked, input.sense-checkbox:checked').length;" +
-                    "    Android.updateSelectedCount(count);" +
-                    "  }" +
-                    "});";
+        String js = "document.addEventListener('change', function(e) {"
+                + "  if (e.target.classList.contains('example-checkbox') || e.target.classList.contains('sense-checkbox')) {"
+                + "    var count = document.querySelectorAll('input.example-checkbox:checked, input.sense-checkbox:checked').length;"
+                + "    Android.updateSelectedCount(count);"
+                + "  }"
+                + "});";
         webView.evaluateJavascript(js, null);
     }
 

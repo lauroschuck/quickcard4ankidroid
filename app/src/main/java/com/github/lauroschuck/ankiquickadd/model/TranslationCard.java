@@ -9,17 +9,16 @@ import java.util.List;
  * Using a record for concise data handling (available in Java 17+).
  */
 public record TranslationCard(
-    String headword,
-    String learningText,
-    String nativeText,
-    String definition,
-    String lexicalCategory,
-    String audioUrl
-) {
+        String headword,
+        String learningText,
+        String nativeText,
+        String definition,
+        String lexicalCategory,
+        String audioUrl) {
     /**
      * Utility method to parse JSON extraction data into a list of TranslationCard objects.
      */
     public static List<TranslationCard> fromJson(String json) {
-        return new Gson().fromJson(json, new TypeToken<List<TranslationCard>>(){}.getType());
+        return new Gson().fromJson(json, new TypeToken<List<TranslationCard>>() {}.getType());
     }
 }

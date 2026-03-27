@@ -1,5 +1,6 @@
 plugins {
     id 'com.android.application'
+    id 'com.diffplug.spotless'
 }
 
 android {
@@ -37,5 +38,21 @@ dependencies {
     implementation 'com.github.ankidroid:Anki-Android:api-v1.1.0'
     implementation ('com.github.jknack:handlebars:4.5.0') {
         exclude group: 'org.openjdk.nashorn', module: 'nashorn-core'
+    }
+}
+
+spotless {
+    java {
+        target 'src/*/java/**/*.java'
+        palantirJavaFormat()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+afterEvaluate {
+    tasks.withType(JavaCompile) {
+        dependsOn 'spotlessApply'
     }
 }

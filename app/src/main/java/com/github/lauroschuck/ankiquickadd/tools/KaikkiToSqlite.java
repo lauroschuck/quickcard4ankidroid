@@ -4,7 +4,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -41,18 +40,32 @@ public class KaikkiToSqlite {
             this.conn.setAutoCommit(false);
             setupSchema(conn);
 
-            this.pHeadword = conn.prepareStatement("INSERT OR IGNORE INTO headwords (headword) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
-            this.pEntry = conn.prepareStatement("INSERT INTO lexical_entries (headword_id, lexical_category, sense_index) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
-            this.pGloss = conn.prepareStatement("INSERT INTO glosses (lexical_entry_id, gloss, gloss_index) VALUES (?, ?, ?)");
-            this.pExample = conn.prepareStatement("INSERT INTO examples (lexical_entry_id, source_text, target_text) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
-            this.pSenseLink = conn.prepareStatement("INSERT INTO sense_links (lexical_entry_id, word, target_headword_id) VALUES (?, ?, ?)");
-            this.pOffset = conn.prepareStatement("INSERT INTO bold_offsets (example_id, is_translation, start_index, end_index) VALUES (?, ?, ?, ?)");
-            this.pPronunciation = conn.prepareStatement("INSERT INTO pronunciations (headword_id, audio_url, description) VALUES (?, ?, ?)");
-            this.pRelation = conn.prepareStatement("INSERT INTO relations (lexical_entry_id, type, word) VALUES (?, ?, ?)");
+            this.pHeadword = conn.prepareStatement(
+                    "INSERT OR IGNORE INTO headwords (headword) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+            this.pEntry = conn.prepareStatement(
+                    "INSERT INTO lexical_entries (headword_id, lexical_category, sense_index) VALUES (?, ?, ?)",
+                    Statement.RETURN_GENERATED_KEYS);
+            this.pGloss = conn.prepareStatement(
+                    "INSERT INTO glosses (lexical_entry_id, gloss, gloss_index) VALUES (?, ?, ?)");
+            this.pExample = conn.prepareStatement(
+                    "INSERT INTO examples (lexical_entry_id, source_text, target_text) VALUES (?, ?, ?)",
+                    Statement.RETURN_GENERATED_KEYS);
+            this.pSenseLink = conn.prepareStatement(
+                    "INSERT INTO sense_links (lexical_entry_id, word, target_headword_id) VALUES (?, ?, ?)");
+            this.pOffset = conn.prepareStatement(
+                    "INSERT INTO bold_offsets (example_id, is_translation, start_index, end_index) VALUES (?, ?, ?, ?)");
+            this.pPronunciation = conn.prepareStatement(
+                    "INSERT INTO pronunciations (headword_id, audio_url, description) VALUES (?, ?, ?)");
+            this.pRelation =
+                    conn.prepareStatement("INSERT INTO relations (lexical_entry_id, type, word) VALUES (?, ?, ?)");
         }
 
         void commit() throws Exception {
-            pGloss.executeBatch(); pOffset.executeBatch(); pPronunciation.executeBatch(); pRelation.executeBatch(); pSenseLink.executeBatch();
+            pGloss.executeBatch();
+            pOffset.executeBatch();
+            pPronunciation.executeBatch();
+            pRelation.executeBatch();
+            pSenseLink.executeBatch();
             conn.commit();
         }
 
@@ -64,7 +77,8 @@ public class KaikkiToSqlite {
 
     public static void main(String[] args) {
         if (args.length < 2) {
-            System.out.println("Usage: java KaikkiToSqlite <learning_langs_csv> <nativeLang1:dumpPath1> <nativeLang2:dumpPath2> ...");
+            System.out.println(
+                    "Usage: java KaikkiToSqlite <learning_langs_csv> <nativeLang1:dumpPath1> <nativeLang2:dumpPath2> ...");
             return;
         }
 
@@ -84,7 +98,8 @@ public class KaikkiToSqlite {
             setupStatsSchema(statsConn);
             statsConn.commit();
 
-            PreparedStatement pStats = statsConn.prepareStatement("INSERT INTO stats (learning_lang, target_lang, source_name, headwords, glosses, examples) VALUES (?, ?, ?, ?, ?, ?)");
+            PreparedStatement pStats = statsConn.prepareStatement(
+                    "INSERT INTO stats (learning_lang, target_lang, source_name, headwords, glosses, examples) VALUES (?, ?, ?, ?, ?, ?)");
 
             int totalDumps = args.length - 1;
             for (int i = 1; i < args.length; i++) {
@@ -96,7 +111,12 @@ public class KaikkiToSqlite {
 
                 Locale targetLocale = new Locale(nativeLangCode);
                 String nativeLangName = targetLocale.getDisplayLanguage(Locale.ENGLISH);
-                System.out.println(String.format(Locale.US, "\nStarting pass of dump: %s (Target: %s, %s)", dumpPath, nativeLangCode, nativeLangName));
+                System.out.println(String.format(
+                        Locale.US,
+                        "\nStarting pass of dump: %s (Target: %s, %s)",
+                        dumpPath,
+                        nativeLangCode,
+                        nativeLangName));
 
                 Instant dumpStart = Instant.now();
                 Map<String, DatabaseSession> sessions = null;
@@ -107,7 +127,9 @@ public class KaikkiToSqlite {
                         String srcCode = entry.getKey();
                         DatabaseSession session = entry.getValue();
                         boolean kept = session.headwordCount >= MIN_HEADWORDS;
-                        summaryTable.computeIfAbsent(srcCode, k -> new TreeMap<>()).put(nativeLangCode, kept);
+                        summaryTable
+                                .computeIfAbsent(srcCode, k -> new TreeMap<>())
+                                .put(nativeLangCode, kept);
 
                         if (kept) {
                             String srcEngName = new Locale(srcCode).getDisplayLanguage(Locale.ENGLISH);
@@ -142,7 +164,8 @@ public class KaikkiToSqlite {
     private static void setupStatsSchema(Connection conn) throws Exception {
         Statement st = conn.createStatement();
         st.execute("DROP TABLE IF EXISTS stats");
-        st.execute("CREATE TABLE stats (learning_lang TEXT, target_lang TEXT, source_name TEXT, headwords INTEGER, glosses INTEGER, examples INTEGER)");
+        st.execute(
+                "CREATE TABLE stats (learning_lang TEXT, target_lang TEXT, source_name TEXT, headwords INTEGER, glosses INTEGER, examples INTEGER)");
     }
 
     private static void printSummaryTable(Map<String, Map<String, Boolean>> status) {
@@ -166,12 +189,17 @@ public class KaikkiToSqlite {
         System.out.println("--------------------------------\n");
     }
 
-    public Map<String, DatabaseSession> processDump(String dumpPath, String nativeLangCode, String[] sourceLangs, String outDir, int dumpIndex, int totalDumps) throws Exception {
+    public Map<String, DatabaseSession> processDump(
+            String dumpPath, String nativeLangCode, String[] sourceLangs, String outDir, int dumpIndex, int totalDumps)
+            throws Exception {
         Map<String, DatabaseSession> sessions = new HashMap<>();
         for (String src : sourceLangs) {
             String srcLower = src.toLowerCase().trim();
             if (srcLower.equals(nativeLangCode)) continue;
-            sessions.put(srcLower, new DatabaseSession(outDir + File.separator + "wiktionary_kaikki_" + srcLower + "-" + nativeLangCode + ".db"));
+            sessions.put(
+                    srcLower,
+                    new DatabaseSession(
+                            outDir + File.separator + "wiktionary_kaikki_" + srcLower + "-" + nativeLangCode + ".db"));
         }
 
         try (BufferedReader br = new BufferedReader(new FileReader(dumpPath))) {
@@ -180,19 +208,34 @@ public class KaikkiToSqlite {
             while ((line = br.readLine()) != null) {
                 try {
                     JsonObject entry = JsonParser.parseString(line).getAsJsonObject();
-                    String entryLangCode = entry.has("lang_code") ? entry.get("lang_code").getAsString().toLowerCase() : null;
+                    String entryLangCode = entry.has("lang_code")
+                            ? entry.get("lang_code").getAsString().toLowerCase()
+                            : null;
 
                     if (entryLangCode != null && sessions.containsKey(entryLangCode)) {
                         processEntry(entry, sessions.get(entryLangCode));
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
 
                 if (++linesCount % 10000 == 0) {
                     for (DatabaseSession session : sessions.values()) session.commit();
-                    System.out.print(String.format(Locale.US, "\r[%d/%d] %s : processed %d lines...", dumpIndex, totalDumps, nativeLangCode, linesCount));
+                    System.out.print(String.format(
+                            Locale.US,
+                            "\r[%d/%d] %s : processed %d lines...",
+                            dumpIndex,
+                            totalDumps,
+                            nativeLangCode,
+                            linesCount));
                 }
             }
-            System.out.print(String.format(Locale.US, "\r[%d/%d] %s : processed %d lines... Done.", dumpIndex, totalDumps, nativeLangCode, linesCount));
+            System.out.print(String.format(
+                    Locale.US,
+                    "\r[%d/%d] %s : processed %d lines... Done.",
+                    dumpIndex,
+                    totalDumps,
+                    nativeLangCode,
+                    linesCount));
 
             System.out.println("\nSummary for dump: " + dumpPath);
             for (Map.Entry<String, DatabaseSession> entry : sessions.entrySet()) {
@@ -200,13 +243,20 @@ public class KaikkiToSqlite {
                 session.commit();
                 String srcCode = entry.getKey();
                 String srcEngName = new Locale(srcCode).getDisplayLanguage(Locale.ENGLISH);
-                System.out.println(String.format(Locale.US, "- %s, %s: %d headwords, %d glosses, %d examples added.",
-                        srcCode, srcEngName, session.headwordCount, session.glossCount, session.exampleCount));
+                System.out.println(String.format(
+                        Locale.US,
+                        "- %s, %s: %d headwords, %d glosses, %d examples added.",
+                        srcCode,
+                        srcEngName,
+                        session.headwordCount,
+                        session.glossCount,
+                        session.exampleCount));
 
                 String dbPath = session.dbPath;
                 session.close();
                 if (session.headwordCount < MIN_HEADWORDS) {
-                    System.out.println(String.format(Locale.US, "  ! Deleting database (below min %d): %s", MIN_HEADWORDS, dbPath));
+                    System.out.println(String.format(
+                            Locale.US, "  ! Deleting database (below min %d): %s", MIN_HEADWORDS, dbPath));
                     new File(dbPath).delete();
                 }
             }
@@ -230,7 +280,9 @@ public class KaikkiToSqlite {
         Set<String> seenUrls = session.headwordAudioCache.computeIfAbsent(headwordId, k -> new HashSet<>());
         for (JsonElement soundElem : sounds) {
             JsonObject sound = soundElem.getAsJsonObject();
-            String audioUrl = sound.has("mp3_url") ? sound.get("mp3_url").getAsString() : (sound.has("ogg_url") ? sound.get("ogg_url").getAsString() : "");
+            String audioUrl = sound.has("mp3_url")
+                    ? sound.get("mp3_url").getAsString()
+                    : (sound.has("ogg_url") ? sound.get("ogg_url").getAsString() : "");
             if (!audioUrl.isEmpty() && !seenUrls.contains(audioUrl)) {
                 seenUrls.add(audioUrl);
                 session.pPronunciation.setLong(1, headwordId);
@@ -244,19 +296,26 @@ public class KaikkiToSqlite {
     private String aggregateSoundDescription(JsonObject sound) {
         StringBuilder sb = new StringBuilder();
         if (sound.has("text")) sb.append(sound.get("text").getAsString());
-        if (sound.has("note")) { if (sb.length() > 0) sb.append("; "); sb.append(sound.get("note").getAsString()); }
+        if (sound.has("note")) {
+            if (sb.length() > 0) sb.append("; ");
+            sb.append(sound.get("note").getAsString());
+        }
         if (sound.has("tags")) {
             JsonArray tags = sound.getAsJsonArray("tags");
             if (tags.size() > 0) {
                 if (sb.length() > 0) sb.append(" (");
-                for (int i = 0; i < tags.size(); i++) { if (i > 0) sb.append(", "); sb.append(tags.get(i).getAsString()); }
+                for (int i = 0; i < tags.size(); i++) {
+                    if (i > 0) sb.append(", ");
+                    sb.append(tags.get(i).getAsString());
+                }
                 if (sb.indexOf(" (") != -1) sb.append(")");
             }
         }
         return sb.toString();
     }
 
-    private void processSenses(long headwordId, String pos, JsonArray senses, String word, DatabaseSession session) throws Exception {
+    private void processSenses(long headwordId, String pos, JsonArray senses, String word, DatabaseSession session)
+            throws Exception {
         int senseIdx = session.headwordSenseCounter.getOrDefault(word, 0);
         for (JsonElement senseElem : senses) {
             JsonObject sense = senseElem.getAsJsonObject();
@@ -274,11 +333,15 @@ public class KaikkiToSqlite {
         session.pEntry.setString(2, pos);
         session.pEntry.setInt(3, index);
         session.pEntry.executeUpdate();
-        try (ResultSet rs = session.pEntry.getGeneratedKeys()) { rs.next(); return rs.getLong(1); }
+        try (ResultSet rs = session.pEntry.getGeneratedKeys()) {
+            rs.next();
+            return rs.getLong(1);
+        }
     }
 
     private void processGlosses(long entryId, JsonObject sense, DatabaseSession session) throws Exception {
-        JsonArray glossArray = sense.has("raw_glosses") ? sense.getAsJsonArray("raw_glosses") : sense.getAsJsonArray("glosses");
+        JsonArray glossArray =
+                sense.has("raw_glosses") ? sense.getAsJsonArray("raw_glosses") : sense.getAsJsonArray("glosses");
         if (glossArray == null) return;
         for (int i = 0; i < glossArray.size(); i++) {
             session.pGloss.setLong(1, entryId);
@@ -312,16 +375,23 @@ public class KaikkiToSqlite {
             JsonObject ex = exElem.getAsJsonObject();
             if (ex.has("type") && "quotation".equalsIgnoreCase(ex.get("type").getAsString())) continue;
             String src = ex.has("text") ? ex.get("text").getAsString() : "";
-            String trg = ex.has("english") ? ex.get("english").getAsString() : (ex.has("translation") ? ex.get("translation").getAsString() : "");
+            String trg = ex.has("english")
+                    ? ex.get("english").getAsString()
+                    : (ex.has("translation") ? ex.get("translation").getAsString() : "");
             if (!src.isEmpty() && !trg.isEmpty()) {
                 session.pExample.setLong(1, entryId);
                 session.pExample.setString(2, src);
                 session.pExample.setString(3, trg);
                 session.pExample.executeUpdate();
                 long exId;
-                try (ResultSet rs = session.pExample.getGeneratedKeys()) { rs.next(); exId = rs.getLong(1); }
-                if (ex.has("bold_text_offsets")) saveOffsets(exId, "S", ex.getAsJsonArray("bold_text_offsets"), session);
-                if (ex.has("bold_translation_offsets")) saveOffsets(exId, "T", ex.getAsJsonArray("bold_translation_offsets"), session);
+                try (ResultSet rs = session.pExample.getGeneratedKeys()) {
+                    rs.next();
+                    exId = rs.getLong(1);
+                }
+                if (ex.has("bold_text_offsets"))
+                    saveOffsets(exId, "S", ex.getAsJsonArray("bold_text_offsets"), session);
+                if (ex.has("bold_translation_offsets"))
+                    saveOffsets(exId, "T", ex.getAsJsonArray("bold_translation_offsets"), session);
                 session.exampleCount++;
             }
         }
@@ -332,7 +402,8 @@ public class KaikkiToSqlite {
         saveRelationsBatch(entryId, "A", sense.getAsJsonArray("antonyms"), session);
     }
 
-    private void saveRelationsBatch(long entryId, String type, JsonArray array, DatabaseSession session) throws Exception {
+    private void saveRelationsBatch(long entryId, String type, JsonArray array, DatabaseSession session)
+            throws Exception {
         if (array == null) return;
         for (JsonElement e : array) {
             session.pRelation.setLong(1, entryId);
@@ -345,8 +416,10 @@ public class KaikkiToSqlite {
     private void saveOffsets(long exId, String type, JsonArray offsets, DatabaseSession session) throws Exception {
         for (JsonElement e : offsets) {
             JsonArray a = e.getAsJsonArray();
-            session.pOffset.setLong(1, exId); session.pOffset.setString(2, type);
-            session.pOffset.setInt(3, a.get(0).getAsInt()); session.pOffset.setInt(4, a.get(1).getAsInt());
+            session.pOffset.setLong(1, exId);
+            session.pOffset.setString(2, type);
+            session.pOffset.setInt(3, a.get(0).getAsInt());
+            session.pOffset.setInt(4, a.get(1).getAsInt());
             session.pOffset.addBatch();
         }
     }
@@ -361,9 +434,13 @@ public class KaikkiToSqlite {
                 id = rs.getLong(1);
                 session.headwordCount++;
             } else {
-                try (PreparedStatement ps = session.conn.prepareStatement("SELECT id FROM headwords WHERE headword = ?")) {
+                try (PreparedStatement ps =
+                        session.conn.prepareStatement("SELECT id FROM headwords WHERE headword = ?")) {
                     ps.setString(1, word);
-                    try (ResultSet r = ps.executeQuery()) { if (r.next()) id = r.getLong(1); else id = -1; }
+                    try (ResultSet r = ps.executeQuery()) {
+                        if (r.next()) id = r.getLong(1);
+                        else id = -1;
+                    }
                 }
             }
         }
@@ -383,13 +460,20 @@ public class KaikkiToSqlite {
         st.execute("DROP TABLE IF EXISTS headwords");
 
         st.execute("CREATE TABLE headwords (id INTEGER PRIMARY KEY AUTOINCREMENT, headword TEXT UNIQUE)");
-        st.execute("CREATE TABLE lexical_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, headword_id INTEGER, lexical_category TEXT, sense_index INTEGER, FOREIGN KEY(headword_id) REFERENCES headwords(id))");
-        st.execute("CREATE TABLE glosses (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, gloss TEXT, gloss_index INTEGER, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id))");
-        st.execute("CREATE TABLE examples (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, source_text TEXT, target_text TEXT, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id))");
-        st.execute("CREATE TABLE sense_links (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, word TEXT, target_headword_id INTEGER, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id), FOREIGN KEY(target_headword_id) REFERENCES headwords(id))");
-        st.execute("CREATE TABLE bold_offsets (id INTEGER PRIMARY KEY AUTOINCREMENT, example_id INTEGER, is_translation CHAR(1), start_index INTEGER, end_index INTEGER, FOREIGN KEY(example_id) REFERENCES examples(id))");
-        st.execute("CREATE TABLE pronunciations (id INTEGER PRIMARY KEY AUTOINCREMENT, headword_id INTEGER, audio_url TEXT, description TEXT, FOREIGN KEY(headword_id) REFERENCES headwords(id))");
-        st.execute("CREATE TABLE relations (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, type CHAR(1), word TEXT, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id))");
+        st.execute(
+                "CREATE TABLE lexical_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, headword_id INTEGER, lexical_category TEXT, sense_index INTEGER, FOREIGN KEY(headword_id) REFERENCES headwords(id))");
+        st.execute(
+                "CREATE TABLE glosses (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, gloss TEXT, gloss_index INTEGER, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id))");
+        st.execute(
+                "CREATE TABLE examples (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, source_text TEXT, target_text TEXT, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id))");
+        st.execute(
+                "CREATE TABLE sense_links (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, word TEXT, target_headword_id INTEGER, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id), FOREIGN KEY(target_headword_id) REFERENCES headwords(id))");
+        st.execute(
+                "CREATE TABLE bold_offsets (id INTEGER PRIMARY KEY AUTOINCREMENT, example_id INTEGER, is_translation CHAR(1), start_index INTEGER, end_index INTEGER, FOREIGN KEY(example_id) REFERENCES examples(id))");
+        st.execute(
+                "CREATE TABLE pronunciations (id INTEGER PRIMARY KEY AUTOINCREMENT, headword_id INTEGER, audio_url TEXT, description TEXT, FOREIGN KEY(headword_id) REFERENCES headwords(id))");
+        st.execute(
+                "CREATE TABLE relations (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, type CHAR(1), word TEXT, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id))");
 
         st.execute("CREATE INDEX idx_hw_word ON headwords(headword)");
         st.execute("CREATE INDEX idx_le_hw ON lexical_entries(headword_id)");

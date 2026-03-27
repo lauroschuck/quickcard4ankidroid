@@ -2,19 +2,12 @@ package com.github.lauroschuck.ankiquickadd.source;
 
 import android.net.Uri;
 import android.util.Log;
-
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-
 import java.io.IOException;
-
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -22,6 +15,9 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 public class ReversoSource implements DictionarySource {
     private static final String TAG = "ReversoSource";
@@ -29,7 +25,8 @@ public class ReversoSource implements DictionarySource {
 
     @Override
     public void fetch(String word, Language learningLanguage, Language nativeLanguage, OnResultListener listener) {
-        String langPath = learningLanguage.getDisplayName().toLowerCase() + "-" + nativeLanguage.getDisplayName().toLowerCase();
+        String langPath = learningLanguage.getDisplayName().toLowerCase() + "-"
+                + nativeLanguage.getDisplayName().toLowerCase();
         String url = "https://dictionary.reverso.net/" + langPath + "/" + Uri.encode(word);
 
         Request request = new Request.Builder()
@@ -55,10 +52,11 @@ public class ReversoSource implements DictionarySource {
     }
 
     @Override
-    public void fetchMore(String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener) {
+    public void fetchMore(
+            String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener) {
         // Reverso Context API endpoint for more examples
         String url = "https://context.reverso.net/bst-query-service";
-        
+
         // Build JSON request body for Reverso API
         JsonObject jsonBody = new JsonObject();
         jsonBody.addProperty("learning_text", word);
@@ -68,10 +66,7 @@ public class ReversoSource implements DictionarySource {
         jsonBody.addProperty("npage", page);
         jsonBody.addProperty("mode", 0);
 
-        RequestBody body = RequestBody.create(
-                jsonBody.toString(), 
-                MediaType.parse("application/json; charset=utf-8")
-        );
+        RequestBody body = RequestBody.create(jsonBody.toString(), MediaType.parse("application/json; charset=utf-8"));
 
         Request request = new Request.Builder()
                 .url(url)
@@ -102,19 +97,23 @@ public class ReversoSource implements DictionarySource {
             JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
             JsonArray list = obj.getAsJsonArray("list");
             StringBuilder html = new StringBuilder();
-            
+
             for (int i = 0; i < list.size(); i++) {
                 JsonObject ex = list.get(i).getAsJsonObject();
                 String src = ex.get("s").getAsString();
                 String trg = ex.get("t").getAsString();
-                
+
                 html.append("<div class='example'>")
-                    .append("<input type='checkbox' class='example-checkbox'> ")
-                    .append("<div class='src'><span class='text'>").append(src).append("</span></div>")
-                    .append("<div class='trg'><span class='text'>").append(trg).append("</span></div>")
-                    .append("</div>");
+                        .append("<input type='checkbox' class='example-checkbox'> ")
+                        .append("<div class='src'><span class='text'>")
+                        .append(src)
+                        .append("</span></div>")
+                        .append("<div class='trg'><span class='text'>")
+                        .append(trg)
+                        .append("</span></div>")
+                        .append("</div>");
             }
-            
+
             listener.onSuccess(html.toString(), word);
         } catch (Exception e) {
             listener.onError("Error parsing JSON: " + e.getMessage());
@@ -127,25 +126,25 @@ public class ReversoSource implements DictionarySource {
                 (() => {
                     const cards = [];
                     const headword = document.body.getAttribute('data-word');
-                    
+
                     document.querySelectorAll('input.example-checkbox:checked').forEach(cb => {
                         const container = cb.parentElement;
                         const learningEl = container.querySelector('.src .text, .example-src, .src');
                         const nativeEl = container.querySelector('.trg .text, .example-trg, .trg');
-                        
+
                         const learningText = learningEl ? learningEl.innerHTML.trim() : null;
                         const nativeText = nativeEl ? nativeEl.innerHTML.trim() : null;
-                        
+
                         let definition = '';
                         const entry = container.closest('.entry, .direction-cnt');
                         if (entry) {
                             const defEl = entry.querySelector('.description, .translation');
                             if (defEl) definition = defEl.innerText.trim();
                         }
-                        
+
                         cards.push({ headword, learningText, nativeText, definition, lexicalCategory: 'Reverso' });
                     });
-                    
+
                     Android.processSelectedCards(JSON.stringify(cards));
                 })();""";
     }
@@ -164,15 +163,19 @@ public class ReversoSource implements DictionarySource {
                 mainContent = doc.body();
             }
 
-            mainContent.select(".sharing-links, .favorite-button, .audio-button, .banner, script, style").remove();
+            mainContent
+                    .select(".sharing-links, .favorite-button, .audio-button, .banner, script, style")
+                    .remove();
 
             // Inject checkboxes into translation pairs (rows that have both learning and native markers)
             for (Element ex : mainContent.select("div.example, .example, .cd-example")) {
                 // Verify it has both parts before adding checkbox
                 boolean hasLearning = !ex.select(".src, .example-src").isEmpty();
                 boolean hasNative = !ex.select(".trg, .example-trg").isEmpty();
-                
-                if (hasLearning && hasNative && ex.select("input.example-checkbox").isEmpty()) {
+
+                if (hasLearning
+                        && hasNative
+                        && ex.select("input.example-checkbox").isEmpty()) {
                     ex.prepend("<input type='checkbox' class='example-checkbox'> ");
                 }
             }
@@ -187,7 +190,8 @@ public class ReversoSource implements DictionarySource {
     }
 
     private String buildHtmlPage(String bodyContent, String word) {
-        String css = """
+        String css =
+                """
                 body { font-family: sans-serif; padding: 12px; line-height: 1.5; color: #202122; }
                 .example, .cd-example { margin-bottom: 1.2em; border-bottom: 1px solid #eee; padding-bottom: 0.8em; overflow: hidden; }
                 .src, .example-src { display: block; font-weight: bold; margin-bottom: 0.2em; }
@@ -199,6 +203,7 @@ public class ReversoSource implements DictionarySource {
                 h3 { border-bottom: 1px solid #a2a9b1; margin-top: 1em; }
                 """;
 
-        return "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>" + css + "</style></head><body data-word='" + word + "'>" + bodyContent + "</body></html>";
+        return "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>" + css
+                + "</style></head><body data-word='" + word + "'>" + bodyContent + "</body></html>";
     }
 }

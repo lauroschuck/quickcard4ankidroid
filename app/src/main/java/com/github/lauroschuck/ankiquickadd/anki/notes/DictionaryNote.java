@@ -12,7 +12,11 @@ public final class DictionaryNote extends AbstractAnkiNote {
     public static final int DEFINITION_FIELDS = 5;
 
     public DictionaryNote(CardAssets assets) {
-        super("ankiquickadd.DictionaryDefinitionV45", generateFieldNames(), assets.getSharedCss() + assets.getDictionaryCss(), generateCardTypes(assets));
+        super(
+                "ankiquickadd.DictionaryDefinitionV45",
+                generateFieldNames(),
+                assets.getSharedCss() + assets.getDictionaryCss(),
+                generateCardTypes(assets));
     }
 
     static Stream<Integer> getDefinitionSizedStream() {
@@ -20,7 +24,8 @@ public final class DictionaryNote extends AbstractAnkiNote {
     }
 
     private static List<String> generateFieldNames() {
-        return Stream.of(Stream.of("Id", "LearningWord", "LearningLang", "LexicalCat", "NativeLang"),
+        return Stream.of(
+                        Stream.of("Id", "LearningWord", "LearningLang", "LexicalCat", "NativeLang"),
                         getDefinitionSizedStream()
                                 .flatMap(index -> Stream.of(
                                         String.format(Locale.US, "Definition%d", index),
@@ -28,15 +33,14 @@ public final class DictionaryNote extends AbstractAnkiNote {
                                         String.format(Locale.US, "Definition%d_AltLearningText", index),
                                         String.format(Locale.US, "Definition%d_NativeText", index),
                                         String.format(Locale.US, "Definition%d_AltNativeText", index))),
-                        Stream.of("PersonalNotes", "HiddenNotes", "Audio", "SourceUrl")
-                )
+                        Stream.of("PersonalNotes", "HiddenNotes", "Audio", "SourceUrl"))
                 .flatMap(Function.identity())
                 .collect(Collectors.toList());
     }
 
     private static List<CardType> generateCardTypes(CardAssets assets) {
         return Stream.of(
-                Stream.of(generateLearningWordToNativeDefinitionsCard(assets)),
+                        Stream.of(generateLearningWordToNativeDefinitionsCard(assets)),
                         getDefinitionSizedStream()
                                 .map(index -> generateIndexedNativeDefinitionToLearningWordCard(assets, index)),
                         getDefinitionSizedStream()
@@ -47,9 +51,11 @@ public final class DictionaryNote extends AbstractAnkiNote {
 
     private static CardType generateLearningWordToNativeDefinitionsCard(CardAssets assets) {
         return new CardType(
-        "LearningWord-NativeDefinitions",
-                assets.getRepeatingTemplate(CardAssets.TemplateId.DICTIONARY_WORD_TO_DEFINITIONS_FRONT, DEFINITION_FIELDS),
-                assets.getRepeatingTemplate(CardAssets.TemplateId.DICTIONARY_WORD_TO_DEFINITIONS_BACK, DEFINITION_FIELDS));
+                "LearningWord-NativeDefinitions",
+                assets.getRepeatingTemplate(
+                        CardAssets.TemplateId.DICTIONARY_WORD_TO_DEFINITIONS_FRONT, DEFINITION_FIELDS),
+                assets.getRepeatingTemplate(
+                        CardAssets.TemplateId.DICTIONARY_WORD_TO_DEFINITIONS_BACK, DEFINITION_FIELDS));
     }
 
     private static CardType generateIndexedNativeDefinitionToLearningWordCard(CardAssets assets, int index) {
@@ -65,5 +71,4 @@ public final class DictionaryNote extends AbstractAnkiNote {
                 assets.getIndexedTemplate(CardAssets.TemplateId.DICTIONARY_LEARNING_TEXT_TO_NATIVE_TEXT_FRONT, index),
                 assets.getIndexedTemplate(CardAssets.TemplateId.DICTIONARY_LEARNING_TEXT_TO_NATIVE_TEXT_BACK, index));
     }
-
 }

@@ -2,24 +2,19 @@ package com.github.lauroschuck.ankiquickadd.source;
 
 import android.net.Uri;
 import android.util.Log;
-
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-
 import java.io.IOException;
-import java.util.List;
-
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 public class WiktionarySource implements DictionarySource {
     private static final String TAG = "WiktionarySource";
@@ -27,7 +22,8 @@ public class WiktionarySource implements DictionarySource {
 
     @Override
     public void fetch(String word, Language learningLanguage, Language nativeLanguage, OnResultListener listener) {
-        String url = "https://en.wiktionary.org/w/api.php?action=parse&prop=text&format=json&redirects=1&page=" + Uri.encode(word);
+        String url = "https://en.wiktionary.org/w/api.php?action=parse&prop=text&format=json&redirects=1&page="
+                + Uri.encode(word);
         Request request = new Request.Builder()
                 .url(url)
                 .header("User-Agent", "AnkiDroidQuickAdd/1.0")
@@ -51,9 +47,8 @@ public class WiktionarySource implements DictionarySource {
     }
 
     @Override
-    public void fetchMore(String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener) {
-
-    }
+    public void fetchMore(
+            String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener) {}
 
     @Override
     public String getExtractionJs() {
@@ -61,10 +56,10 @@ public class WiktionarySource implements DictionarySource {
                 (() => {
                     const cards = [];
                     const headword = document.body.getAttribute('data-word');
-                    
+
                     document.querySelectorAll('input.example-checkbox:checked').forEach(cb => {
                         const container = cb.parentElement;
-                        
+
                         // 1. Extract learningText HTML (preserve bolding)
                         const learningTextEl = container.querySelector('.e-example, [lang=sv], .ux-example');
                         let learningText = null;
@@ -76,14 +71,14 @@ public class WiktionarySource implements DictionarySource {
                             });
                             learningText = tempDiv.innerHTML.trim();
                         }
-                        
+
                         // 2. Extract nativeText HTML
                         let nativeTextEl = container.querySelector('.e-translation, .h-usage-example-translation, .ux-translation, .mention-gloss, .translation');
                         if (!nativeTextEl && container.nextElementSibling && container.nextElementSibling.matches('.e-translation, .h-usage-example-translation, .ux-translation, .mention-gloss, .translation')) {
                             nativeTextEl = container.nextElementSibling;
                         }
                         const nativeText = nativeTextEl ? nativeTextEl.innerHTML.trim() : null;
-                        
+
                         // 3. Extract the definition (parent <li> text)
                         const li = container.closest('li');
                         let definition = null;
@@ -92,7 +87,7 @@ public class WiktionarySource implements DictionarySource {
                             clone.querySelectorAll('dl, ul, ol').forEach(el => el.remove());
                             definition = clone.innerText.trim();
                         }
-                        
+
                         // 4. Extract lexicalCategory (walk up to nearest H3/H4/H5)
                         let lexicalCategory = 'Unknown';
                         let searchNode = li || container;
@@ -113,10 +108,10 @@ public class WiktionarySource implements DictionarySource {
                             if (lexicalCategory !== 'Unknown') break;
                             searchNode = ol.parentElement;
                         }
-                        
+
                         cards.push({ headword, learningText, nativeText, definition, lexicalCategory });
                     });
-                    
+
                     Android.processSelectedCards(JSON.stringify(cards));
                 })();""";
     }
@@ -134,7 +129,10 @@ public class WiktionarySource implements DictionarySource {
                 return;
             }
 
-            String rawHtml = obj.getAsJsonObject("parse").getAsJsonObject("text").get("*").getAsString();
+            String rawHtml = obj.getAsJsonObject("parse")
+                    .getAsJsonObject("text")
+                    .get("*")
+                    .getAsString();
             Document doc = Jsoup.parse(rawHtml);
             Element root = doc.selectFirst(".mw-parser-output");
             if (root == null) root = doc.body();
@@ -181,7 +179,8 @@ public class WiktionarySource implements DictionarySource {
 
         String[] ids = {"Anagrams", "Further_reading", "Quotations"};
         for (String id : ids) {
-            Element h = root.selectFirst(".mw-heading:has(#" + id + "), h2:has(#" + id + "), h3:has(#" + id + "), h4:has(#" + id + ")");
+            Element h = root.selectFirst(
+                    ".mw-heading:has(#" + id + "), h2:has(#" + id + "), h3:has(#" + id + "), h4:has(#" + id + ")");
             if (h != null) removeSection(h);
         }
     }
@@ -229,7 +228,8 @@ public class WiktionarySource implements DictionarySource {
     }
 
     private String buildHtmlPage(String bodyContent, String word) {
-        String css = """
+        String css =
+                """
                 body { font-family: sans-serif; padding: 12px; line-height: 1.5; color: #202122; }
                 h2 { border-bottom: 1px solid #a2a9b1; margin-bottom: 0.25em; padding-top: 0.5em; font-size: 1.5em; }
                 h3 { font-size: 1.25em; font-weight: bold; margin-top: 1.2em; }
@@ -245,6 +245,7 @@ public class WiktionarySource implements DictionarySource {
                 table th { background-color: #f8f9fa; }
                 .example-checkbox { margin-right: 8px; vertical-align: middle; }""";
 
-        return "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>" + css + "</style></head><body data-word='" + word + "'>" + bodyContent + "</body></html>";
+        return "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>" + css
+                + "</style></head><body data-word='" + word + "'>" + bodyContent + "</body></html>";
     }
 }

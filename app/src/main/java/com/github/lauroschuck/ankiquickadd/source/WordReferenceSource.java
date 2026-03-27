@@ -2,22 +2,17 @@ package com.github.lauroschuck.ankiquickadd.source;
 
 import android.net.Uri;
 import android.util.Log;
-
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
-
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-
 import java.io.IOException;
-import java.util.List;
-
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 public class WordReferenceSource implements DictionarySource {
     private static final String TAG = "WordReferenceSource";
@@ -51,9 +46,8 @@ public class WordReferenceSource implements DictionarySource {
     }
 
     @Override
-    public void fetchMore(String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener) {
-
-    }
+    public void fetchMore(
+            String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener) {}
 
     @Override
     public String getExtractionJs() {
@@ -61,22 +55,22 @@ public class WordReferenceSource implements DictionarySource {
                 (() => {
                     const cards = [];
                     const headword = document.body.getAttribute('data-word');
-                    
+
                     document.querySelectorAll('input.example-checkbox:checked').forEach(cb => {
                         const frRow = cb.closest('tr');
                         if (!frRow) return;
-                        
+
                         const toRow = frRow.nextElementSibling;
                         if (!toRow) return;
 
                         const sourceTextEl = frRow.querySelector('.FrEx');
                         const nativeTextEl = toRow.querySelector('.ToEx');
-                        
+
                         if (!sourceTextEl || !nativeTextEl) return;
 
                         const sourceText = sourceTextEl.innerHTML.trim();
                         const nativeText = nativeTextEl.innerHTML.trim();
-                        
+
                         // Find the definition (DS class) by looking back through preceding rows
                         let definition = '';
                         let curr = frRow;
@@ -88,10 +82,10 @@ public class WordReferenceSource implements DictionarySource {
                             }
                             curr = curr.previousElementSibling;
                         }
-                        
+
                         cards.push({ headword, sourceText, nativeText, definition, lexicalCategory: 'WordReference' });
                     });
-                    
+
                     Android.processSelectedCards(JSON.stringify(cards));
                 })();""";
     }
@@ -111,19 +105,22 @@ public class WordReferenceSource implements DictionarySource {
             }
 
             // Clean up UI noise
-            article.select(".ad-container, script, .share, .listen, .header-tool, .rc").remove();
+            article.select(".ad-container, script, .share, .listen, .header-tool, .rc")
+                    .remove();
 
             // Target the specific translation tables
             for (Element table : article.select("table.WRD")) {
                 for (Element row : table.select("tr")) {
                     boolean isFrEx = !row.select("td.FrEx").isEmpty();
-                    
+
                     if (isFrEx) {
                         Element nextRow = row.nextElementSibling();
-                        boolean hasToExNext = nextRow != null && !nextRow.select("td.ToEx").isEmpty();
-                        
+                        boolean hasToExNext =
+                                nextRow != null && !nextRow.select("td.ToEx").isEmpty();
+
                         if (hasToExNext) {
-                            row.prepend("<td class='checkbox-cell'><input type='checkbox' class='example-checkbox'></td>");
+                            row.prepend(
+                                    "<td class='checkbox-cell'><input type='checkbox' class='example-checkbox'></td>");
                         } else {
                             row.prepend("<td class='checkbox-cell'></td>");
                         }
@@ -144,7 +141,8 @@ public class WordReferenceSource implements DictionarySource {
     }
 
     private String buildHtmlPage(String bodyContent, String word) {
-        String css = """
+        String css =
+                """
                 body { font-family: sans-serif; padding: 12px; line-height: 1.4; color: #333; }
                 .WRD { width: 100%; border-collapse: collapse; margin-bottom: 1em; font-size: 0.9em; }
                 .WRD tr { border-bottom: 1px solid #eee; }
@@ -157,6 +155,7 @@ public class WordReferenceSource implements DictionarySource {
                 .DS { color: #888; font-size: 0.85em; font-style: italic; }
                 """;
 
-        return "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>" + css + "</style></head><body data-word='" + word + "'>" + bodyContent + "</body></html>";
+        return "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'><style>" + css
+                + "</style></head><body data-word='" + word + "'>" + bodyContent + "</body></html>";
     }
 }

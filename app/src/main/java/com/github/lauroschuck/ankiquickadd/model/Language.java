@@ -97,6 +97,7 @@ public enum Language {
     Language() {
         this(false);
     }
+
     Language(boolean availableAsNative) {
         this.availableAsNative = availableAsNative;
         locale = new Locale(getIsoCode());

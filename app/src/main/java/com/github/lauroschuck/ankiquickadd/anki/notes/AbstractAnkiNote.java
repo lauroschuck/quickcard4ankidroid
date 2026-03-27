@@ -3,7 +3,7 @@ package com.github.lauroschuck.ankiquickadd.anki.notes;
 import java.util.List;
 import java.util.Set;
 
-public sealed abstract class AbstractAnkiNote permits DictionaryNote, TextNote {
+public abstract sealed class AbstractAnkiNote permits DictionaryNote, TextNote {
 
     private final String modelName;
     private final List<String> fieldNames;
@@ -45,9 +45,5 @@ public sealed abstract class AbstractAnkiNote permits DictionaryNote, TextNote {
         return cardTypes.stream().map(CardType::backTemplate).toArray(String[]::new);
     }
 
-    record CardType(
-            String name,
-            String frontTemplate,
-            String backTemplate
-    ) {}
+    record CardType(String name, String frontTemplate, String backTemplate) {}
 }

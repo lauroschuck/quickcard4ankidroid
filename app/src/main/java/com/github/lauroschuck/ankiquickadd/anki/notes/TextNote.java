@@ -4,19 +4,32 @@ import java.util.List;
 
 public final class TextNote extends AbstractAnkiNote {
     public TextNote(CardAssets assets) {
-        super("ankiquickadd.TextV45", generateFieldNames(), assets.getSharedCss() + assets.getTextCss(), generateCardTypes(assets));
+        super(
+                "ankiquickadd.TextV45",
+                generateFieldNames(),
+                assets.getSharedCss() + assets.getTextCss(),
+                generateCardTypes(assets));
     }
 
     private static List<String> generateFieldNames() {
-        return List.of("LearningText", "AltLearningText", "LearningLang", "NativeText", "AltNativeText", "NativeLang", "LexicalCat",
-                "LearningWord", "Definition", "PersonalNotes", "HiddenNotes", "Audio", "SourceUrl");
+        return List.of(
+                "LearningText",
+                "AltLearningText",
+                "LearningLang",
+                "NativeText",
+                "AltNativeText",
+                "NativeLang",
+                "LexicalCat",
+                "LearningWord",
+                "Definition",
+                "PersonalNotes",
+                "HiddenNotes",
+                "Audio",
+                "SourceUrl");
     }
 
     private static List<CardType> generateCardTypes(CardAssets assets) {
-        return List.of(
-                generateLearningToNativeCard(assets),
-                generateNativeToLearningCard(assets)
-        );
+        return List.of(generateLearningToNativeCard(assets), generateNativeToLearningCard(assets));
     }
 
     private static CardType generateLearningToNativeCard(CardAssets assets) {
@@ -35,11 +48,11 @@ public final class TextNote extends AbstractAnkiNote {
                 assets);
     }
 
-    private static CardType generateCard(String name, CardAssets.TemplateId frontTemplateId, CardAssets.TemplateId backTemplateId, CardAssets assets) {
-        return new CardType(
-                name,
-                assets.getTemplate(frontTemplateId),
-                assets.getTemplate(backTemplateId));
+    private static CardType generateCard(
+            String name,
+            CardAssets.TemplateId frontTemplateId,
+            CardAssets.TemplateId backTemplateId,
+            CardAssets assets) {
+        return new CardType(name, assets.getTemplate(frontTemplateId), assets.getTemplate(backTemplateId));
     }
-
 }

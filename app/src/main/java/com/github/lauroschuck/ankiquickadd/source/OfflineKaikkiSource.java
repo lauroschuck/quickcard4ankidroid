@@ -4,16 +4,14 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
-
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Template;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
 import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-
+import com.google.gson.JsonObject;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -37,7 +35,8 @@ public class OfflineKaikkiSource implements DictionarySource {
     public OfflineKaikkiSource(Context context) {
         this.context = context;
         try {
-            this.template = handlebars.compileInline("""
+            this.template = handlebars.compileInline(
+                    """
                 <html>
                 <head>
                     <style>
@@ -51,13 +50,13 @@ public class OfflineKaikkiSource implements DictionarySource {
                         .h-usage-example { font-style: italic; display: block; margin-top: 0.5em; }
                         .h-usage-example-translation { font-style: normal; color: #54595d; display: block; font-size: 0.9em; margin-left: 2em; margin-top: 0.2em; }
                         a { color: #36c; text-decoration: none; }
-                        
+
                         .example-checkbox, .sense-checkbox, .example-radio { margin-right: 8px; vertical-align: middle; }
-                        
+
                         /* Mode Toggling */
                         body.mode-examples .sense-checkbox, body.mode-examples .example-radio { display: none !important; }
                         body.mode-definitions .example-checkbox { display: none !important; }
-                        
+
                         /* Mode-specific gloss layout */
                         body.mode-examples .gloss { display: block; }
                         body.mode-definitions .gloss { display: inline-block; width: 90%; vertical-align: top; }
@@ -75,11 +74,11 @@ public class OfflineKaikkiSource implements DictionarySource {
                         .play-button { text-decoration: none; background: #36c; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 12px; margin-right: 8px; }
                         .pron-desc { font-size: 0.9em; color: #555; }
                         .no-desc { color: #999; font-style: italic; }
-                        
+
                         .wiktionary-link { text-decoration: none; color: #36c; margin-left: 12px; font-size: 0.6em; font-weight: bold; border: 1px solid #36c; padding: 0 6px; border-radius: 4px; background: #f0f7ff; vertical-align: middle; }
                         .did-you-mean { margin-bottom: 1em; font-size: 0.9em; color: #555; font-style: italic; }
                         .did-you-mean a { font-style: normal; font-weight: bold; margin-right: 8px; }
-                        
+
                         .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; text-align: center; margin-bottom: 20px; }
                         .footer a { color: #36c; font-size: 0.95em; }
                     </style>
@@ -103,7 +102,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                         <a href="{{wiktionaryUrl}}" class="wiktionary-link" target="_blank">W</a>
                         {{/if}}
                     </h2>
-                    
+
                     {{#if variations}}
                     <div class="did-you-mean">
                         Did you mean:
@@ -162,7 +161,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                         </ol>
                     </div>
                     {{/each}}
-                    
+
                     {{#if wiktionaryUrl}}
                     <div class="footer">
                         <a href="{{wiktionaryUrl}}" target="_blank">View this word on Wiktionary</a>
@@ -180,11 +179,12 @@ public class OfflineKaikkiSource implements DictionarySource {
     public void fetch(String word, Language learningLanguage, Language nativeLanguage, OnResultListener listener) {
         this.lastLearningLanguage = learningLanguage;
         this.lastNativeLanguage = nativeLanguage;
-        
-        String dbName = String.format("wiktionary_kaikki_%s-%s.db", 
-                learningLanguage.getIsoCode().toLowerCase(), 
+
+        String dbName = String.format(
+                "wiktionary_kaikki_%s-%s.db",
+                learningLanguage.getIsoCode().toLowerCase(),
                 nativeLanguage.getIsoCode().toLowerCase());
-        
+
         Log.d(TAG, "Fetching word: " + word + " from DB: " + dbName);
         copyDatabaseIfNeeded(dbName);
 
@@ -201,7 +201,8 @@ public class OfflineKaikkiSource implements DictionarySource {
 
             // 0. Fetch language name for Wiktionary anchor and construct URL
             String langName = "";
-            try (Cursor langCursor = db.rawQuery("SELECT name FROM languages WHERE iso = ?", new String[]{learningLanguage.getIsoCode()})) {
+            try (Cursor langCursor = db.rawQuery(
+                    "SELECT name FROM languages WHERE iso = ?", new String[] {learningLanguage.getIsoCode()})) {
                 if (langCursor.moveToFirst()) {
                     langName = langCursor.getString(0);
                 }
@@ -210,11 +211,12 @@ public class OfflineKaikkiSource implements DictionarySource {
                 langName = learningLanguage.getDisplayName();
             }
             data.put("langName", langName);
-            
+
             try {
                 String encodedWord = URLEncoder.encode(word, "UTF-8");
                 String encodedAnchor = URLEncoder.encode(langName.replace(" ", "_"), "UTF-8");
-                String wiktionaryUrl = String.format("https://%s.wiktionary.org/wiki/%s#%s", 
+                String wiktionaryUrl = String.format(
+                        "https://%s.wiktionary.org/wiki/%s#%s",
                         nativeLanguage.getIsoCode().toLowerCase(), encodedWord, encodedAnchor);
                 data.put("wiktionaryUrl", wiktionaryUrl);
             } catch (Exception e) {
@@ -223,14 +225,17 @@ public class OfflineKaikkiSource implements DictionarySource {
 
             // 1. Fetch Pronunciations
             List<Map<String, String>> pronunciations = new ArrayList<>();
-            String pronQuery = "SELECT audio_url, description FROM pronunciations p JOIN headwords h ON p.headword_id = h.id WHERE h.headword = ? COLLATE BINARY";
-            try (Cursor cursor = db.rawQuery(pronQuery, new String[]{word})) {
+            String pronQuery =
+                    "SELECT audio_url, description FROM pronunciations p JOIN headwords h ON p.headword_id = h.id WHERE h.headword = ? COLLATE BINARY";
+            try (Cursor cursor = db.rawQuery(pronQuery, new String[] {word})) {
                 while (cursor.moveToNext()) {
                     Map<String, String> pron = new HashMap<>();
                     String url = cursor.getString(0);
                     String desc = cursor.getString(1);
                     pron.put("encodedUrl", URLEncoder.encode(url, "UTF-8"));
-                    pron.put("description", desc != null && !desc.isEmpty() ? desc : "<span class='no-desc'>No description</span>");
+                    pron.put(
+                            "description",
+                            desc != null && !desc.isEmpty() ? desc : "<span class='no-desc'>No description</span>");
                     pronunciations.add(pron);
                 }
             }
@@ -239,8 +244,9 @@ public class OfflineKaikkiSource implements DictionarySource {
 
             // 2. Fetch variations (other casings)
             List<String> variations = new ArrayList<>();
-            String varQuery = "SELECT headword FROM headwords WHERE headword = ? COLLATE NOCASE AND headword != ? COLLATE BINARY";
-            try (Cursor cursor = db.rawQuery(varQuery, new String[]{word, word})) {
+            String varQuery =
+                    "SELECT headword FROM headwords WHERE headword = ? COLLATE NOCASE AND headword != ? COLLATE BINARY";
+            try (Cursor cursor = db.rawQuery(varQuery, new String[] {word, word})) {
                 while (cursor.moveToNext()) {
                     variations.add(cursor.getString(0));
                 }
@@ -251,9 +257,10 @@ public class OfflineKaikkiSource implements DictionarySource {
 
             // 3. Fetch Lexical Entries and nest everything
             List<Map<String, Object>> posBlocks = new ArrayList<>();
-            String mainQuery = "SELECT le.id, le.lexical_category FROM lexical_entries le JOIN headwords h ON le.headword_id = h.id WHERE h.headword = ? COLLATE BINARY ORDER BY le.lexical_category, le.sense_index";
-            
-            try (Cursor cursor = db.rawQuery(mainQuery, new String[]{word})) {
+            String mainQuery =
+                    "SELECT le.id, le.lexical_category FROM lexical_entries le JOIN headwords h ON le.headword_id = h.id WHERE h.headword = ? COLLATE BINARY ORDER BY le.lexical_category, le.sense_index";
+
+            try (Cursor cursor = db.rawQuery(mainQuery, new String[] {word})) {
                 Map<String, List<Map<String, Object>>> posMap = new LinkedHashMap<>();
                 while (cursor.moveToNext()) {
                     long entryId = cursor.getLong(0);
@@ -261,11 +268,11 @@ public class OfflineKaikkiSource implements DictionarySource {
 
                     Map<String, Object> sense = new HashMap<>();
                     sense.put("entryId", entryId);
-                    
+
                     // Glosses
                     List<String> glosses = new ArrayList<>();
                     String glossQuery = "SELECT gloss FROM glosses WHERE lexical_entry_id = ? ORDER BY gloss_index";
-                    try (Cursor glossCursor = db.rawQuery(glossQuery, new String[]{String.valueOf(entryId)})) {
+                    try (Cursor glossCursor = db.rawQuery(glossQuery, new String[] {String.valueOf(entryId)})) {
                         while (glossCursor.moveToNext()) {
                             glosses.add(applyLinks(glossCursor.getString(0), entryId, db));
                         }
@@ -278,7 +285,9 @@ public class OfflineKaikkiSource implements DictionarySource {
                     String[] relLabels = {"Synonyms", "Antonyms"};
                     for (int i = 0; i < relTypes.length; i++) {
                         List<String> words = new ArrayList<>();
-                        try (Cursor relCursor = db.rawQuery("SELECT word FROM relations WHERE lexical_entry_id = ? AND type = ?", new String[]{String.valueOf(entryId), relTypes[i]})) {
+                        try (Cursor relCursor = db.rawQuery(
+                                "SELECT word FROM relations WHERE lexical_entry_id = ? AND type = ?",
+                                new String[] {String.valueOf(entryId), relTypes[i]})) {
                             while (relCursor.moveToNext()) words.add(relCursor.getString(0));
                         }
                         if (!words.isEmpty()) {
@@ -292,7 +301,9 @@ public class OfflineKaikkiSource implements DictionarySource {
 
                     // Examples
                     List<Map<String, Object>> examples = new ArrayList<>();
-                    try (Cursor exCursor = db.rawQuery("SELECT id, learning_text, native_text FROM examples WHERE lexical_entry_id = ?", new String[]{String.valueOf(entryId)})) {
+                    try (Cursor exCursor = db.rawQuery(
+                            "SELECT id, learning_text, native_text FROM examples WHERE lexical_entry_id = ?",
+                            new String[] {String.valueOf(entryId)})) {
                         while (exCursor.moveToNext()) {
                             Map<String, Object> ex = new HashMap<>();
                             long exId = exCursor.getLong(0);
@@ -331,7 +342,7 @@ public class OfflineKaikkiSource implements DictionarySource {
             String html = template.apply(data);
             Log.d(TAG, "Generated HTML length: " + html.length());
             listener.onSuccess(html, word);
-            
+
         } catch (Exception e) {
             Log.e(TAG, "Template processing failed", e);
             listener.onError("Offline DB error: " + e.getMessage());
@@ -339,12 +350,13 @@ public class OfflineKaikkiSource implements DictionarySource {
     }
 
     @Override
-    public void fetchMore(String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener) {
-    }
+    public void fetchMore(
+            String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener) {}
 
     private String applyLinks(String text, long entryId, SQLiteDatabase db) {
-        String query = "SELECT sl.word, h.headword FROM sense_links sl JOIN headwords h ON sl.native_headword_id = h.id WHERE sl.lexical_entry_id = ?";
-        try (Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(entryId)})) {
+        String query =
+                "SELECT sl.word, h.headword FROM sense_links sl JOIN headwords h ON sl.native_headword_id = h.id WHERE sl.lexical_entry_id = ?";
+        try (Cursor cursor = db.rawQuery(query, new String[] {String.valueOf(entryId)})) {
             while (cursor.moveToNext()) {
                 String linkText = cursor.getString(0);
                 String nativeWord = cursor.getString(1);
@@ -357,9 +369,9 @@ public class OfflineKaikkiSource implements DictionarySource {
     private String applyBolding(String text, long exampleId, String type, SQLiteDatabase db) {
         List<int[]> offsets = new ArrayList<>();
         String query = "SELECT start_index, end_index FROM bold_offsets WHERE example_id = ? AND text_type = ?";
-        try (Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(exampleId), type})) {
+        try (Cursor cursor = db.rawQuery(query, new String[] {String.valueOf(exampleId), type})) {
             while (cursor.moveToNext()) {
-                offsets.add(new int[]{cursor.getInt(0), cursor.getInt(1)});
+                offsets.add(new int[] {cursor.getInt(0), cursor.getInt(1)});
             }
         }
         if (offsets.isEmpty()) return text;
@@ -408,16 +420,17 @@ public class OfflineKaikkiSource implements DictionarySource {
         try {
             JsonObject obj = new Gson().fromJson(json, JsonObject.class);
             String mode = obj.has("mode") ? obj.get("mode").getAsString() : "examples";
-            
+
             if (lastLearningLanguage == null || lastNativeLanguage == null) {
                 listener.onCardsReady(new ArrayList<>());
                 return;
             }
 
-            String dbName = String.format("wiktionary_kaikki_%s-%s.db", 
-                    lastLearningLanguage.getIsoCode().toLowerCase(), 
+            String dbName = String.format(
+                    "wiktionary_kaikki_%s-%s.db",
+                    lastLearningLanguage.getIsoCode().toLowerCase(),
                     lastNativeLanguage.getIsoCode().toLowerCase());
-            
+
             File dbFile = context.getDatabasePath(dbName);
             if (!dbFile.exists()) {
                 listener.onCardsReady(new ArrayList<>());
@@ -425,7 +438,8 @@ public class OfflineKaikkiSource implements DictionarySource {
             }
 
             List<TranslationCard> cards = new ArrayList<>();
-            try (SQLiteDatabase db = SQLiteDatabase.openDatabase(dbFile.getPath(), null, SQLiteDatabase.OPEN_READONLY)) {
+            try (SQLiteDatabase db =
+                    SQLiteDatabase.openDatabase(dbFile.getPath(), null, SQLiteDatabase.OPEN_READONLY)) {
                 if (mode.equals("examples")) {
                     JsonArray exampleIds = obj.getAsJsonArray("examples");
                     for (JsonElement idElem : exampleIds) {
@@ -450,13 +464,13 @@ public class OfflineKaikkiSource implements DictionarySource {
     }
 
     private TranslationCard fetchCardForExample(SQLiteDatabase db, long exId) {
-        String query = "SELECT e.learning_text, e.native_text, le.lexical_category, h.headword, e.lexical_entry_id " +
-                       "FROM examples e " +
-                       "JOIN lexical_entries le ON e.lexical_entry_id = le.id " +
-                       "JOIN headwords h ON le.headword_id = h.id " +
-                       "WHERE e.id = ?";
-        
-        try (Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(exId)})) {
+        String query = "SELECT e.learning_text, e.native_text, le.lexical_category, h.headword, e.lexical_entry_id "
+                + "FROM examples e "
+                + "JOIN lexical_entries le ON e.lexical_entry_id = le.id "
+                + "JOIN headwords h ON le.headword_id = h.id "
+                + "WHERE e.id = ?";
+
+        try (Cursor cursor = db.rawQuery(query, new String[] {String.valueOf(exId)})) {
             if (cursor.moveToFirst()) {
                 String learningTextRaw = cursor.getString(0);
                 String nativeTextRaw = cursor.getString(1);
@@ -476,20 +490,21 @@ public class OfflineKaikkiSource implements DictionarySource {
     }
 
     private TranslationCard fetchCardForDefinition(SQLiteDatabase db, long entryId, Long exampleId) {
-        String query = "SELECT le.lexical_category, h.headword " +
-                       "FROM lexical_entries le " +
-                       "JOIN headwords h ON le.headword_id = h.id " +
-                       "WHERE le.id = ?";
-        
-        try (Cursor cursor = db.rawQuery(query, new String[]{String.valueOf(entryId)})) {
+        String query = "SELECT le.lexical_category, h.headword " + "FROM lexical_entries le "
+                + "JOIN headwords h ON le.headword_id = h.id "
+                + "WHERE le.id = ?";
+
+        try (Cursor cursor = db.rawQuery(query, new String[] {String.valueOf(entryId)})) {
             if (cursor.moveToFirst()) {
                 String lexicalCategory = cursor.getString(0);
                 String headword = cursor.getString(1);
-                
+
                 String learningText = "";
                 String nativeText = "";
                 if (exampleId != null) {
-                    try (Cursor exCursor = db.rawQuery("SELECT learning_text, native_text FROM examples WHERE id = ?", new String[]{String.valueOf(exampleId)})) {
+                    try (Cursor exCursor = db.rawQuery(
+                            "SELECT learning_text, native_text FROM examples WHERE id = ?",
+                            new String[] {String.valueOf(exampleId)})) {
                         if (exCursor.moveToFirst()) {
                             learningText = applyBolding(exCursor.getString(0), exampleId, "L", db);
                             nativeText = applyBolding(exCursor.getString(1), exampleId, "N", db);
@@ -507,8 +522,9 @@ public class OfflineKaikkiSource implements DictionarySource {
     }
 
     private String fetchAudioUrl(SQLiteDatabase db, String headword) {
-        String audioQuery = "SELECT audio_url FROM pronunciations p JOIN headwords h ON p.headword_id = h.id WHERE h.headword = ? LIMIT 1";
-        try (Cursor audioCursor = db.rawQuery(audioQuery, new String[]{headword})) {
+        String audioQuery =
+                "SELECT audio_url FROM pronunciations p JOIN headwords h ON p.headword_id = h.id WHERE h.headword = ? LIMIT 1";
+        try (Cursor audioCursor = db.rawQuery(audioQuery, new String[] {headword})) {
             if (audioCursor.moveToFirst()) return audioCursor.getString(0);
         }
         return null;
@@ -517,7 +533,7 @@ public class OfflineKaikkiSource implements DictionarySource {
     private String fetchGlosses(SQLiteDatabase db, long entryId) {
         StringBuilder glosses = new StringBuilder();
         String glossQuery = "SELECT gloss FROM glosses WHERE lexical_entry_id = ? ORDER BY gloss_index";
-        try (Cursor glossCursor = db.rawQuery(glossQuery, new String[]{String.valueOf(entryId)})) {
+        try (Cursor glossCursor = db.rawQuery(glossQuery, new String[] {String.valueOf(entryId)})) {
             while (glossCursor.moveToNext()) {
                 if (glosses.length() > 0) glosses.append("<br/>");
                 glosses.append(applyLinks(glossCursor.getString(0), entryId, db));
@@ -532,7 +548,7 @@ public class OfflineKaikkiSource implements DictionarySource {
             try {
                 dbFile.getParentFile().mkdirs();
                 try (InputStream is = context.getAssets().open(dbName);
-                     OutputStream os = new FileOutputStream(dbFile)) {
+                        OutputStream os = new FileOutputStream(dbFile)) {
                     byte[] buffer = new byte[1024];
                     int length;
                     while ((length = is.read(buffer)) > 0) os.write(buffer, 0, length);

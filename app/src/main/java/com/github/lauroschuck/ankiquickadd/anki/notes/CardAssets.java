@@ -1,17 +1,14 @@
 package com.github.lauroschuck.ankiquickadd.anki.notes;
 
 import android.content.Context;
-
-import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.EscapingStrategy;
+import com.github.jknack.handlebars.Handlebars;
 import com.github.lauroschuck.ankiquickadd.R;
-
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import kotlin.io.ByteStreamsKt;
 
 public class CardAssets {
@@ -22,20 +19,17 @@ public class CardAssets {
     private final String dictionaryCss;
     private final String textCss;
 
-
     public CardAssets(Context context) {
         handlebars = createHandlebars();
-        templateCache =
-                Stream.of(TemplateId.values())
-                        .collect(Collectors.toMap(Function.identity(), t -> load(t.rawResource, context)));
+        templateCache = Stream.of(TemplateId.values())
+                .collect(Collectors.toMap(Function.identity(), t -> load(t.rawResource, context)));
         sharedCss = load(R.raw.shared_styling, context);
         dictionaryCss = load(R.raw.dictionary_styling, context);
         textCss = load(R.raw.text_styling, context);
     }
 
     private Handlebars createHandlebars() {
-       var hb = new Handlebars()
-                .with(EscapingStrategy.NOOP); // Don't HTML-escape Anki tags
+        var hb = new Handlebars().with(EscapingStrategy.NOOP); // Don't HTML-escape Anki tags
 
         // Use [[ ]] for Java-side generation to avoid clashing with Anki's {{ }}
         hb.setStartDelimiter("[[");
