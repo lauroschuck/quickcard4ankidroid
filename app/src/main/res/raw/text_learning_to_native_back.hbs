@@ -1,38 +1,53 @@
-<div class="main-content">
-    <div class="text">
-        {{LearningText}}
-        {{#AltLearningText}}
-            <div class="alt-text">{{AltLearningText}}</div>
-        {{/AltLearningText}}
+<div class="text-note lt2nt back">
+    <div class="top">
+        <div class="text learning">
+            <div class="main">{{LearningText}}</div>
+            {{#AltLearningText}}
+                <div class="alt">{{AltLearningText}}</div>
+            {{/AltLearningText}}
+        </div>
+        <div class="context">
+            <span class="lexical-cat">{{LexicalCat}}</span>
+            <span class="lang-code">{{LearningLang}}</span>
+        </div>
     </div>
-    <div class="lang-hint">
-        <span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})
+
+    <hr id="answer"/>
+
+    <div class="bottom">
+        <div class="text native">
+            <div class="main">{{NativeText}}</div>
+            {{#AltNativeText}}
+                <div class="alt">{{AltNativeText}}</div>
+            {{/AltNativeText}}
+        </div>
+
+        <div class="definition-box">
+            {{#LearningWord}}
+                <div class="learning-word">
+                    {{#SourceUrl}}<a href="{{SourceUrl}}">{{LearningWord}}</a>{{/SourceUrl}}
+                    {{^SourceUrl}}{{LearningWord}}{{/SourceUrl}}
+                </div>
+            {{/LearningWord}}
+
+            {{#Definition}}
+                <div class="definition">{{Definition}}</div>
+            {{/Definition}}
+        </div>
+
+        {{#PersonalNotes}}
+            <div class="personal-notes">
+                {{PersonalNotes}}
+            </div>
+        {{/PersonalNotes}}
+
+        {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
+
+        {{^LearningWord}}
+            {{#SourceUrl}}
+                <a href="{{SourceUrl}}" class="source-url">Source</a>
+            {{/SourceUrl}}
+        {{/LearningWord}}
     </div>
 </div>
 
-<hr id="answer"/>
-
-<div class="main-content">
-    <div class="learning-word">
-        {{#SourceUrl}}<a href="{{SourceUrl}}">{{LearningWord}}</a>{{/SourceUrl}}
-        {{^SourceUrl}}{{LearningWord}}{{/SourceUrl}}
-    </div>
-</div>
-
-<div class="definition">{{Definition}}</div>
-
-<div class="text">
-    {{NativeText}}
-    {{#AltNativeText}}
-        <div class="alt-text">{{AltNativeText}}</div>
-    {{/AltNativeText}}
-</div>
-
-{{#PersonalNotes}}
-    <div class="notes-container">
-        <div class="note-label">Personal Notes</div>
-        <div class="notes personal-notes">{{PersonalNotes}}</div>
-    </div>
-{{/PersonalNotes}}
-
-{{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}

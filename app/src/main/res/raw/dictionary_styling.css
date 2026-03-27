@@ -1,0 +1,78 @@
+/*
+ * Dictionary note - Card top
+ */
+
+.dictionary-note.w2d .learning-word {
+    margin-bottom: 0;
+}
+
+.hint:not(:has(.content .row)) {
+    display: none;
+}
+
+.hint button {
+    color: #24292f;
+    background: #f3f4f6;
+    border: 0.1em solid #d0d7de;
+    font-size: 0.75rem;
+    padding: 0.4em 1em;
+    border-radius: 0.6em;
+}
+
+.hint .content {
+    display: none;
+    text-align: left;
+}
+
+.hint .content .row {
+    background-color: #fcfcf9;
+    border-left: 0.2em solid #d1d9e0;
+    padding: 0.2em 1em;
+    margin-top: 0.5em;
+}
+
+/*
+ * Dictionary note - Card bottom
+ */
+
+.definitions {
+    text-align: left;
+    padding-left: 0;
+    list-style-position: inside;
+}
+
+.definitions li {
+    background-color: #fcfcf9;
+    border-left: 0.2em solid #6a9fb5;
+    margin-bottom: 0.9em;
+    padding: 0.7em 01em;
+}
+
+.definitions li .definition {
+    display: inline;
+}
+
+.definitions li .text.learning {
+    margin-top: 0.8em;
+    margin-left: 2em;
+}
+
+.definitions li .text.native {
+    margin-top: 0.5em;
+    margin-left: 3em;
+}
+
+/*
+ * Night mode
+ */
+
+.night_mode .definitions li {
+    background-color: #1c2128;
+    border-left-color: #388ed3;
+}
+
+.night_mode .hint .content .row {
+    color: #8b949e;
+    background-color: #161b22;
+    border-left-color: #484f58;
+}

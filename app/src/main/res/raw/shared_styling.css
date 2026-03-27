@@ -2,120 +2,103 @@
  * Basics
  */
 
+html {
+    /* font-size: 15px; */
+}
+
 .card {
-    font-family: arial;
-    font-size: 18px;
+    font-family: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     text-align: center;
-    color: #202122;
-    background-color: white;
+    color: #2c3e50;
 }
 
 .learning-word {
-    font-size: 1.2em;
+    font-size: 1.5rem;
     font-weight: bold;
+    color: #007aff;
+    margin-bottom: 0.4em;
 }
 
 .learning-word a {
-  text-decoration: underline dotted;
-}
-
-.main-content {
-    margin: 0.5em 0;
-}
-
-.learning {
-    font-style: italic;
-}
-
-.lexical-cat {
-    font-style: italic;
+    color: #007aff;
+    text-decoration: none;
+    border-bottom: 0.1em solid rgba(0, 122, 255, 0.15);
 }
 
 .definition {
-    color: darkblue;
+    color: #2980b9;
+    font-size: 1.1rem;
 }
 
-.text {
-    font-size: 0.9em;
-    margin-top: 0.7em;
+.text.learning {
+    font-style: italic;
+    font-size: 1.05rem;
 }
 
-.alt-text {
+.text.native {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+}
+
+.text .alt {
     font-size: 0.85em;
     color: #888;
-    display: block;
-    margin-top: 0.1em;
-}
-
-.alt-text::before {
-  content: "["
-}
-
-.alt-text::after {
-  content: "]"
-}
-
-/*
- * Front
- */
-
-.lang-hint {
-    font-size: 0.75em;
-    color: gray;
     margin-top: 0.2em;
 }
 
-.example-hint button {
-    display: none;
+.text .alt::before {
+    content: "["
 }
 
-.example-hint .content {
-    display: none;
-}
-
-/* Full dictionary entry, learning word to definitions */
-.example-hint .content .row {
-    font-size: 0.9em;
-    text-align: left;
-    margin-top: 0.7em;
-    padding-left: 0.5em;
-    border-left: 3px solid #eee;
+.text .alt::after {
+    content: "]"
 }
 
 /*
- * Back
+ * Card top
  */
 
-.definitions {
-    text-align: left;
-    padding-left: 0em;
-    margin: 0;
-    list-style-position: inside;
-}
-
-.definitions li {
-    margin-bottom: 1.5em;
-    padding-left: 0.8em;
-    border-left: 3px solid #eee;
-}
-
-.definitions li .definition {
-    margin-bottom: 0.5em;
-    display: inline;
-}
-
-.definitions li .example {
-    font-size: 0.9em;
-}
-
-.definitions li .example .learning {
+.context {
+    display: inline-block;
+    background-color: #f1f3f5;
+    color: #57606a;
+    font-size: 0.75rem;
+    padding: 0.3em 0.8em;
+    border-radius: 0.4em;
     margin-top: 0.5em;
-    margin-left: 2em;
+    margin-bottom: 0.7em;
 }
 
-.definitions li .example .native {
-    margin-top: 0.3em;
-    margin-left: 3em;
+.context .lexical-cat {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+}
+
+.context .lang-code::before {
+    content: "("
+}
+
+.context .lang-code::after {
+    content: ")"
+}
+
+/*
+ * Card bottom
+ */
+
+.definition-box {
+    background-color: #fcfcf9;
+    border-left: 0.2em solid #d1d9e0;
+    padding: 0.7em 1em;
+    margin-top: 0.9em;
+}
+
+/*
+ * Shared tweaks
+ */
+
+.nt2lt .text, .lt2nt .text {
+    color: #2c3e50;
 }
 
 /*
@@ -123,38 +106,63 @@
  */
 
 .personal-notes {
-    padding-top: 1.5em;
-    text-align: left;
-    font-size: 0.8em;
-    background-color: #f9f9f9;
-    padding: 0.8em 1em;
-    border-radius: 0.5em;
+    background-color: #f6f8fa;
+    padding: 0.6em;
+    font-style: italic;
+    color: #6a737d;
+    margin-top: 1em;
 }
 
 .audio {
-    display: none;
+    text-align: right;
 }
 
 /*
  * Night mode
  */
 
+.night_mode.card {
+    color: #b0c4de;
+}
+
 .night_mode .learning-word {
-    color: #eee;
+    color: #58a6ff;
 }
 
-.night_mode .lang-hint {
-    color: #999;
+.night_mode .learning-word a {
+    color: #58a6ff;
+    border-bottom-color: rgba(88, 166, 255, 0.3);
 }
 
-.night_mode .alt-text {
-    color: #bbb;
+.night_mode .context {
+    background-color: #21262d;
+    color: #8b949e;
 }
 
 .night_mode .definition {
-    color: #ccf;
+    color: #79c0ff;
+}
+
+.night_mode .text.native {
+    color: #8b949e;
+}
+
+.night_mode .text .alt {
+    color: #6e7681;
+}
+
+.night_mode .definition-box {
+    background-color: #1c2128;
+    border-left-color: #388ed3;
 }
 
 .night_mode .personal-notes {
-     background-color: #222;
+    background-color: #161b22;
+    color: #c9d1d9;
 }
+
+.night_mode .nt2lt .text,
+.night_mode .lt2nt .text {
+    color: #cfd8dc;
+}
+

@@ -1,14 +1,16 @@
 {{#Definition[[INDEX]]_LearningText}}
-    <div class="main-content">
-        <div class="text">
-            {{Definition[[INDEX]]_LearningText}}
-            {{#Definition[[INDEX]]_AltLearningText}}
-                <div class="alt-text">{{Definition[[INDEX]]_AltLearningText}}</div>
-            {{/Definition[[INDEX]]_AltLearningText}}
-        </div>
-        <div class="lang-hint">
-            <span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})
+    <div class="dictionary-note lt2nt front">
+        <div class="top">
+            <div class="text learning">
+                <div class="main">{{Definition[[INDEX]]_LearningText}}</div>
+                {{#Definition[[INDEX]]_AltLearningText}}
+                    <div class="alt">{{Definition[[INDEX]]_AltLearningText}}</div>
+                {{/Definition[[INDEX]]_AltLearningText}}
+            </div>
+            <div class="context">
+                <span class="lexical-cat">{{LexicalCat}}</span>
+                <span class="lang-code">{{LearningLang}}</span>
+            </div>
         </div>
     </div>
-
 {{/Definition[[INDEX]]_LearningText}}

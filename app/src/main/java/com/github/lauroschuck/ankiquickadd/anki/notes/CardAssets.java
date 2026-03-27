@@ -18,14 +18,19 @@ public class CardAssets {
 
     private final Handlebars handlebars;
     private final Map<TemplateId, String> templateCache;
-    private final String css;
+    private final String sharedCss;
+    private final String dictionaryCss;
+    private final String textCss;
+
 
     public CardAssets(Context context) {
         handlebars = createHandlebars();
         templateCache =
                 Stream.of(TemplateId.values())
                         .collect(Collectors.toMap(Function.identity(), t -> load(t.rawResource, context)));
-        css = load(R.raw.shared_styling, context);
+        sharedCss = load(R.raw.shared_styling, context);
+        dictionaryCss = load(R.raw.dictionary_styling, context);
+        textCss = load(R.raw.text_styling, context);
     }
 
     private Handlebars createHandlebars() {
@@ -80,8 +85,16 @@ public class CardAssets {
         }
     }
 
-    public String getCss() {
-        return css;
+    public String getSharedCss() {
+        return sharedCss;
+    }
+
+    public String getDictionaryCss() {
+        return dictionaryCss;
+    }
+
+    public String getTextCss() {
+        return textCss;
     }
 
     public enum TemplateId {

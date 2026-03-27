@@ -12,7 +12,7 @@ public final class DictionaryNote extends AbstractAnkiNote {
     public static final int DEFINITION_FIELDS = 5;
 
     public DictionaryNote(CardAssets assets) {
-        super("ankiquickadd.notes.DictionaryDefinitionV32", generateFieldNames(), assets.getCss(), generateCardTypes(assets));
+        super("ankiquickadd.DictionaryDefinitionV45", generateFieldNames(), assets.getSharedCss() + assets.getDictionaryCss(), generateCardTypes(assets));
     }
 
     static Stream<Integer> getDefinitionSizedStream() {

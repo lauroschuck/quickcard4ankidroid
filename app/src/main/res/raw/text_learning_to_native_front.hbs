@@ -1,11 +1,14 @@
-<div class="main-content">
-    <div class="text">
-        {{LearningText}}
-        {{#AltLearningText}}
-            <div class="alt-text">{{AltLearningText}}</div>
-        {{/AltLearningText}}
-    </div>
-    <div class="lang-hint">
-        <span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})
+<div class="text-note lt2nt front">
+    <div class="top">
+        <div class="text learning">
+            <div class="main">{{LearningText}}</div>
+            {{#AltLearningText}}
+                <div class="alt">{{AltLearningText}}</div>
+            {{/AltLearningText}}
+        </div>
+        <div class="context">
+            <span class="lexical-cat">{{LexicalCat}}</span>
+            <span class="lang-code">{{LearningLang}}</span>
+        </div>
     </div>
 </div>

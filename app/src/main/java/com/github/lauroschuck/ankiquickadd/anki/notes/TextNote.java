@@ -4,7 +4,7 @@ import java.util.List;
 
 public final class TextNote extends AbstractAnkiNote {
     public TextNote(CardAssets assets) {
-        super("ankiquickadd.notes.TextV32", generateFieldNames(), assets.getCss(), generateCardTypes(assets));
+        super("ankiquickadd.TextV45", generateFieldNames(), assets.getSharedCss() + assets.getTextCss(), generateCardTypes(assets));
     }
 
     private static List<String> generateFieldNames() {

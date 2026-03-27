@@ -1,40 +1,44 @@
 {{#Definition[[INDEX]]_LearningText}}
-    <div class="main-content">
-        <div class="text">
-            {{Definition[[INDEX]]_LearningText}}
-            {{#Definition[[INDEX]]_AltLearningText}}
-                <div class="alt-text">{{Definition[[INDEX]]_AltLearningText}}</div>
-            {{/Definition[[INDEX]]_AltLearningText}}
+    <div class="dictionary-note lt2nt back">
+        <div class="top">
+            <div class="text learning">
+                <div class="main">{{Definition[[INDEX]]_LearningText}}</div>
+                {{#Definition[[INDEX]]_AltLearningText}}
+                    <div class="alt">{{Definition[[INDEX]]_AltLearningText}}</div>
+                {{/Definition[[INDEX]]_AltLearningText}}
+            </div>
+            <div class="context">
+                <span class="lexical-cat">{{LexicalCat}}</span>
+                <span class="lang-code">{{LearningLang}}</span>
+            </div>
         </div>
-        <div class="lang-hint">
-            <span class="lexical-cat">{{LexicalCat}}</span> ({{LearningLang}})
+
+        <hr id="answer"/>
+
+        <div class="bottom">
+            <div class="text native">
+                <div class="main">{{Definition[[INDEX]]_NativeText}}</div>
+                {{#Definition[[INDEX]]_AltNativeText}}
+                    <div class="alt">{{Definition[[INDEX]]_AltNativeText}}</div>
+                {{/Definition[[INDEX]]_AltNativeText}}
+            </div>
+
+            <div class="definition-box">
+                <div class="learning-word">
+                    {{#SourceUrl}}<a href="{{SourceUrl}}">{{LearningWord}}</a>{{/SourceUrl}}
+                    {{^SourceUrl}}{{LearningWord}}{{/SourceUrl}}
+                </div>
+
+                <div class="definition">{{Definition[[INDEX]]}}</div>
+            </div>
+
+            {{#PersonalNotes}}
+                <div class="personal-notes">
+                    {{PersonalNotes}}
+                </div>
+            {{/PersonalNotes}}
+
+            {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
         </div>
     </div>
-
-    <hr id="answer"/>
-
-    <div class="main-content">
-        <div class="learning-word">
-            {{#SourceUrl}}<a href="{{SourceUrl}}">{{LearningWord}}</a>{{/SourceUrl}}
-            {{^SourceUrl}}{{LearningWord}}{{/SourceUrl}}
-        </div>
-    </div>
-
-    <div class="definition">{{Definition[[INDEX]]}}</div>
-
-    <div class="text">
-        {{Definition[[INDEX]]_NativeText}}
-        {{#Definition[[INDEX]]_AltNativeText}}
-            <div class="alt-text">{{Definition[[INDEX]]_AltNativeText}}</div>
-        {{/Definition[[INDEX]]_AltNativeText}}
-    </div>
-
-    {{#PersonalNotes}}
-        <div class="personal-notes">
-            {{PersonalNotes}}
-        </div>
-    {{/PersonalNotes}}
-
-    {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
-
 {{/Definition[[INDEX]]_LearningText}}
