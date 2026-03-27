@@ -1,13 +1,13 @@
 package com.github.lauroschuck.ankiquickadd.source;
 
+import com.github.lauroschuck.ankiquickadd.anki.notes.AbstractAnkiNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
-import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
 import java.util.List;
 
 /**
  * Interface for dictionary sources.
  */
-public interface DictionarySource {
+public interface DictionarySource<N extends AbstractAnkiNote<I>, I extends AbstractAnkiNote.Input> {
     /**
      * Interface for listener to receive results.
      */
@@ -20,8 +20,8 @@ public interface DictionarySource {
     /**
      * Interface for listener to receive selected cards.
      */
-    interface OnCardsReadyListener {
-        void onCardsReady(List<TranslationCard> cards);
+    interface OnCardsReadyListener<I> {
+        void onCardsReady(List<I> cards);
     }
 
     /**
@@ -54,5 +54,5 @@ public interface DictionarySource {
      * @param json the JSON string returned by the JavaScript extraction code
      * @param listener the listener to receive the cards
      */
-    void getCardsFromSelection(String json, OnCardsReadyListener listener);
+    void getCardsFromSelection(String json, OnCardsReadyListener<I> listener);
 }

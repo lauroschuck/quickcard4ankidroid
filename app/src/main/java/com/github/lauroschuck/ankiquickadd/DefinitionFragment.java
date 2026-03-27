@@ -45,15 +45,16 @@ public class DefinitionFragment extends Fragment {
                 viewModel.getCurrentSource().getCardsFromSelection(json, cards -> {
                     requireActivity().runOnUiThread(() -> {
                         if (AnkiDroidHelper.isApiAvailable(requireContext())) {
-                            boolean isDefinitions = noteTypeTabLayout.getSelectedTabPosition() == 0;
                             // These are usually initialized in MainActivity or provided via ViewModel
                             MainActivity activity = (MainActivity) requireActivity();
-                            AnkiIntegration.createAnkiCards(
-                                    activity,
-                                    activity.getDictionaryNote(),
-                                    activity.getTextNote(),
-                                    cards,
-                                    isDefinitions);
+                            Log.d(TAG, "Selected cards: " + cards);
+                            switch (noteTypeTabLayout.getSelectedTabPosition()) {
+                                case 0 -> AnkiIntegration.createAnkiCards(
+                                        activity, activity.getDictionaryNote(), cards);
+                                case 1 -> AnkiIntegration.createAnkiCards(activity, activity.getTextNote(), cards);
+                                default -> throw new RuntimeException(
+                                        "Unknown note type for index " + noteTypeTabLayout.getSelectedTabPosition());
+                            }
                         }
                     });
                 });

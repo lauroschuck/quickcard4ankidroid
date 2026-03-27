@@ -88,7 +88,7 @@ public class AnkiDroidHelper {
      * @param tags List of tags to remove duplicates from
      * @param modelId ID of model to search for duplicates on
      */
-    public void removeDuplicates(LinkedList<String[]> fields, LinkedList<Set<String>> tags, long modelId) {
+    public void removeDuplicates(List<String[]> fields, LinkedList<Set<String>> tags, long modelId) {
         // Build a list of the duplicate keys (first fields) and find all notes that have a match with each key
         List<String> keys = new ArrayList<>(fields.size());
         for (String[] f : fields) {
