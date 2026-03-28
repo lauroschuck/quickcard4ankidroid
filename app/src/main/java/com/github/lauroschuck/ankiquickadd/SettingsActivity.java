@@ -5,12 +5,12 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.function.Supplier;
+import lombok.NonNull;
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -52,8 +52,7 @@ public class SettingsActivity extends AppCompatActivity {
 
     @NonNull
     private ArrayAdapter<Language> createArrayAdapter(Language[] languages) {
-        ArrayAdapter<Language> languageArrayAdapter =
-                new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, languages);
+        var languageArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, languages);
         languageArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         return languageArrayAdapter;
     }
@@ -67,8 +66,8 @@ public class SettingsActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         // Save values
-        Language learningLang = (Language) learningLanguageSpinner.getSelectedItem();
-        Language nativeLang = (Language) nativeLanguageSpinner.getSelectedItem();
+        var learningLang = (Language) learningLanguageSpinner.getSelectedItem();
+        var nativeLang = (Language) nativeLanguageSpinner.getSelectedItem();
 
         prefs.edit()
                 .putString(KEY_LEARNING_LANGUAGE, learningLang.getIsoCode())

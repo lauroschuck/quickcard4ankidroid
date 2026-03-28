@@ -10,16 +10,24 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import kotlin.io.ByteStreamsKt;
+import lombok.Getter;
+import lombok.NonNull;
 
 public class CardAssets {
 
     private final Handlebars handlebars;
     private final Map<TemplateId, String> templateCache;
+
+    @Getter
     private final String sharedCss;
+
+    @Getter
     private final String dictionaryCss;
+
+    @Getter
     private final String textCss;
 
-    public CardAssets(Context context) {
+    public CardAssets(@NonNull Context context) {
         handlebars = createHandlebars();
         templateCache = Stream.of(TemplateId.values())
                 .collect(Collectors.toMap(Function.identity(), t -> load(t.rawResource, context)));
@@ -37,8 +45,8 @@ public class CardAssets {
 
         // Helper to handle the "INDEX" repetitions (1 to count)
         hb.registerHelper("repeat", (context, options) -> {
-            int count = Integer.parseInt(context.toString());
-            StringBuilder sb = new StringBuilder();
+            var count = Integer.parseInt(context.toString());
+            var sb = new StringBuilder();
             for (int i = 1; i <= count; i++) {
                 sb.append(options.fn(Map.of("INDEX", i)));
             }
@@ -55,40 +63,28 @@ public class CardAssets {
         }
     }
 
-    public String getTemplate(TemplateId templateId) {
+    public String getTemplate(@NonNull TemplateId templateId) {
         return templateCache.get(templateId);
     }
 
-    public String getRepeatingTemplate(TemplateId templateId, Integer repeatSize) {
+    public String getRepeatingTemplate(@NonNull TemplateId templateId, int repeatSize) {
         try {
             var templateString = getTemplate(templateId);
-            com.github.jknack.handlebars.Template template = handlebars.compileInline(templateString);
+            var template = handlebars.compileInline(templateString);
             return template.apply(Map.of("REPEAT_SIZE", repeatSize));
         } catch (IOException e) {
             throw new RuntimeException("Template error: " + e.getMessage(), e);
         }
     }
 
-    public String getIndexedTemplate(TemplateId templateId, Integer index) {
+    public String getIndexedTemplate(@NonNull TemplateId templateId, int index) {
         try {
             var templateString = getTemplate(templateId);
-            com.github.jknack.handlebars.Template template = handlebars.compileInline(templateString);
+            var template = handlebars.compileInline(templateString);
             return template.apply(Map.of("INDEX", index));
         } catch (IOException e) {
             throw new RuntimeException("Template error: " + e.getMessage(), e);
         }
-    }
-
-    public String getSharedCss() {
-        return sharedCss;
-    }
-
-    public String getDictionaryCss() {
-        return dictionaryCss;
-    }
-
-    public String getTextCss() {
-        return textCss;
     }
 
     public enum TemplateId {

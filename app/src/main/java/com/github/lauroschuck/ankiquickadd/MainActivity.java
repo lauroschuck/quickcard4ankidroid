@@ -22,6 +22,7 @@ import com.github.lauroschuck.ankiquickadd.source.OfflineKaikkiSource;
 import com.github.lauroschuck.ankiquickadd.source.ReversoSource;
 import com.github.lauroschuck.ankiquickadd.source.WordReferenceSource;
 import java.util.Locale;
+import lombok.NonNull;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -45,14 +46,14 @@ public class MainActivity extends AppCompatActivity {
         textNote = new TextNote(cardAssets);
 
         sourceSpinner = findViewById(R.id.sourceSpinner);
-        View settingsButton = findViewById(R.id.settingsButton);
+        var settingsButton = findViewById(R.id.settingsButton);
 
         setupSources();
         setupBackPressed();
 
         settingsButton.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
 
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        var prefs = PreferenceManager.getDefaultSharedPreferences(this);
         viewModel.setLastUsedLearningLanguage(
                 getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV));
         viewModel.setLastUsedNativeLanguage(
@@ -94,13 +95,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        Language currentLearning = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV);
-        Language currentNative = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN);
+        var prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        var currentLearning = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV);
+        var currentNative = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN);
 
         if (currentLearning != viewModel.getLastUsedLearningLanguage()
                 || currentNative != viewModel.getLastUsedNativeLanguage()) {
-            String word = viewModel.getCurrentWord().getValue();
+            var word = viewModel.getCurrentWord().getValue();
             if (word != null && !word.isEmpty()) {
                 fetchDefinition(word, true);
             }
@@ -114,8 +115,8 @@ public class MainActivity extends AppCompatActivity {
         viewModel.getSources().add(new WordReferenceSource());
         viewModel.getSources().add(new ReversoSource());
 
-        String[] sourceNames = {"Wiktionary", "WordReference", "Reverso"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.spinner_item, sourceNames);
+        var sourceNames = new String[] {"Wiktionary", "WordReference", "Reverso"};
+        var adapter = new ArrayAdapter<String>(this, R.layout.spinner_item, sourceNames);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         sourceSpinner.setAdapter(adapter);
 
@@ -137,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleIntent(Intent intent) {
-        String selectedWord = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
+        var selectedWord = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
         if (selectedWord != null) {
             viewModel.setRootIsSearch(false);
             fetchDefinition(selectedWord.toLowerCase(Locale.ROOT), false);
@@ -163,11 +164,11 @@ public class MainActivity extends AppCompatActivity {
         showSearchFragment(null);
     }
 
-    public void fetchDefinition(String word) {
+    public void fetchDefinition(@NonNull String word) {
         fetchDefinition(word, false);
     }
 
-    public void fetchDefinition(String word, boolean isFromHistory) {
+    public void fetchDefinition(@NonNull String word, boolean isFromHistory) {
         if (!isFromHistory
                 && (viewModel.getWordHistory().isEmpty()
                         || !viewModel.getWordHistory().peek().equals(word))) {
@@ -185,9 +186,9 @@ public class MainActivity extends AppCompatActivity {
                     .commitNow();
         }
 
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        Language learningLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV);
-        Language nativeLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN);
+        var prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        var learningLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV);
+        var nativeLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN);
 
         viewModel
                 .getCurrentSource()
@@ -225,7 +226,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private Language getLanguageFromPref(SharedPreferences prefs, String key, Language defaultLang) {
-        String iso = prefs.getString(key, defaultLang.getIsoCode());
+        var iso = prefs.getString(key, defaultLang.getIsoCode());
         for (Language l : Language.values()) {
             if (l.getIsoCode().equals(iso)) return l;
         }

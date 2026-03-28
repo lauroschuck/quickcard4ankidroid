@@ -8,6 +8,8 @@ import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+import lombok.Getter;
+import lombok.Setter;
 
 public class MainViewModel extends ViewModel {
     private final MutableLiveData<String> currentWord = new MutableLiveData<>("");
@@ -15,12 +17,26 @@ public class MainViewModel extends ViewModel {
     private final MutableLiveData<Boolean> isDefinitionsMode = new MutableLiveData<>(false);
     private final MutableLiveData<Integer> selectedCount = new MutableLiveData<>(0);
 
+    @Getter
     private final List<DictionarySource> sources = new ArrayList<>();
+
+    @Setter
+    @Getter
     private DictionarySource currentSource;
+
+    @Getter
     private final Stack<String> wordHistory = new Stack<>();
 
+    @Setter
+    @Getter
     private Language lastUsedLearningLanguage;
+
+    @Setter
+    @Getter
     private Language lastUsedNativeLanguage;
+
+    @Setter
+    @Getter
     private boolean rootIsSearch = true;
 
     public LiveData<String> getCurrentWord() {
@@ -53,45 +69,5 @@ public class MainViewModel extends ViewModel {
 
     public void setSelectedCount(int count) {
         selectedCount.setValue(count);
-    }
-
-    public List<DictionarySource> getSources() {
-        return sources;
-    }
-
-    public DictionarySource getCurrentSource() {
-        return currentSource;
-    }
-
-    public void setCurrentSource(DictionarySource source) {
-        this.currentSource = source;
-    }
-
-    public Stack<String> getWordHistory() {
-        return wordHistory;
-    }
-
-    public Language getLastUsedLearningLanguage() {
-        return lastUsedLearningLanguage;
-    }
-
-    public void setLastUsedLearningLanguage(Language lang) {
-        this.lastUsedLearningLanguage = lang;
-    }
-
-    public Language getLastUsedNativeLanguage() {
-        return lastUsedNativeLanguage;
-    }
-
-    public void setLastUsedNativeLanguage(Language lang) {
-        this.lastUsedNativeLanguage = lang;
-    }
-
-    public boolean isRootIsSearch() {
-        return rootIsSearch;
-    }
-
-    public void setRootIsSearch(boolean rootIsSearch) {
-        this.rootIsSearch = rootIsSearch;
     }
 }

@@ -2,9 +2,7 @@ package com.github.lauroschuck.ankiquickadd.anki;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.net.Uri;
 import android.util.Log;
-import android.view.View;
 import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 import androidx.core.content.ContextCompat;
@@ -78,10 +76,10 @@ public class AnkiIntegration {
 
             var audio = audioUrl == null ? null : processAudio(audioUrl);
 
-            List<String[]> fieldsList =
+            var fieldsList =
                     note.generateFields(learningLanguage, nativeLanguage, audio, sourceUrl, actualFieldNames, cards);
 
-            LinkedList<Set<String>> tagsList = new LinkedList<>();
+            var tagsList = new LinkedList<Set<String>>();
             for (int i = 0; i < fieldsList.size(); i++) {
                 tagsList.add(note.getTags());
             }
@@ -108,9 +106,9 @@ public class AnkiIntegration {
         }
 
         try {
-            String fileName = UUID.randomUUID() + "." + MimeTypeMap.getFileExtensionFromUrl(audioUrl);
-            File localFile = downloadFile(audioUrl, fileName);
-            Uri uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", localFile);
+            var fileName = UUID.randomUUID() + "." + MimeTypeMap.getFileExtensionFromUrl(audioUrl);
+            var localFile = downloadFile(audioUrl, fileName);
+            var uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", localFile);
 
             context.grantUriPermission(ankiPkg, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
             try {
@@ -130,12 +128,12 @@ public class AnkiIntegration {
     }
 
     private File downloadFile(String urlString, String fileName) throws IOException {
-        OkHttpClient client = new OkHttpClient.Builder()
+        var client = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(10, TimeUnit.SECONDS)
                 .build();
 
-        Request request = new Request.Builder()
+        var request = new Request.Builder()
                 .url(urlString)
                 .header("User-Agent", "SwedishAnkiQuickAdd/1.0 (https://github.com/lauroschuck/ankiquickadd)")
                 .build();
@@ -145,10 +143,10 @@ public class AnkiIntegration {
                 throw new IOException("Failed to download file: " + response);
             }
 
-            File file = new File(context.getCacheDir(), fileName);
+            var file = new File(context.getCacheDir(), fileName);
             try (InputStream input = response.body().byteStream();
                     FileOutputStream output = new FileOutputStream(file)) {
-                byte[] buffer = new byte[1024];
+                var buffer = new byte[1024];
                 int count;
                 while ((count = input.read(buffer)) != -1) {
                     output.write(buffer, 0, count);
@@ -160,22 +158,22 @@ public class AnkiIntegration {
     }
 
     private long getDeckId(String deckName) {
-        var did = ankiDroidHelper.findDeckIdByName(deckName);
-        if (did == null) {
-            did = ankiDroidHelper.getApi().addNewDeck(deckName);
-            if (did == null) {
+        var deckId = ankiDroidHelper.findDeckIdByName(deckName);
+        if (deckId == null) {
+            deckId = ankiDroidHelper.getApi().addNewDeck(deckName);
+            if (deckId == null) {
                 throw new IllegalStateException(String.format("Could not add deck '%s'", deckName));
             }
-            ankiDroidHelper.storeDeckReference(deckName, did);
+            ankiDroidHelper.storeDeckReference(deckName, deckId);
         }
-        return did;
+        return deckId;
     }
 
     private <N extends AbstractAnkiNote<I>, I extends AbstractAnkiNote.Input> long getModelId(long deckId, N note) {
-        Long mid = ankiDroidHelper.findModelIdByName(
+        var modelId = ankiDroidHelper.findModelIdByName(
                 note.getModelName(), note.getFieldNames().size());
-        if (mid == null) {
-            mid = ankiDroidHelper
+        if (modelId == null) {
+            modelId = ankiDroidHelper
                     .getApi()
                     .addNewCustomModel(
                             note.getModelName(),
@@ -186,20 +184,20 @@ public class AnkiIntegration {
                             note.getCss(),
                             deckId,
                             null);
-            if (mid == null) {
+            if (modelId == null) {
                 throw new IllegalStateException(String.format("Could not add model '%s'", note.getModelName()));
             }
-            ankiDroidHelper.storeModelReference(note.getModelName(), mid);
+            ankiDroidHelper.storeModelReference(note.getModelName(), modelId);
         }
-        return mid;
+        return modelId;
     }
 
     private static void showSnackbar(Activity activity, String message, boolean isError) {
         activity.runOnUiThread(() -> {
-            View rootView = activity.findViewById(android.R.id.content);
+            var rootView = activity.findViewById(android.R.id.content);
             if (rootView != null) {
-                Snackbar snackbar = Snackbar.make(rootView, message, Snackbar.LENGTH_LONG);
-                int bgColor = isError ? R.color.error_red : R.color.anki_blue;
+                var snackbar = Snackbar.make(rootView, message, Snackbar.LENGTH_LONG);
+                var bgColor = isError ? R.color.error_red : R.color.anki_blue;
                 snackbar.setBackgroundTint(ContextCompat.getColor(activity, bgColor));
                 snackbar.setTextColor(ContextCompat.getColor(activity, R.color.white));
                 snackbar.show();

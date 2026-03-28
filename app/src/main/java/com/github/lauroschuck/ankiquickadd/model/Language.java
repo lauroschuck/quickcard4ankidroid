@@ -3,6 +3,7 @@ package com.github.lauroschuck.ankiquickadd.model;
 import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.NonNull;
 
 public enum Language {
     AF,
@@ -103,7 +104,7 @@ public enum Language {
         locale = new Locale(getIsoCode());
     }
 
-    public static Language ofIsoCode(String isoCode) {
+    public static Language ofIsoCode(@NonNull String isoCode) {
         return Language.valueOf(isoCode.toUpperCase(Locale.US));
     }
 

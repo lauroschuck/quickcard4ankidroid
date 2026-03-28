@@ -6,7 +6,7 @@ import java.util.stream.Stream;
 import lombok.NonNull;
 
 public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
-    public TextNote(CardAssets assets) {
+    public TextNote(@NonNull CardAssets assets) {
         super(
                 "ankiquickadd.TextV49",
                 generateFieldNames(),

@@ -17,8 +17,6 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.TextView;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiDroidHelper;
@@ -26,6 +24,7 @@ import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import java.io.IOException;
+import lombok.NonNull;
 
 public class DefinitionFragment extends Fragment {
 
@@ -41,7 +40,7 @@ public class DefinitionFragment extends Fragment {
     public class WebAppInterface {
         @JavascriptInterface
         @SuppressWarnings("unused")
-        public void processSelectedCards(String json) {
+        public void processSelectedCards(@NonNull String json) {
             requireActivity().runOnUiThread(() -> {
                 Log.d(TAG, "Selected cards JSON: " + json);
                 viewModel.getCurrentSource().getCardsFromSelection(json, (n, l, a, s, i) -> {
@@ -71,15 +70,13 @@ public class DefinitionFragment extends Fragment {
         }
     }
 
-    @Nullable
     @Override
-    public View onCreateView(
-            @NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_definition, container, false);
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
         ankiIntegration = new AnkiIntegration((Activity) requireContext());
@@ -133,8 +130,10 @@ public class DefinitionFragment extends Fragment {
             public void onTabReselected(TabLayout.Tab tab) {}
         });
 
-        TabLayout.Tab examplesTab = noteTypeTabLayout.getTabAt(1);
-        if (examplesTab != null) examplesTab.select();
+        var examplesTab = noteTypeTabLayout.getTabAt(1);
+        if (examplesTab != null) {
+            examplesTab.select();
+        }
     }
 
     private void configureWebView() {
@@ -150,17 +149,17 @@ public class DefinitionFragment extends Fragment {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-                String url = request.getUrl().toString();
+                var url = request.getUrl().toString();
                 if (url.startsWith("app://fetch/")) {
-                    String word = Uri.decode(url.substring("app://fetch/".length()));
+                    var word = Uri.decode(url.substring("app://fetch/".length()));
                     ((MainActivity) requireActivity()).fetchDefinition(word);
                     return true;
                 } else if (url.startsWith("app://play/")) {
-                    String audioUrl = Uri.decode(url.substring("app://play/".length()));
+                    var audioUrl = Uri.decode(url.substring("app://play/".length()));
                     playAudio(audioUrl);
                     return true;
                 } else if (url.startsWith("http://") || url.startsWith("https://")) {
-                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                    var intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                     startActivity(intent);
                     return true;
                 }
@@ -171,7 +170,7 @@ public class DefinitionFragment extends Fragment {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
                 injectCheckboxListener();
-                String mode = noteTypeTabLayout.getSelectedTabPosition() == 0 ? "definitions" : "examples";
+                var mode = noteTypeTabLayout.getSelectedTabPosition() == 0 ? "definitions" : "examples";
                 webView.evaluateJavascript("setMode('" + mode + "')", null);
             }
         });
@@ -200,7 +199,7 @@ public class DefinitionFragment extends Fragment {
     }
 
     private void injectCheckboxListener() {
-        String js = "document.addEventListener('change', function(e) {"
+        var js = "document.addEventListener('change', function(e) {"
                 + "  if (e.target.classList.contains('example-checkbox') || e.target.classList.contains('sense-checkbox')) {"
                 + "    var count = document.querySelectorAll('input.example-checkbox:checked, input.sense-checkbox:checked').length;"
                 + "    Android.updateSelectedCount(count);"
@@ -213,7 +212,7 @@ public class DefinitionFragment extends Fragment {
         webView.evaluateJavascript(viewModel.getCurrentSource().getExtractionJs(), null);
     }
 
-    public void loadHtml(String html) {
+    public void loadHtml(@NonNull String html) {
         if (webView != null) {
             webView.loadDataWithBaseURL("https://en.wiktionary.org/", html, "text/html", "UTF-8", null);
         }

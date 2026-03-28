@@ -56,19 +56,6 @@ public abstract sealed class AbstractAnkiNote<I extends AbstractAnkiNote.Input> 
         return cardTypes.stream().map(CardType::backTemplate).toArray(String[]::new);
     }
 
-    /*
-     * Converts a list of TranslationCards into a list of Anki note fields.
-     *
-     * @param cards The cards to convert.
-     * @param actualFieldNames The actual field names from AnkiDroid (handles user reordering).
-     * @param audioProcessor A function that processes audio for a card and returns the [sound:...] tag.
-     * @return A list of field arrays, one for each Anki note to be created.
-     *
-    public abstract List<String[]> toFieldsList(
-            List<TranslationCard> cards,
-            String[] actualFieldNames,
-            Function<TranslationCard, String> audioProcessor);*/
-
     public List<String[]> generateFields(
             @NonNull Language learningLanguage,
             @NonNull Language nativeLanguage,
@@ -88,10 +75,10 @@ public abstract sealed class AbstractAnkiNote<I extends AbstractAnkiNote.Input> 
             String sourceUrl,
             @NonNull String[] actualFieldNames,
             @NonNull I card) {
-        String[] fields = new String[actualFieldNames.length];
+        var fields = new String[actualFieldNames.length];
 
         for (CardField<I> field : getCardFields()) {
-            int index = getFieldIndex(actualFieldNames, field.fieldName());
+            var index = getFieldIndex(actualFieldNames, field.fieldName());
             if (field.isAudio()) {
                 fields[index] = audio;
             } else {
@@ -117,7 +104,7 @@ public abstract sealed class AbstractAnkiNote<I extends AbstractAnkiNote.Input> 
         return Jsoup.clean(html, Safelist.none().addTags("b", "br"));
     }
 
-    protected static int getFieldIndex(String[] actualFieldNames, String fieldName) {
+    protected static int getFieldIndex(@NonNull String[] actualFieldNames, @NonNull String fieldName) {
         for (int i = 0; i < actualFieldNames.length; i++) {
             if (actualFieldNames[i].equals(fieldName)) {
                 return i;
@@ -127,7 +114,7 @@ public abstract sealed class AbstractAnkiNote<I extends AbstractAnkiNote.Input> 
                 String.format("Field name '%s' not found in list: %s", fieldName, List.of(actualFieldNames)));
     }
 
-    record CardType(String name, String frontTemplate, String backTemplate) {}
+    record CardType(@NonNull String name, @NonNull String frontTemplate, @NonNull String backTemplate) {}
 
     sealed interface CardField<I extends Input>
             permits DictionaryNote.IndexedField, DictionaryNote.NonIndexedField, TextNote.Field {

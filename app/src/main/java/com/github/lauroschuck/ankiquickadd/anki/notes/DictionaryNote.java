@@ -44,7 +44,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
                 .collect(Collectors.toList());
     }
 
-    public DictionaryNote(CardAssets assets) {
+    public DictionaryNote(@NonNull CardAssets assets) {
         super(
                 "ankiquickadd.DictionaryDefinitionV49",
                 generateFieldNames(),
@@ -153,7 +153,8 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
         }
     }
 
-    record IndexedField(int index, String fieldName, FieldFunction<Input> valueGenerator) implements CardField<Input> {}
+    record IndexedField(int index, @NonNull String fieldName, FieldFunction<Input> valueGenerator)
+            implements CardField<Input> {}
 
     public record Input(@NonNull String headword, String lexicalCategory, @NonNull List<Definition> definitions)
             implements AbstractAnkiNote.Input {
