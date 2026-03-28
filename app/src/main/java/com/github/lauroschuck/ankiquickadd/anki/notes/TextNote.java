@@ -1,7 +1,6 @@
 package com.github.lauroschuck.ankiquickadd.anki.notes;
 
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.NonNull;
@@ -53,24 +52,24 @@ public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
     }
 
     enum Field implements CardField<Input> {
-        LEARNING_TEXT("LearningText", input -> cleanHtml(input.learningText())),
-        ALT_LEARNING_TEXT("AltLearningText", input -> null),
-        LEARNING_LANG("LearningLang", Input::learningLang),
-        NATIVE_TEXT("NativeText", input -> cleanHtml(input.nativeText())),
-        ALT_NATIVE_TEXT("AltNativeText", input -> null),
-        NATIVE_LANG("NativeLang", Input::nativeLang),
-        LEXICAL_CAT("LexicalCat", Input::lexicalCategory),
-        LEARNING_WORD("LearningWord", Input::headword),
-        DEFINITION("Definition", Input::definition),
-        PERSONAL_NOTES("PersonalNotes", input -> null),
-        HIDDEN_NOTES("HiddenNotes", input -> null),
-        AUDIO("Audio", Input::audioUrl),
-        SOURCE_URL("SourceUrl", Input::sourceUrl);
+        LEARNING_TEXT("LearningText", (l, n, s, i) -> cleanHtml(i.learningText())),
+        ALT_LEARNING_TEXT("AltLearningText", (l, n, s, i) -> null),
+        LEARNING_LANG("LearningLang", (l, n, s, i) -> l.getDisplayName()),
+        NATIVE_TEXT("NativeText", (l, n, s, i) -> cleanHtml(i.nativeText())),
+        ALT_NATIVE_TEXT("AltNativeText", (l, n, s, i) -> null),
+        NATIVE_LANG("NativeLang", (l, n, s, i) -> n.getDisplayName()),
+        LEXICAL_CAT("LexicalCat", (l, n, s, i) -> i.lexicalCategory()),
+        LEARNING_WORD("LearningWord", (l, n, s, i) -> i.headword()),
+        DEFINITION("Definition", (l, n, s, i) -> i.definition()),
+        PERSONAL_NOTES("PersonalNotes", (l, n, s, i) -> null),
+        HIDDEN_NOTES("HiddenNotes", (l, n, s, i) -> null),
+        AUDIO("Audio", null),
+        SOURCE_URL("SourceUrl", (l, n, s, i) -> s);
 
         private final String fieldName;
-        private final Function<Input, String> generator;
+        private final FieldFunction<Input> generator;
 
-        Field(String fieldName, Function<Input, String> generator) {
+        Field(String fieldName, FieldFunction<Input> generator) {
             this.fieldName = fieldName;
             this.generator = generator;
         }
@@ -81,7 +80,7 @@ public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
         }
 
         @Override
-        public Function<Input, String> valueGenerator() {
+        public FieldFunction<Input> valueGenerator() {
             return generator;
         }
 
@@ -94,18 +93,8 @@ public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
     public record Input(
             String headword,
             @NonNull String learningText,
-            @NonNull String learningLang,
             @NonNull String nativeText,
-            @NonNull String nativeLang,
             String definition,
-            String lexicalCategory,
-            String audioUrl,
-            String sourceUrl)
-            implements AbstractAnkiNote.Input {
-
-        @Override
-        public String getHeadword() {
-            return headword;
-        }
-    }
+            String lexicalCategory)
+            implements AbstractAnkiNote.Input {}
 }

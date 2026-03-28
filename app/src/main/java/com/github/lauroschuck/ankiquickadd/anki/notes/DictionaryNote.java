@@ -21,19 +21,26 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
                         new IndexedField(
                                 index,
                                 String.format(Locale.US, "Definition%d", index),
-                                card -> cleanHtml(getPotentialField(card, index - 1, Input.Definition::definition))),
+                                (l, n, s, i) ->
+                                        cleanHtml(getPotentialField(i, index - 1, Input.Definition::definition))),
                         new IndexedField(
                                 index,
                                 String.format(Locale.US, "Definition%d_LearningText", index),
-                                card -> cleanHtml(getPotentialField(card, index - 1, Input.Definition::learningText))),
+                                (l, n, s, i) ->
+                                        cleanHtml(getPotentialField(i, index - 1, Input.Definition::learningText))),
                         new IndexedField(
-                                index, String.format(Locale.US, "Definition%d_AltLearningText", index), card -> null),
+                                index,
+                                String.format(Locale.US, "Definition%d_AltLearningText", index),
+                                (l, n, s, i) -> null),
                         new IndexedField(
                                 index,
                                 String.format(Locale.US, "Definition%d_NativeText", index),
-                                card -> cleanHtml(getPotentialField(card, index - 1, Input.Definition::nativeText))),
+                                (l, n, s, i) ->
+                                        cleanHtml(getPotentialField(i, index - 1, Input.Definition::nativeText))),
                         new IndexedField(
-                                index, String.format(Locale.US, "Definition%d_AltNativeText", index), card -> null)))
+                                index,
+                                String.format(Locale.US, "Definition%d_AltNativeText", index),
+                                (l, n, s, i) -> null)))
                 .collect(Collectors.toList());
     }
 
@@ -112,20 +119,20 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
     }
 
     enum NonIndexedField implements CardField<Input> {
-        ID("Id", input -> String.format("%s-%s-%s", input.learningLang(), input.nativeLang(), input.headword())),
-        LEARNING_WORD("LearningWord", Input::headword),
-        LEARNING_LANG("LearningLang", Input::learningLang),
-        LEXICAL_CAT("LexicalCat", Input::lexicalCategory),
-        NATIVE_LANG("NativeLang", Input::nativeLang),
-        PERSONAL_NOTES("PersonalNotes", input -> null),
-        HIDDEN_NOTES("HiddenNotes", input -> null),
-        AUDIO("Audio", Input::audioUrl),
-        SOURCE_URL("SourceUrl", Input::sourceUrl);
+        ID("Id", (l, n, s, i) -> String.format("%s-%s-%s", l.getDisplayName(), n.getDisplayName(), i.headword())),
+        LEARNING_WORD("LearningWord", (l, n, s, i) -> i.headword),
+        LEARNING_LANG("LearningLang", (l, n, s, i) -> l.getDisplayName()),
+        LEXICAL_CAT("LexicalCat", (l, n, s, i) -> i.lexicalCategory()),
+        NATIVE_LANG("NativeLang", (l, n, s, i) -> n.getDisplayName()),
+        PERSONAL_NOTES("PersonalNotes", (l, n, s, i) -> null),
+        HIDDEN_NOTES("HiddenNotes", (l, n, s, i) -> null),
+        AUDIO("Audio", null),
+        SOURCE_URL("SourceUrl", (l, n, s, i) -> s);
 
         private final String fieldName;
-        private final Function<Input, String> generator;
+        private final FieldFunction<Input> generator;
 
-        NonIndexedField(String fieldName, Function<Input, String> generator) {
+        NonIndexedField(String fieldName, FieldFunction<Input> generator) {
             this.fieldName = fieldName;
             this.generator = generator;
         }
@@ -136,7 +143,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
         }
 
         @Override
-        public Function<Input, String> valueGenerator() {
+        public FieldFunction<Input> valueGenerator() {
             return generator;
         }
 
@@ -146,33 +153,15 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
         }
     }
 
-    record IndexedField(int index, String fieldName, Function<Input, String> valueGenerator)
-            implements CardField<Input> {
-        @Override
-        public boolean isAudio() {
-            return false;
-        }
-    }
+    record IndexedField(int index, String fieldName, FieldFunction<Input> valueGenerator) implements CardField<Input> {}
 
-    public record Input(
-            @NonNull String headword,
-            @NonNull String learningLang,
-            @NonNull String nativeLang,
-            String lexicalCategory,
-            @NonNull List<Definition> definitions,
-            String audioUrl,
-            String sourceUrl)
+    public record Input(@NonNull String headword, String lexicalCategory, @NonNull List<Definition> definitions)
             implements AbstractAnkiNote.Input {
 
         public Input {
             if (definitions.isEmpty()) {
                 throw new IllegalArgumentException("Empty definitions");
             }
-        }
-
-        @Override
-        public String getHeadword() {
-            return headword;
         }
 
         public record Definition(@NonNull String definition, String learningText, String nativeText) {}

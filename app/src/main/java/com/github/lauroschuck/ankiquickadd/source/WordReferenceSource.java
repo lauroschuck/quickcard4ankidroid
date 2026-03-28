@@ -46,10 +46,6 @@ public class WordReferenceSource implements DictionarySource {
     }
 
     @Override
-    public void fetchMore(
-            String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener) {}
-
-    @Override
     public String getExtractionJs() {
         return """
                 (() => {
@@ -92,7 +88,8 @@ public class WordReferenceSource implements DictionarySource {
 
     @Override
     public void getCardsFromSelection(String json, OnCardsReadyListener listener) {
-        listener.onCardsReady(TranslationCard.fromJson(json));
+        // TODO pending
+        listener.onCardsReady(null, null, null, null, TranslationCard.fromJson(json));
     }
 
     private void processResponse(String html, String word, OnResultListener listener) {

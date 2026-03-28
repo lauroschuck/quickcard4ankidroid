@@ -51,7 +51,7 @@ public class ReversoSource implements DictionarySource {
         });
     }
 
-    @Override
+    // @Override
     public void fetchMore(
             String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener) {
         // Reverso Context API endpoint for more examples
@@ -151,7 +151,8 @@ public class ReversoSource implements DictionarySource {
 
     @Override
     public void getCardsFromSelection(String json, OnCardsReadyListener listener) {
-        listener.onCardsReady(TranslationCard.fromJson(json));
+        // TODO pending
+        listener.onCardsReady(null, null, null, null, TranslationCard.fromJson(json));
     }
 
     private void processResponse(String html, String word, OnResultListener listener) {

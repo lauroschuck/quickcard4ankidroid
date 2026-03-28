@@ -1,5 +1,6 @@
 package com.github.lauroschuck.ankiquickadd.anki;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
@@ -8,111 +9,92 @@ import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
-import com.github.lauroschuck.ankiquickadd.MainActivity;
 import com.github.lauroschuck.ankiquickadd.R;
 import com.github.lauroschuck.ankiquickadd.anki.notes.AbstractAnkiNote;
+import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.google.android.material.snackbar.Snackbar;
 import com.ichi2.anki.api.AddContentApi;
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
-import org.jsoup.Jsoup;
-import org.jsoup.safety.Safelist;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 /**
  * Handles the integration with AnkiDroid for creating language flashcards.
  */
-public class AnkiIntegration<N extends AbstractAnkiNote<I>, I extends AbstractAnkiNote.Input> {
+public class AnkiIntegration {
 
     private static final String TAG = "AnkiIntegration";
     private static final int AD_PERM_REQUEST = 0;
-    private static final String DECK_NAME = "Anki Quick Add::Swedish-English";
+    private static final String DECK_NAME_TEMPLATE = "Anki Quick Add::%s-%s";
 
-    private final AnkiDroidHelper mAnkiDroid;
-    private final MainActivity context;
-    //    private final DictionaryNote dictionaryNote;
-    private final N note;
-    //    private final TextNote textNote;
+    private static final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-    public AnkiIntegration(@NonNull MainActivity context, @NonNull N note) {
+    private final AnkiDroidHelper ankiDroidHelper;
+    private final Activity context;
+
+    public AnkiIntegration(@NonNull Activity context) {
         this.context = context;
-        this.mAnkiDroid = new AnkiDroidHelper(context);
-        //        this.dictionaryNote = dictionaryNote;
-        //        this.textNote = textNote;
-        this.note = note;
-        if (mAnkiDroid.shouldRequestPermission()) {
-            mAnkiDroid.requestPermission(context, AD_PERM_REQUEST);
+        this.ankiDroidHelper = new AnkiDroidHelper(context);
+        if (ankiDroidHelper.shouldRequestPermission()) {
+            ankiDroidHelper.requestPermission(context, AD_PERM_REQUEST);
         }
     }
 
-    public static <N extends AbstractAnkiNote<I>, I extends AbstractAnkiNote.Input> void createAnkiCards(
-            MainActivity context, N note, List<I> cards) {
-        if (cards == null || cards.isEmpty()) {
+    public <N extends AbstractAnkiNote<I>, I extends AbstractAnkiNote.Input> void addCards(
+            @NonNull Language learningLanguage,
+            @NonNull Language nativeLanguage,
+            String audioUrl,
+            String sourceUrl,
+            @NonNull N note,
+            @NonNull List<I> cards) {
+        if (cards.isEmpty()) {
             showSnackbar(context, "No cards selected.", true);
             return;
         }
-        new Thread(() -> new AnkiIntegration(context, note).addCardsToAnkiDroid(cards)).start();
-    }
 
-    private void addCardsToAnkiDroid(final List<I> data) {
-        Long deckId = getDeckId();
-        Long modelId = getModelId(note);
+        executorService.execute(() -> {
+            var deckName = String.format(
+                    DECK_NAME_TEMPLATE, learningLanguage.getDisplayName(), nativeLanguage.getDisplayName());
+            var deckId = getDeckId(deckName);
+            var modelId = getModelId(deckId, note);
 
-        if (deckId == null || modelId == null) {
-            showSnackbar(context, "Card add failed: API Error", true);
-            return;
-        }
-
-        String[] actualFieldNames = mAnkiDroid.getApi().getFieldList(modelId);
-        if (actualFieldNames == null) {
-            showSnackbar(context, "Card add failed: Model Error", true);
-            return;
-        }
-
-        var audioCache = new HashMap<String, String>();
-
-        List<String[]> fieldsList = note.generateFields(
-                actualFieldNames,
-                data,
-                (card, audioUrl) -> audioCache.computeIfAbsent(audioUrl, headword -> processAudio(audioUrl)));
-
-        LinkedList<Set<String>> tagsList = new LinkedList<>();
-        for (int i = 0; i < fieldsList.size(); i++) {
-            tagsList.add(note.getTags());
-        }
-
-        mAnkiDroid.removeDuplicates(fieldsList, tagsList, modelId);
-        int added = mAnkiDroid.getApi().addNotes(modelId, deckId, fieldsList, tagsList);
-
-        if (added != 0) {
-            showSnackbar(context, "Successfully sent " + added + " cards to Anki", false);
-        } else {
-            showSnackbar(context, "Card add failed: No notes added", true);
-        }
-    }
-
-    private void sanitizeFields(String[] fields) {
-        for (int i = 0; i < fields.length; i++) {
-            if (fields[i] == null) {
-                fields[i] = "";
+            var actualFieldNames = ankiDroidHelper.getApi().getFieldList(modelId);
+            if (actualFieldNames == null) {
+                showSnackbar(context, "Card add failed: Model Error", true);
+                return;
             }
-        }
-    }
 
-    private String cleanHtml(String html) {
-        if (html == null || html.isEmpty()) return "";
-        // Allow only <b> and <br> tags. Strips links and other tags.
-        return Jsoup.clean(html, Safelist.none().addTags("b", "br"));
+            var audio = audioUrl == null ? null : processAudio(audioUrl);
+
+            List<String[]> fieldsList =
+                    note.generateFields(learningLanguage, nativeLanguage, audio, sourceUrl, actualFieldNames, cards);
+
+            LinkedList<Set<String>> tagsList = new LinkedList<>();
+            for (int i = 0; i < fieldsList.size(); i++) {
+                tagsList.add(note.getTags());
+            }
+
+            ankiDroidHelper.removeDuplicates(fieldsList, tagsList, modelId);
+            int added = ankiDroidHelper.getApi().addNotes(modelId, deckId, fieldsList, tagsList);
+
+            if (added > 0) {
+                showSnackbar(context, "Successfully sent " + added + " cards to Anki", false);
+            } else {
+                showSnackbar(context, "Card add failed: No notes added", true);
+            }
+        });
     }
 
     private String processAudio(String audioUrl) {
@@ -121,8 +103,8 @@ public class AnkiIntegration<N extends AbstractAnkiNote<I>, I extends AbstractAn
             // TODO some handling for this
             return null;
         }
-        if (ankiPkg.startsWith("//")) {
-            ankiPkg = "https:" + ankiPkg;
+        if (audioUrl.startsWith("//")) {
+            audioUrl = "https:" + audioUrl;
         }
 
         try {
@@ -132,7 +114,7 @@ public class AnkiIntegration<N extends AbstractAnkiNote<I>, I extends AbstractAn
 
             context.grantUriPermission(ankiPkg, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
             try {
-                String internalName = mAnkiDroid.getApi().addMediaFromUri(uri, fileName, "audio");
+                String internalName = ankiDroidHelper.getApi().addMediaFromUri(uri, fileName, "audio");
                 if (internalName != null) {
                     return internalName;
                 }
@@ -148,55 +130,71 @@ public class AnkiIntegration<N extends AbstractAnkiNote<I>, I extends AbstractAn
     }
 
     private File downloadFile(String urlString, String fileName) throws IOException {
-        URL url = new URL(urlString);
-        URLConnection connection = url.openConnection();
-        connection.setConnectTimeout(10000);
-        connection.setReadTimeout(10000);
-        connection.connect();
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
+                .build();
 
-        File file = new File(context.getCacheDir(), fileName);
-        try (InputStream input = new BufferedInputStream(url.openStream(), 8192);
-                FileOutputStream output = new FileOutputStream(file)) {
-            byte[] buffer = new byte[1024];
-            int count;
-            while ((count = input.read(buffer)) != -1) {
-                output.write(buffer, 0, count);
+        Request request = new Request.Builder()
+                .url(urlString)
+                .header("User-Agent", "SwedishAnkiQuickAdd/1.0 (https://github.com/lauroschuck/ankiquickadd)")
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful() || response.body() == null) {
+                throw new IOException("Failed to download file: " + response);
             }
-            output.flush();
+
+            File file = new File(context.getCacheDir(), fileName);
+            try (InputStream input = response.body().byteStream();
+                    FileOutputStream output = new FileOutputStream(file)) {
+                byte[] buffer = new byte[1024];
+                int count;
+                while ((count = input.read(buffer)) != -1) {
+                    output.write(buffer, 0, count);
+                }
+                output.flush();
+            }
+            return file;
         }
-        return file;
     }
 
-    private Long getDeckId() {
-        Long did = mAnkiDroid.findDeckIdByName(DECK_NAME);
+    private long getDeckId(String deckName) {
+        var did = ankiDroidHelper.findDeckIdByName(deckName);
         if (did == null) {
-            did = mAnkiDroid.getApi().addNewDeck(DECK_NAME);
-            mAnkiDroid.storeDeckReference(DECK_NAME, did);
+            did = ankiDroidHelper.getApi().addNewDeck(deckName);
+            if (did == null) {
+                throw new IllegalStateException(String.format("Could not add deck '%s'", deckName));
+            }
+            ankiDroidHelper.storeDeckReference(deckName, did);
         }
         return did;
     }
 
-    private Long getModelId(AbstractAnkiNote note) {
-        Long mid = mAnkiDroid.findModelIdByName(
+    private <N extends AbstractAnkiNote<I>, I extends AbstractAnkiNote.Input> long getModelId(long deckId, N note) {
+        Long mid = ankiDroidHelper.findModelIdByName(
                 note.getModelName(), note.getFieldNames().size());
         if (mid == null) {
-            mid = mAnkiDroid
+            mid = ankiDroidHelper
                     .getApi()
                     .addNewCustomModel(
                             note.getModelName(),
-                            (String[]) note.getFieldNames().toArray(new String[] {}),
+                            note.getFieldNames().toArray(new String[] {}),
                             note.getCardNames(),
                             note.getQuestionTemplates(),
                             note.getAnswerTemplates(),
                             note.getCss(),
-                            getDeckId(),
+                            deckId,
                             null);
-            mAnkiDroid.storeModelReference(note.getModelName(), mid);
+            if (mid == null) {
+                throw new IllegalStateException(String.format("Could not add model '%s'", note.getModelName()));
+            }
+            ankiDroidHelper.storeModelReference(note.getModelName(), mid);
         }
         return mid;
     }
 
-    private static void showSnackbar(MainActivity activity, String message, boolean isError) {
+    private static void showSnackbar(Activity activity, String message, boolean isError) {
         activity.runOnUiThread(() -> {
             View rootView = activity.findViewById(android.R.id.content);
             if (rootView != null) {

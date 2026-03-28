@@ -20,8 +20,9 @@ public interface DictionarySource<N extends AbstractAnkiNote<I>, I extends Abstr
     /**
      * Interface for listener to receive selected cards.
      */
-    interface OnCardsReadyListener<I> {
-        void onCardsReady(List<I> cards);
+    interface OnCardsReadyListener<I extends AbstractAnkiNote.Input> {
+        void onCardsReady(
+                Language learningLanguage, Language nativeLanguage, String audioUrl, String sourceUrl, List<I> inputs);
     }
 
     /**
@@ -32,17 +33,6 @@ public interface DictionarySource<N extends AbstractAnkiNote<I>, I extends Abstr
      * @param listener the listener to receive the results
      */
     void fetch(String word, Language learningLanguage, Language nativeLanguage, OnResultListener listener);
-
-    /**
-     * Fetches more examples if available.
-     * @param word the word to look up
-     * @param learningLanguage the learning language
-     * @param nativeLanguage the native language
-     * @param page the page number to fetch
-     * @param listener the listener to receive results (HTML fragment or JSON)
-     */
-    void fetchMore(
-            String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener);
 
     /**
      * Returns the JavaScript code to extract card data or IDs from the rendered HTML.

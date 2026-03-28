@@ -25,11 +25,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.NonNull;
 
 public class OfflineKaikkiSource implements DictionarySource<DictionaryNote, DictionaryNote.Input> {
     private static final String TAG = "OfflineKaikkiSource";
@@ -347,7 +347,8 @@ public class OfflineKaikkiSource implements DictionarySource<DictionaryNote, Dic
         throw new IllegalStateException("No language name found for " + language.getIsoCode());
     }
 
-    private static String assembleWiktionaryLink(String headword, Language nativeLanguage, String anchor) {
+    private static String assembleWiktionaryLink(
+            @NonNull String headword, @NonNull Language nativeLanguage, @NonNull String anchor) {
         try {
             String encodedWord = URLEncoder.encode(headword, "UTF-8");
             String encodedAnchor = URLEncoder.encode(anchor.replace(" ", "_"), "UTF-8");
@@ -359,10 +360,6 @@ public class OfflineKaikkiSource implements DictionarySource<DictionaryNote, Dic
                     String.format("Failed to construct link for %s in %s-%s", headword, anchor, nativeLanguage), e);
         }
     }
-
-    @Override
-    public void fetchMore(
-            String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener) {}
 
     private String applyLinks(String text, long entryId, SQLiteDatabase db) {
         String query =
@@ -433,8 +430,10 @@ public class OfflineKaikkiSource implements DictionarySource<DictionaryNote, Dic
             String mode = obj.has("mode") ? obj.get("mode").getAsString() : "examples";
 
             if (lastLearningLanguage == null || lastNativeLanguage == null) {
-                listener.onCardsReady(new ArrayList<>());
-                return;
+                //                listener.onCardsReady(new ArrayList<>());
+                //                return;
+                throw new IllegalArgumentException(
+                        String.format("No language pair: %s-%s", lastLearningLanguage, lastNativeLanguage));
             }
 
             String dbName = String.format(
@@ -444,8 +443,9 @@ public class OfflineKaikkiSource implements DictionarySource<DictionaryNote, Dic
 
             File dbFile = context.getDatabasePath(dbName);
             if (!dbFile.exists()) {
-                listener.onCardsReady(new ArrayList<>());
-                return;
+                //                listener.onCardsReady(new ArrayList<>());
+                //                return;
+                throw new IllegalArgumentException("Offline database not found: " + dbName);
             }
 
             try (SQLiteDatabase db =
@@ -453,10 +453,16 @@ public class OfflineKaikkiSource implements DictionarySource<DictionaryNote, Dic
                 if (mode.equals("examples")) {
                     JsonArray exampleIds = obj.getAsJsonArray("examples");
                     List<TextNote.Input> cards = new ArrayList<>();
+                    String headword = null;
                     for (JsonElement idElem : exampleIds) {
-                        cards.add(fetchCardForExample(db, idElem.getAsLong()));
+                        var card = fetchCardForExample(db, idElem.getAsLong());
+                        headword = card.headword();
+                        cards.add(card);
                     }
-                    listener.onCardsReady(cards);
+                    var audioUrl = fetchAudioUrl(db, headword);
+                    var sourceUrl = assembleWiktionaryLink(
+                            headword, lastNativeLanguage, getLanguageName(db, lastLearningLanguage));
+                    listener.onCardsReady(lastLearningLanguage, lastNativeLanguage, audioUrl, sourceUrl, cards);
                 } else {
                     JsonArray entries = obj.getAsJsonArray("entries");
                     Map<Long, Long> entryMap = new LinkedHashMap<>();
@@ -465,16 +471,23 @@ public class OfflineKaikkiSource implements DictionarySource<DictionaryNote, Dic
                         long entryId = entry.get("entryId").getAsLong();
                         JsonElement exIdElem = entry.get("exampleId");
                         Long exampleId = (exIdElem == null || exIdElem.isJsonNull()) ? null : exIdElem.getAsLong();
-                        // cards.add(fetchCardForDefinition(db, entryId, exampleId));
                         entryMap.put(entryId, exampleId);
                     }
                     List<DictionaryNote.Input> cards = fetchCardForDefinition(db, entryMap);
-                    listener.onCardsReady(cards);
+                    var headword = cards.stream()
+                            .findFirst()
+                            .map(DictionaryNote.Input::headword)
+                            .orElseThrow();
+                    var audioUrl = fetchAudioUrl(db, headword);
+                    var sourceUrl = assembleWiktionaryLink(
+                            headword, lastNativeLanguage, getLanguageName(db, lastLearningLanguage));
+                    listener.onCardsReady(lastLearningLanguage, lastNativeLanguage, audioUrl, sourceUrl, cards);
                 }
             }
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             Log.e(TAG, "Error generating cards from selection", e);
-            listener.onCardsReady(new ArrayList<>());
+            //            listener.onCardsReady(new ArrayList<>());
+            throw e;
         }
     }
 
@@ -489,7 +502,7 @@ public class OfflineKaikkiSource implements DictionarySource<DictionaryNote, Dic
             if (!cursor.moveToFirst()) {
                 throw new IllegalStateException("Example not found: " + exId);
             }
-            ;
+
             var learningTextRaw = cursor.getString(0);
             var nativeTextRaw = cursor.getString(1);
             var lexicalCategory = cursor.getString(2);
@@ -498,19 +511,22 @@ public class OfflineKaikkiSource implements DictionarySource<DictionaryNote, Dic
 
             var learningText = applyBolding(learningTextRaw, exId, "L", db);
             var nativeText = applyBolding(nativeTextRaw, exId, "N", db);
-            var audioUrl = fetchAudioUrl(db, headword);
+            //            var audioUrl = fetchAudioUrl(db, headword);
             var glosses = fetchGlosses(db, entryId);
 
             return new TextNote.Input(
                     headword,
                     learningText,
-                    lastLearningLanguage.getIsoCode().toLowerCase(Locale.ENGLISH),
+                    //                    lastLearningLanguage.getIsoCode().toLowerCase(Locale.ENGLISH),
                     nativeText,
-                    lastNativeLanguage.getIsoCode().toLowerCase(Locale.ENGLISH),
+                    //                    lastNativeLanguage.getIsoCode().toLowerCase(Locale.ENGLISH),
                     glosses,
-                    lexicalCategory,
-                    audioUrl,
-                    assembleWiktionaryLink(headword, lastNativeLanguage, getLanguageName(db, lastLearningLanguage)));
+                    lexicalCategory
+                    //                    ,
+                    //                    audioUrl,
+                    //                    assembleWiktionaryLink(headword, lastNativeLanguage, getLanguageName(db,
+                    // lastLearningLanguage))
+                    );
         }
     }
 
@@ -552,13 +568,16 @@ public class OfflineKaikkiSource implements DictionarySource<DictionaryNote, Dic
                 }
                 var input = new DictionaryNote.Input(
                         headword,
-                        lastLearningLanguage.getIsoCode().toLowerCase(Locale.ENGLISH),
-                        lastNativeLanguage.getIsoCode().toLowerCase(Locale.ENGLISH),
+                        //                        lastLearningLanguage.getIsoCode().toLowerCase(Locale.ENGLISH),
+                        //                        lastNativeLanguage.getIsoCode().toLowerCase(Locale.ENGLISH),
                         lexicalCategory,
-                        List.of(definition),
-                        fetchAudioUrl(db, headword),
-                        assembleWiktionaryLink(
-                                headword, lastNativeLanguage, getLanguageName(db, lastLearningLanguage)));
+                        List.of(definition)
+                        //                        ,
+                        //                        fetchAudioUrl(db, headword),
+                        //                        assembleWiktionaryLink(
+                        //                                headword, lastNativeLanguage, getLanguageName(db,
+                        // lastLearningLanguage))
+                        );
                 Log.d(TAG, String.format("Intermediary input: %s", input));
                 flattenedCards.add(input);
             }
@@ -575,12 +594,14 @@ public class OfflineKaikkiSource implements DictionarySource<DictionaryNote, Dic
                     var firstInput = inputs.get(0);
                     var input = new DictionaryNote.Input(
                             firstInput.headword(),
-                            firstInput.learningLang(),
-                            firstInput.nativeLang(),
+                            //                            firstInput.learningLang(),
+                            //                            firstInput.nativeLang(),
                             firstInput.lexicalCategory(),
-                            definitions,
-                            firstInput.audioUrl(),
-                            firstInput.sourceUrl());
+                            definitions
+                            //                            ,
+                            //                            firstInput.audioUrl(),
+                            //                            firstInput.sourceUrl()
+                            );
                     Log.d(TAG, String.format("Condensed input: %s", input));
                     return input;
                 })

@@ -1,5 +1,6 @@
 package com.github.lauroschuck.ankiquickadd;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
@@ -35,6 +36,7 @@ public class DefinitionFragment extends Fragment {
     private TextView badgeText;
     private TabLayout noteTypeTabLayout;
     private MediaPlayer mediaPlayer;
+    private AnkiIntegration ankiIntegration;
 
     public class WebAppInterface {
         @JavascriptInterface
@@ -42,16 +44,15 @@ public class DefinitionFragment extends Fragment {
         public void processSelectedCards(String json) {
             requireActivity().runOnUiThread(() -> {
                 Log.d(TAG, "Selected cards JSON: " + json);
-                viewModel.getCurrentSource().getCardsFromSelection(json, cards -> {
+                viewModel.getCurrentSource().getCardsFromSelection(json, (n, l, a, s, i) -> {
                     requireActivity().runOnUiThread(() -> {
                         if (AnkiDroidHelper.isApiAvailable(requireContext())) {
                             // These are usually initialized in MainActivity or provided via ViewModel
-                            MainActivity activity = (MainActivity) requireActivity();
-                            Log.d(TAG, "Selected cards: " + cards);
+                            var activity = (MainActivity) requireActivity();
+                            Log.d(TAG, "Selected cards: " + i);
                             switch (noteTypeTabLayout.getSelectedTabPosition()) {
-                                case 0 -> AnkiIntegration.createAnkiCards(
-                                        activity, activity.getDictionaryNote(), cards);
-                                case 1 -> AnkiIntegration.createAnkiCards(activity, activity.getTextNote(), cards);
+                                case 0 -> ankiIntegration.addCards(l, n, a, s, activity.getDictionaryNote(), i);
+                                case 1 -> ankiIntegration.addCards(l, n, a, s, activity.getTextNote(), i);
                                 default -> throw new RuntimeException(
                                         "Unknown note type for index " + noteTypeTabLayout.getSelectedTabPosition());
                             }
@@ -80,6 +81,9 @@ public class DefinitionFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        ankiIntegration = new AnkiIntegration((Activity) requireContext());
+
         viewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
 
         webView = view.findViewById(R.id.webView);

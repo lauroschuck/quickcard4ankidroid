@@ -1,10 +1,9 @@
 package com.github.lauroschuck.ankiquickadd.anki.notes;
 
 import com.github.lauroschuck.ankiquickadd.anki.AnkiException;
+import com.github.lauroschuck.ankiquickadd.model.Language;
 import java.util.List;
 import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NonNull;
@@ -71,21 +70,32 @@ public abstract sealed class AbstractAnkiNote<I extends AbstractAnkiNote.Input> 
             Function<TranslationCard, String> audioProcessor);*/
 
     public List<String[]> generateFields(
-            String[] actualFieldNames, List<I> cards, BiFunction<I, String, String> audioProcessingFunction) {
+            @NonNull Language learningLanguage,
+            @NonNull Language nativeLanguage,
+            String audio,
+            String sourceUrl,
+            @NonNull String[] actualFieldNames,
+            @NonNull List<I> cards) {
         return cards.stream()
-                .map(card -> generateFields(actualFieldNames, card, audioProcessingFunction))
+                .map(card -> generateFields(learningLanguage, nativeLanguage, audio, sourceUrl, actualFieldNames, card))
                 .collect(Collectors.toList());
     }
 
-    public String[] generateFields(
-            String[] actualFieldNames, I card, BiFunction<I, String, String> audioProcessingFunction) {
+    private String[] generateFields(
+            @NonNull Language learningLanguage,
+            @NonNull Language nativeLanguage,
+            String audio,
+            String sourceUrl,
+            @NonNull String[] actualFieldNames,
+            @NonNull I card) {
         String[] fields = new String[actualFieldNames.length];
 
         for (CardField<I> field : getCardFields()) {
             int index = getFieldIndex(actualFieldNames, field.fieldName());
-            fields[index] = field.valueGenerator().apply(card);
             if (field.isAudio()) {
-                fields[index] = audioProcessingFunction.apply(card, fields[index]);
+                fields[index] = audio;
+            } else {
+                fields[index] = field.valueGenerator().apply(learningLanguage, nativeLanguage, sourceUrl, card);
             }
         }
 
@@ -119,16 +129,21 @@ public abstract sealed class AbstractAnkiNote<I extends AbstractAnkiNote.Input> 
 
     record CardType(String name, String frontTemplate, String backTemplate) {}
 
-    sealed interface CardField<T> permits DictionaryNote.IndexedField, DictionaryNote.NonIndexedField, TextNote.Field {
+    sealed interface CardField<I extends Input>
+            permits DictionaryNote.IndexedField, DictionaryNote.NonIndexedField, TextNote.Field {
         String fieldName();
 
-        Function<T, String> valueGenerator();
+        FieldFunction<I> valueGenerator();
 
-        boolean isAudio();
+        default boolean isAudio() {
+            return false;
+        }
+
+        @FunctionalInterface
+        interface FieldFunction<I> {
+            String apply(Language learningLanguage, Language nativeLanguage, String sourceUrl, I input);
+        }
     }
 
-    public sealed interface Input permits DictionaryNote.Input, TextNote.Input {
-
-        String getHeadword();
-    }
+    public sealed interface Input permits DictionaryNote.Input, TextNote.Input {}
 }
