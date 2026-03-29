@@ -2,9 +2,13 @@ package com.github.lauroschuck.ankiquickadd.source;
 
 import android.net.Uri;
 import android.util.Log;
+import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
-import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
+import java.util.List;
+import lombok.NonNull;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
@@ -17,9 +21,13 @@ import org.jsoup.nodes.Element;
 public class WordReferenceSource implements DictionarySource {
     private static final String TAG = "WordReferenceSource";
     private final OkHttpClient client = new OkHttpClient();
+    private Language lastLearningLanguage;
+    private Language lastNativeLanguage;
 
     @Override
     public void fetch(String word, Language learningLanguage, Language nativeLanguage, OnResultListener listener) {
+        this.lastLearningLanguage = learningLanguage;
+        this.lastNativeLanguage = nativeLanguage;
         String langPair = learningLanguage.getIsoCode() + nativeLanguage.getIsoCode();
         String url = "https://www.wordreference.com/" + langPair + "/" + Uri.encode(word);
 
@@ -30,7 +38,7 @@ public class WordReferenceSource implements DictionarySource {
 
         client.newCall(request).enqueue(new Callback() {
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 if (!response.isSuccessful()) {
                     listener.onError("WordReference returned code " + response.code());
                     return;
@@ -39,7 +47,7 @@ public class WordReferenceSource implements DictionarySource {
             }
 
             @Override
-            public void onFailure(Call call, IOException e) {
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 listener.onError("Network error: " + e.getMessage());
             }
         });
@@ -64,7 +72,7 @@ public class WordReferenceSource implements DictionarySource {
 
                         if (!sourceTextEl || !nativeTextEl) return;
 
-                        const sourceText = sourceTextEl.innerHTML.trim();
+                        const learningText = sourceTextEl.innerHTML.trim();
                         const nativeText = nativeTextEl.innerHTML.trim();
 
                         // Find the definition (DS class) by looking back through preceding rows
@@ -79,7 +87,7 @@ public class WordReferenceSource implements DictionarySource {
                             curr = curr.previousElementSibling;
                         }
 
-                        cards.push({ headword, sourceText, nativeText, definition, lexicalCategory: 'WordReference' });
+                        cards.push({ headword, learningText, nativeText, definition, lexicalCategory: 'WordReference' });
                     });
 
                     Android.processSelectedCards(JSON.stringify(cards));
@@ -87,9 +95,15 @@ public class WordReferenceSource implements DictionarySource {
     }
 
     @Override
-    public void getCardsFromSelection(String json, OnCardsReadyListener listener) {
-        // TODO pending
-        listener.onCardsReady(null, null, null, null, TranslationCard.fromJson(json));
+    public SelectedTextCards getCardsFromSelection(String json) {
+        List<TextNote.Input> cards = new Gson().fromJson(json, new TypeToken<List<TextNote.Input>>() {}.getType());
+        String headword = cards.isEmpty() ? null : cards.get(0).headword();
+        String sourceUrl = null;
+        if (headword != null && lastLearningLanguage != null && lastNativeLanguage != null) {
+            String langPair = lastLearningLanguage.getIsoCode() + lastNativeLanguage.getIsoCode();
+            sourceUrl = "https://www.wordreference.com/" + langPair + "/" + Uri.encode(headword);
+        }
+        return new SelectedTextCards(lastLearningLanguage, lastNativeLanguage, null, sourceUrl, cards);
     }
 
     private void processResponse(String html, String word, OnResultListener listener) {

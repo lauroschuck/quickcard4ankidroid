@@ -21,6 +21,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiDroidHelper;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;
+import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import java.io.IOException;
@@ -43,21 +44,30 @@ public class DefinitionFragment extends Fragment {
         public void processSelectedCards(@NonNull String json) {
             requireActivity().runOnUiThread(() -> {
                 Log.d(TAG, "Selected cards JSON: " + json);
-                viewModel.getCurrentSource().getCardsFromSelection(json, (n, l, a, s, i) -> {
-                    requireActivity().runOnUiThread(() -> {
-                        if (AnkiDroidHelper.isApiAvailable(requireContext())) {
-                            // These are usually initialized in MainActivity or provided via ViewModel
-                            var activity = (MainActivity) requireActivity();
-                            Log.d(TAG, "Selected cards: " + i);
-                            switch (noteTypeTabLayout.getSelectedTabPosition()) {
-                                case 0 -> ankiIntegration.addCards(l, n, a, s, activity.getDictionaryNote(), i);
-                                case 1 -> ankiIntegration.addCards(l, n, a, s, activity.getTextNote(), i);
-                                default -> throw new RuntimeException(
-                                        "Unknown note type for index " + noteTypeTabLayout.getSelectedTabPosition());
-                            }
-                        }
-                    });
-                });
+                var selectedCards = viewModel.getCurrentSource().getCardsFromSelection(json);
+                if (AnkiDroidHelper.isApiAvailable(requireContext())) {
+                    var activity = (MainActivity) requireActivity();
+                    Log.d(TAG, "Selected cards: " + selectedCards.inputs());
+                    if (selectedCards instanceof DictionarySource.SelectedDictionaryCards dictCards) {
+                        ankiIntegration.addCards(
+                                dictCards.learningLanguage(),
+                                dictCards.nativeLanguage(),
+                                dictCards.audioUrl(),
+                                dictCards.sourceUrl(),
+                                activity.getDictionaryNote(),
+                                dictCards.inputs());
+                    } else if (selectedCards instanceof DictionarySource.SelectedTextCards textCards) {
+                        ankiIntegration.addCards(
+                                textCards.learningLanguage(),
+                                textCards.nativeLanguage(),
+                                textCards.audioUrl(),
+                                textCards.sourceUrl(),
+                                activity.getTextNote(),
+                                textCards.inputs());
+                    } else {
+                        throw new RuntimeException("Unknown selected card type " + selectedCards);
+                    }
+                }
             });
         }
 

@@ -7,6 +7,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Template;
+import com.github.lauroschuck.ankiquickadd.anki.notes.AbstractAnkiNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
@@ -28,7 +29,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.NonNull;
 
-public class OfflineKaikkiSource implements DictionarySource<DictionaryNote, DictionaryNote.Input> {
+public class OfflineKaikkiSource implements DictionarySource {
     private static final String TAG = "OfflineKaikkiSource";
     private final Context context;
     private final Handlebars handlebars = new Handlebars();
@@ -427,7 +428,7 @@ public class OfflineKaikkiSource implements DictionarySource<DictionaryNote, Dic
     }
 
     @Override
-    public void getCardsFromSelection(@NonNull String json, @NonNull OnCardsReadyListener listener) {
+    public SelectedCards<? extends AbstractAnkiNote.Input> getCardsFromSelection(@NonNull String json) {
         try {
             var obj = new Gson().fromJson(json, JsonObject.class);
             var mode = obj.has("mode") ? obj.get("mode").getAsString() : "examples";
@@ -460,7 +461,7 @@ public class OfflineKaikkiSource implements DictionarySource<DictionaryNote, Dic
                     var audioUrl = fetchAudioUrl(db, headword);
                     var sourceUrl = assembleWiktionaryLink(
                             headword, lastNativeLanguage, getLanguageName(db, lastLearningLanguage));
-                    listener.onCardsReady(lastLearningLanguage, lastNativeLanguage, audioUrl, sourceUrl, cards);
+                    return new SelectedTextCards(lastLearningLanguage, lastNativeLanguage, audioUrl, sourceUrl, cards);
                 } else {
                     var entries = obj.getAsJsonArray("entries");
                     var entryMap = new LinkedHashMap<Long, Long>();
@@ -479,7 +480,8 @@ public class OfflineKaikkiSource implements DictionarySource<DictionaryNote, Dic
                     var audioUrl = fetchAudioUrl(db, headword);
                     var sourceUrl = assembleWiktionaryLink(
                             headword, lastNativeLanguage, getLanguageName(db, lastLearningLanguage));
-                    listener.onCardsReady(lastLearningLanguage, lastNativeLanguage, audioUrl, sourceUrl, cards);
+                    return new SelectedDictionaryCards(
+                            lastLearningLanguage, lastNativeLanguage, audioUrl, sourceUrl, cards);
                 }
             }
         } catch (RuntimeException e) {

@@ -1,13 +1,15 @@
 package com.github.lauroschuck.ankiquickadd.source;
 
 import com.github.lauroschuck.ankiquickadd.anki.notes.AbstractAnkiNote;
+import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
+import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import java.util.List;
 
 /**
  * Interface for dictionary sources.
  */
-public interface DictionarySource<N extends AbstractAnkiNote<I>, I extends AbstractAnkiNote.Input> {
+public interface DictionarySource {
     /**
      * Interface for listener to receive results.
      */
@@ -15,14 +17,6 @@ public interface DictionarySource<N extends AbstractAnkiNote<I>, I extends Abstr
         void onSuccess(String html, String headword);
 
         void onError(String message);
-    }
-
-    /**
-     * Interface for listener to receive selected cards.
-     */
-    interface OnCardsReadyListener<I extends AbstractAnkiNote.Input> {
-        void onCardsReady(
-                Language learningLanguage, Language nativeLanguage, String audioUrl, String sourceUrl, List<I> inputs);
     }
 
     /**
@@ -40,9 +34,36 @@ public interface DictionarySource<N extends AbstractAnkiNote<I>, I extends Abstr
     String getExtractionJs();
 
     /**
-     * Processes the selection from JavaScript and returns a list of TranslationCard objects.
+     * Processes the selection from JavaScript and returns a SelectedCards object.
      * @param json the JSON string returned by the JavaScript extraction code
-     * @param listener the listener to receive the cards
      */
-    void getCardsFromSelection(String json, OnCardsReadyListener<I> listener);
+    SelectedCards<? extends AbstractAnkiNote.Input> getCardsFromSelection(String json);
+
+    record SelectedDictionaryCards(
+            Language learningLanguage,
+            Language nativeLanguage,
+            String audioUrl,
+            String sourceUrl,
+            List<DictionaryNote.Input> inputs)
+            implements SelectedCards<DictionaryNote.Input> {}
+
+    record SelectedTextCards(
+            Language learningLanguage,
+            Language nativeLanguage,
+            String audioUrl,
+            String sourceUrl,
+            List<TextNote.Input> inputs)
+            implements SelectedCards<TextNote.Input> {}
+
+    sealed interface SelectedCards<I extends AbstractAnkiNote.Input> {
+        Language learningLanguage();
+
+        Language nativeLanguage();
+
+        String audioUrl();
+
+        String sourceUrl();
+
+        List<I> inputs();
+    }
 }

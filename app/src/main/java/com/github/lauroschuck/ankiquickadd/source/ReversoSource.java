@@ -2,18 +2,17 @@ package com.github.lauroschuck.ankiquickadd.source;
 
 import android.net.Uri;
 import android.util.Log;
+import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
-import com.github.lauroschuck.ankiquickadd.model.TranslationCard;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
+import java.util.List;
+import lombok.NonNull;
 import okhttp3.Call;
 import okhttp3.Callback;
-import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -22,9 +21,18 @@ import org.jsoup.nodes.Element;
 public class ReversoSource implements DictionarySource {
     private static final String TAG = "ReversoSource";
     private final OkHttpClient client = new OkHttpClient();
+    private Language lastLearningLanguage;
+    private Language lastNativeLanguage;
 
     @Override
-    public void fetch(String word, Language learningLanguage, Language nativeLanguage, OnResultListener listener) {
+    public void fetch(
+            @NonNull String word,
+            @NonNull Language learningLanguage,
+            @NonNull Language nativeLanguage,
+            @NonNull OnResultListener listener) {
+        this.lastLearningLanguage = learningLanguage;
+        this.lastNativeLanguage = nativeLanguage;
+
         String langPath = learningLanguage.getDisplayName().toLowerCase() + "-"
                 + nativeLanguage.getDisplayName().toLowerCase();
         String url = "https://dictionary.reverso.net/" + langPath + "/" + Uri.encode(word);
@@ -36,7 +44,7 @@ public class ReversoSource implements DictionarySource {
 
         client.newCall(request).enqueue(new Callback() {
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 if (!response.isSuccessful()) {
                     listener.onError("Reverso returned code " + response.code());
                     return;
@@ -45,13 +53,13 @@ public class ReversoSource implements DictionarySource {
             }
 
             @Override
-            public void onFailure(Call call, IOException e) {
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 listener.onError("Network error: " + e.getMessage());
             }
         });
     }
 
-    // @Override
+    /* @Override
     public void fetchMore(
             String word, Language learningLanguage, Language nativeLanguage, int page, OnResultListener listener) {
         // Reverso Context API endpoint for more examples
@@ -119,6 +127,7 @@ public class ReversoSource implements DictionarySource {
             listener.onError("Error parsing JSON: " + e.getMessage());
         }
     }
+     */
 
     @Override
     public String getExtractionJs() {
@@ -150,9 +159,16 @@ public class ReversoSource implements DictionarySource {
     }
 
     @Override
-    public void getCardsFromSelection(String json, OnCardsReadyListener listener) {
-        // TODO pending
-        listener.onCardsReady(null, null, null, null, TranslationCard.fromJson(json));
+    public SelectedTextCards getCardsFromSelection(@NonNull String json) {
+        List<TextNote.Input> cards = new Gson().fromJson(json, new TypeToken<List<TextNote.Input>>() {}.getType());
+        var headword = cards.isEmpty() ? null : cards.get(0).headword();
+        String sourceUrl = null;
+        if (headword != null && lastLearningLanguage != null && lastNativeLanguage != null) {
+            var langPath = lastLearningLanguage.getDisplayName().toLowerCase() + "-"
+                    + lastNativeLanguage.getDisplayName().toLowerCase();
+            sourceUrl = "https://dictionary.reverso.net/" + langPath + "/" + Uri.encode(headword);
+        }
+        return new SelectedTextCards(lastLearningLanguage, lastNativeLanguage, null, sourceUrl, cards);
     }
 
     private void processResponse(String html, String word, OnResultListener listener) {

@@ -62,7 +62,7 @@ public abstract sealed class AbstractAnkiNote<I extends AbstractAnkiNote.Input> 
             String audio,
             String sourceUrl,
             @NonNull String[] actualFieldNames,
-            @NonNull List<I> cards) {
+            @NonNull List<? extends I> cards) {
         return cards.stream()
                 .map(card -> generateFields(learningLanguage, nativeLanguage, audio, sourceUrl, actualFieldNames, card))
                 .collect(Collectors.toList());
@@ -116,7 +116,7 @@ public abstract sealed class AbstractAnkiNote<I extends AbstractAnkiNote.Input> 
 
     record CardType(@NonNull String name, @NonNull String frontTemplate, @NonNull String backTemplate) {}
 
-    sealed interface CardField<I extends Input>
+    public sealed interface CardField<I extends Input>
             permits DictionaryNote.IndexedField, DictionaryNote.NonIndexedField, TextNote.Field {
         String fieldName();
 
