@@ -15,7 +15,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 public class ReversoSource implements DictionarySource {
@@ -173,7 +172,7 @@ public class ReversoSource implements DictionarySource {
 
     private void processResponse(String html, String word, OnResultListener listener) {
         try {
-            Document doc = Jsoup.parse(html);
+            var doc = Jsoup.parse(html);
             Element mainContent = doc.selectFirst(".direction-cnt, #examples-content, .main-container");
 
             if (mainContent == null) {
