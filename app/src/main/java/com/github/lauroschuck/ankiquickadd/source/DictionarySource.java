@@ -1,5 +1,6 @@
 package com.github.lauroschuck.ankiquickadd.source;
 
+import android.webkit.WebView;
 import com.github.lauroschuck.ankiquickadd.anki.notes.AbstractAnkiNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
@@ -38,6 +39,15 @@ public interface DictionarySource {
      * @param json the JSON string returned by the JavaScript extraction code
      */
     SelectedCards<? extends AbstractAnkiNote.Input> getCardsFromSelection(String json);
+
+    /**
+     * Handles custom actions triggered from the WebView.
+     * @param url the custom URL starting with app://source/
+     * @param webView the WebView instance
+     */
+    default void handleSourceAction(String url, WebView webView) {
+        // Default no-op
+    }
 
     record SelectedDictionaryCards(
             Language learningLanguage,

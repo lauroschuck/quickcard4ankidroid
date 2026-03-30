@@ -168,6 +168,9 @@ public class DefinitionFragment extends Fragment {
                     var audioUrl = Uri.decode(url.substring("app://play/".length()));
                     playAudio(audioUrl);
                     return true;
+                } else if (url.startsWith("app://source/")) {
+                    viewModel.getCurrentSource().handleSourceAction(url, webView);
+                    return true;
                 } else if (url.startsWith("http://") || url.startsWith("https://")) {
                     var intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                     startActivity(intent);
