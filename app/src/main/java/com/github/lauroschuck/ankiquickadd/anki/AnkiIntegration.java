@@ -61,6 +61,11 @@ public class AnkiIntegration {
             showSnackbar(context, "No cards selected.", true);
             return;
         }
+        Log.i(
+                TAG,
+                String.format(
+                        "Adding %s-%s %s cards: %s",
+                        learningLanguage, nativeLanguage, note.getClass().getSimpleName(), cards));
 
         executorService.execute(() -> {
             var deckName = String.format(
