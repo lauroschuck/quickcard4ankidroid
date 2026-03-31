@@ -1,5 +1,6 @@
 package com.github.lauroschuck.ankiquickadd.anki.notes;
 
+import com.github.lauroschuck.ankiquickadd.model.Language;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -102,6 +103,26 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
     List<CardField<Input>> getCardFields() {
         return Stream.concat(Stream.of(NonIndexedField.values()), INDEXED_FIELDS.stream())
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<String[]> generateFields(
+            @NonNull Language learningLanguage,
+            @NonNull Language nativeLanguage,
+            String audio,
+            String sourceUrl,
+            @NonNull String[] actualFieldNames,
+            @NonNull List<? extends DictionaryNote.Input> cards) {
+        // Ensure there are no more than DEFINITION_FIELDS definitions
+        cards.stream()
+                .filter(c -> c.definitions().size() > DEFINITION_FIELDS)
+                .findAny()
+                .ifPresent(i -> {
+                    throw new IllegalArgumentException(String.format(
+                            "Input for '%s', category '%s' has %d definitions: %s",
+                            i.headword(), i.lexicalCategory(), i.definitions().size(), i.definitions()));
+                });
+        return super.generateFields(learningLanguage, nativeLanguage, audio, sourceUrl, actualFieldNames, cards);
     }
 
     private static String getPotentialField(Input card, int index, Function<Input.Definition, String> getter) {
