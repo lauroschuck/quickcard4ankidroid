@@ -139,11 +139,6 @@ public class DefinitionFragment extends Fragment {
             @Override
             public void onTabReselected(TabLayout.Tab tab) {}
         });
-
-        var examplesTab = noteTypeTabLayout.getTabAt(1);
-        if (examplesTab != null) {
-            examplesTab.select();
-        }
     }
 
     private void configureWebView() {

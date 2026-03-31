@@ -1,11 +1,13 @@
 package com.github.lauroschuck.ankiquickadd.source;
 
+import android.content.Context;
 import android.webkit.WebView;
 import com.github.lauroschuck.ankiquickadd.anki.notes.AbstractAnkiNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import java.util.List;
+import lombok.NonNull;
 
 /**
  * Interface for dictionary sources.
@@ -18,6 +20,15 @@ public interface DictionarySource {
         void onSuccess(String html, String headword);
 
         void onError(String message);
+    }
+
+    /**
+     * Returns the display name of this source.
+     */
+    String getName();
+
+    default void setContext(@NonNull Context context) {
+        // default no-op
     }
 
     /**

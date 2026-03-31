@@ -14,7 +14,6 @@ import lombok.Setter;
 public class MainViewModel extends ViewModel {
     private final MutableLiveData<String> currentWord = new MutableLiveData<>("");
     private final MutableLiveData<String> searchWarning = new MutableLiveData<>(null);
-    private final MutableLiveData<Boolean> isDefinitionsMode = new MutableLiveData<>(false);
     private final MutableLiveData<Integer> selectedCount = new MutableLiveData<>(0);
 
     @Getter
@@ -53,14 +52,6 @@ public class MainViewModel extends ViewModel {
 
     public void setSearchWarning(String warning) {
         searchWarning.setValue(warning);
-    }
-
-    public LiveData<Boolean> getIsDefinitionsMode() {
-        return isDefinitionsMode;
-    }
-
-    public void setIsDefinitionsMode(boolean isDefinitions) {
-        isDefinitionsMode.setValue(isDefinitions);
     }
 
     public LiveData<Integer> getSelectedCount() {

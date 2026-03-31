@@ -31,6 +31,11 @@ public class WordReferenceSource implements DictionarySource {
     private Language lastNativeLanguage;
 
     @Override
+    public String getName() {
+        return "WordReference";
+    }
+
+    @Override
     public void fetch(String word, Language learningLanguage, Language nativeLanguage, OnResultListener listener) {
         this.lastLearningLanguage = learningLanguage;
         this.lastNativeLanguage = nativeLanguage;

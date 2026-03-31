@@ -18,10 +18,11 @@ import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
-import com.github.lauroschuck.ankiquickadd.source.OfflineKaikkiSource;
-import com.github.lauroschuck.ankiquickadd.source.ReversoSource;
-import com.github.lauroschuck.ankiquickadd.source.WordReferenceSource;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.ServiceLoader;
+import java.util.stream.Collectors;
 import lombok.NonNull;
 
 public class MainActivity extends AppCompatActivity {
@@ -111,14 +112,26 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupSources() {
-        viewModel.getSources().add(new OfflineKaikkiSource(this));
-        viewModel.getSources().add(new WordReferenceSource());
-        viewModel.getSources().add(new ReversoSource());
+        var availableSources = new ArrayList<DictionarySource>();
+        ServiceLoader<DictionarySource> loader = ServiceLoader.load(DictionarySource.class);
+        for (DictionarySource source : loader) {
+            source.setContext(this);
+            availableSources.add(source);
+        }
 
-        var sourceNames = new String[] {"Wiktionary", "WordReference", "Reverso"};
-        var adapter = new ArrayAdapter<String>(this, R.layout.spinner_item, sourceNames);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        sourceSpinner.setAdapter(adapter);
+        viewModel.getSources().clear();
+        viewModel.getSources().addAll(availableSources);
+
+        if (availableSources.size() <= 1) {
+            sourceSpinner.setVisibility(View.GONE);
+        } else {
+            sourceSpinner.setVisibility(View.VISIBLE);
+            List<String> sourceNames =
+                    availableSources.stream().map(DictionarySource::getName).collect(Collectors.toList());
+            var adapter = new ArrayAdapter<>(this, R.layout.spinner_item, sourceNames);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            sourceSpinner.setAdapter(adapter);
+        }
 
         viewModel.setCurrentSource(viewModel.getSources().get(0));
 
@@ -126,7 +139,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 viewModel.setCurrentSource(viewModel.getSources().get(position));
-                String word = viewModel.getCurrentWord().getValue();
+                viewModel.setSearchWarning(null);
+                var word = viewModel.getCurrentWord().getValue();
                 if (word != null && !word.isEmpty()) {
                     fetchDefinition(word, true);
                 }

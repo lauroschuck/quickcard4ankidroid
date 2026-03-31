@@ -31,14 +31,13 @@ import lombok.NonNull;
 
 public class OfflineKaikkiSource implements DictionarySource {
     private static final String TAG = "OfflineKaikkiSource";
-    private final Context context;
     private final Handlebars handlebars = new Handlebars();
+    private Context context;
     private Template template;
     private Language lastLearningLanguage;
     private Language lastNativeLanguage;
 
-    public OfflineKaikkiSource(@NonNull Context context) {
-        this.context = context;
+    public OfflineKaikkiSource() {
         try {
             this.template = handlebars.compileInline(
                     """
@@ -178,6 +177,16 @@ public class OfflineKaikkiSource implements DictionarySource {
         } catch (IOException e) {
             Log.e(TAG, "Handlebars compilation failed", e);
         }
+    }
+
+    @Override
+    public String getName() {
+        return "Wiktionary";
+    }
+
+    @Override
+    public void setContext(@NonNull Context context) {
+        this.context = context;
     }
 
     @Override

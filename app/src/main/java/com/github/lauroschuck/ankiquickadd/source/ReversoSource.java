@@ -32,6 +32,11 @@ public class ReversoSource implements DictionarySource {
     private Language lastNativeLanguage;
 
     @Override
+    public String getName() {
+        return "Reverso";
+    }
+
+    @Override
     public void fetch(
             @NonNull String word,
             @NonNull Language learningLanguage,
