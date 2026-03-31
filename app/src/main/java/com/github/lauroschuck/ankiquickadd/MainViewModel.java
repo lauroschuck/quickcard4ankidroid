@@ -15,6 +15,7 @@ public class MainViewModel extends ViewModel {
     private final MutableLiveData<String> currentWord = new MutableLiveData<>("");
     private final MutableLiveData<String> searchWarning = new MutableLiveData<>(null);
     private final MutableLiveData<Integer> selectedCount = new MutableLiveData<>(0);
+    private final MutableLiveData<List<String>> enqueuedWords = new MutableLiveData<>(new ArrayList<>());
 
     @Getter
     private final List<DictionarySource> sources = new ArrayList<>();
@@ -60,5 +61,23 @@ public class MainViewModel extends ViewModel {
 
     public void setSelectedCount(int count) {
         selectedCount.setValue(count);
+    }
+
+    public LiveData<List<String>> getEnqueuedWords() {
+        return enqueuedWords;
+    }
+
+    public void setEnqueuedWords(List<String> words) {
+        enqueuedWords.setValue(words);
+    }
+
+    public void removeEnqueuedWord(String word) {
+        List<String> current = enqueuedWords.getValue();
+        if (current != null) {
+            List<String> updated = new ArrayList<>(current);
+            if (updated.remove(word)) {
+                enqueuedWords.setValue(updated);
+            }
+        }
     }
 }
