@@ -6,7 +6,9 @@ import androidx.lifecycle.ViewModel;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,6 +18,7 @@ public class MainViewModel extends ViewModel {
     private final MutableLiveData<String> searchWarning = new MutableLiveData<>(null);
     private final MutableLiveData<Integer> selectedCount = new MutableLiveData<>(0);
     private final MutableLiveData<List<String>> enqueuedWords = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<Set<String>> processedWords = new MutableLiveData<>(new HashSet<>());
 
     @Getter
     private final List<DictionarySource> sources = new ArrayList<>();
@@ -78,6 +81,19 @@ public class MainViewModel extends ViewModel {
             if (updated.remove(word)) {
                 enqueuedWords.setValue(updated);
             }
+        }
+    }
+
+    public MutableLiveData<Set<String>> getProcessedWords() {
+        return processedWords;
+    }
+
+    public void markWordAsProcessed(String word) {
+        Set<String> current = processedWords.getValue();
+        if (current == null) current = new HashSet<>();
+        Set<String> updated = new HashSet<>(current);
+        if (updated.add(word.toLowerCase().trim())) {
+            processedWords.postValue(updated);
         }
     }
 }

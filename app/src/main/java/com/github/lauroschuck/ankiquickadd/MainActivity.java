@@ -30,6 +30,7 @@ import lombok.NonNull;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "AnkiQuickAdd";
+    private static final String KEY_PROCESSED_WORDS = "processed_words";
     private Spinner sourceSpinner;
     private MainViewModel viewModel;
 
@@ -62,15 +63,28 @@ public class MainActivity extends AppCompatActivity {
         viewModel.setLastUsedNativeLanguage(
                 getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN));
 
-        loadEnqueuedWords();
+        loadPersistentData();
 
         handleIntent(getIntent());
     }
 
-    private void loadEnqueuedWords() {
+    private void loadPersistentData() {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        Set<String> wordsSet = prefs.getStringSet(EnqueueActivity.KEY_ENQUEUED_WORDS, new HashSet<>());
-        viewModel.setEnqueuedWords(new ArrayList<>(wordsSet));
+        Set<String> enqueuedSet = prefs.getStringSet(EnqueueActivity.KEY_ENQUEUED_WORDS, new HashSet<>());
+        viewModel.setEnqueuedWords(new ArrayList<>(enqueuedSet));
+
+        Set<String> processedSet = prefs.getStringSet(KEY_PROCESSED_WORDS, new HashSet<>());
+        viewModel.getProcessedWords().setValue(processedSet);
+    }
+
+    public void markWordAsProcessed(String word) {
+        String cleanWord = word.toLowerCase().trim();
+        viewModel.markWordAsProcessed(cleanWord);
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        Set<String> processed = new HashSet<>(prefs.getStringSet(KEY_PROCESSED_WORDS, new HashSet<>()));
+        if (processed.add(cleanWord)) {
+            prefs.edit().putStringSet(KEY_PROCESSED_WORDS, processed).apply();
+        }
     }
 
     public void removeEnqueuedWord(String word) {
@@ -129,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
             viewModel.setLastUsedNativeLanguage(currentNative);
         }
 
-        loadEnqueuedWords();
+        loadPersistentData();
     }
 
     private void setupSources() {

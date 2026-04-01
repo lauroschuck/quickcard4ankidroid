@@ -11,11 +11,14 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import lombok.NonNull;
 
 public class SearchFragment extends Fragment {
@@ -74,10 +77,10 @@ public class SearchFragment extends Fragment {
         enqueueHeader.setOnClickListener(v -> {
             if (enqueueRecyclerView.getVisibility() == View.VISIBLE) {
                 enqueueRecyclerView.setVisibility(View.GONE);
-                enqueueChevron.setImageResource(android.R.drawable.arrow_down_float);
+                enqueueChevron.setImageResource(R.drawable.ic_chevron_down);
             } else {
                 enqueueRecyclerView.setVisibility(View.VISIBLE);
-                enqueueChevron.setImageResource(android.R.drawable.arrow_up_float);
+                enqueueChevron.setImageResource(R.drawable.ic_chevron_up);
             }
         });
 
@@ -87,6 +90,10 @@ public class SearchFragment extends Fragment {
             if (words.isEmpty()) {
                 enqueueRecyclerView.setVisibility(View.GONE);
             }
+        });
+
+        viewModel.getProcessedWords().observe(getViewLifecycleOwner(), processed -> {
+            adapter.setProcessedWords(processed);
         });
     }
 
@@ -106,10 +113,16 @@ public class SearchFragment extends Fragment {
     }
 
     private class EnqueueAdapter extends RecyclerView.Adapter<EnqueueAdapter.ViewHolder> {
-        private List<String> words;
+        private List<String> words = new ArrayList<>();
+        private Set<String> processedWords;
 
         public void setWords(List<String> words) {
-            this.words = words;
+            this.words = words != null ? words : new ArrayList<>();
+            notifyDataSetChanged();
+        }
+
+        public void setProcessedWords(Set<String> processedWords) {
+            this.processedWords = processedWords;
             notifyDataSetChanged();
         }
 
@@ -124,27 +137,46 @@ public class SearchFragment extends Fragment {
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             String word = words.get(position);
             holder.textView.setText(word);
+
+            boolean isProcessed = processedWords != null
+                    && processedWords.contains(word.toLowerCase().trim());
+            holder.checkMark.setVisibility(isProcessed ? View.VISIBLE : View.INVISIBLE);
+
             holder.itemView.setOnClickListener(v -> {
                 hideKeyboard();
                 ((MainActivity) requireActivity()).fetchDefinition(word);
             });
             holder.removeButton.setOnClickListener(v -> {
-                ((MainActivity) requireActivity()).removeEnqueuedWord(word);
+                if (isProcessed) {
+                    ((MainActivity) requireActivity()).removeEnqueuedWord(word);
+                } else {
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("Remove Enqueued Word")
+                            .setMessage("Are you sure you want to remove '" + word
+                                    + "'?\nIt may not have been added to Anki yet.")
+                            .setPositiveButton("Remove", (dialog, which) -> {
+                                ((MainActivity) requireActivity()).removeEnqueuedWord(word);
+                            })
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                }
             });
         }
 
         @Override
         public int getItemCount() {
-            return words == null ? 0 : words.size();
+            return words.size();
         }
 
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView textView;
+            ImageView checkMark;
             View removeButton;
 
             ViewHolder(View itemView) {
                 super(itemView);
                 textView = itemView.findViewById(R.id.wordText);
+                checkMark = itemView.findViewById(R.id.checkMark);
                 removeButton = itemView.findViewById(R.id.removeButton);
             }
         }

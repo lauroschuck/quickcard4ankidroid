@@ -23,6 +23,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import lombok.NonNull;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -57,6 +58,17 @@ public class AnkiIntegration {
             String sourceUrl,
             @NonNull N note,
             @NonNull List<I> cards) {
+        addCards(learningLanguage, nativeLanguage, audioUrl, sourceUrl, note, cards, null);
+    }
+
+    public <N extends AbstractAnkiNote<I>, I extends AbstractAnkiNote.Input> void addCards(
+            @NonNull Language learningLanguage,
+            @NonNull Language nativeLanguage,
+            String audioUrl,
+            String sourceUrl,
+            @NonNull N note,
+            @NonNull List<I> cards,
+            Consumer<String> onSuccess) {
         if (cards.isEmpty()) {
             showSnackbar(context, "No cards selected.", true);
             return;
@@ -94,6 +106,11 @@ public class AnkiIntegration {
 
             if (added > 0) {
                 showSnackbar(context, "Successfully sent " + added + " cards to Anki", false);
+                if (onSuccess != null) {
+                    for (I card : cards) {
+                        onSuccess.accept(card.headword());
+                    }
+                }
             } else {
                 showSnackbar(context, "Card add failed: No notes added", true);
             }

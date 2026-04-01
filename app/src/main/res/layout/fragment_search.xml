@@ -68,7 +68,7 @@
             android:id="@+id/enqueueChevron"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@android:drawable/arrow_down_float" />
+            android:src="@drawable/ic_chevron_down" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView

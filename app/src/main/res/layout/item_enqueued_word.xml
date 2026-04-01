@@ -4,21 +4,30 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:padding="8dp"
+    android:padding="4dp"
     android:background="?attr/selectableItemBackground">
+
+    <ImageView
+        android:id="@+id/checkMark"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:src="@drawable/ic_check"
+        android:visibility="invisible"
+        android:layout_marginEnd="4dp"
+        android:contentDescription="Added to Anki" />
 
     <TextView
         android:id="@+id/wordText"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:textSize="16sp"
+        android:textSize="14sp"
         android:textColor="@color/anki_dark_text" />
 
     <ImageButton
         android:id="@+id/removeButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@android:drawable/ic_menu_delete"
         android:contentDescription="Remove" />

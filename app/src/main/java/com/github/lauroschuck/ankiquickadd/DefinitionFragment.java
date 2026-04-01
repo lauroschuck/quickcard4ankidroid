@@ -55,7 +55,8 @@ public class DefinitionFragment extends Fragment {
                                 dictCards.audioUrl(),
                                 dictCards.sourceUrl(),
                                 activity.getDictionaryNote(),
-                                dictCards.inputs());
+                                dictCards.inputs(),
+                                activity::markWordAsProcessed);
                     } else if (selectedCards instanceof DictionarySource.SelectedTextCards textCards) {
                         ankiIntegration.addCards(
                                 textCards.learningLanguage(),
@@ -63,7 +64,8 @@ public class DefinitionFragment extends Fragment {
                                 textCards.audioUrl(),
                                 textCards.sourceUrl(),
                                 activity.getTextNote(),
-                                textCards.inputs());
+                                textCards.inputs(),
+                                activity::markWordAsProcessed);
                     } else {
                         throw new RuntimeException("Unknown selected card type " + selectedCards);
                     }
