@@ -2,12 +2,14 @@ package com.github.lauroschuck.ankiquickadd.anki;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import com.github.lauroschuck.ankiquickadd.R;
+import com.github.lauroschuck.ankiquickadd.SettingsActivity;
 import com.github.lauroschuck.ankiquickadd.anki.notes.AbstractAnkiNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.google.android.material.snackbar.Snackbar;
@@ -36,7 +38,6 @@ public class AnkiIntegration {
 
     private static final String TAG = "AnkiIntegration";
     private static final int AD_PERM_REQUEST = 0;
-    private static final String DECK_NAME_TEMPLATE = "Anki Quick Add::%s-%s";
 
     private static final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -80,8 +81,14 @@ public class AnkiIntegration {
                         learningLanguage, nativeLanguage, note.getClass().getSimpleName(), cards));
 
         executorService.execute(() -> {
+            var prefs = PreferenceManager.getDefaultSharedPreferences(context);
+            var parentDeckName =
+                    prefs.getString(SettingsActivity.KEY_PARENT_DECK_NAME, SettingsActivity.DEFAULT_PARENT_DECK_NAME);
             var deckName = String.format(
-                    DECK_NAME_TEMPLATE, learningLanguage.getDisplayName(), nativeLanguage.getDisplayName());
+                    "%s::%s-%s",
+                    parentDeckName,
+                    learningLanguage.getDisplayName(learningLanguage),
+                    nativeLanguage.getDisplayName(learningLanguage));
             var deckId = getDeckId(deckName);
             var modelId = getModelId(deckId, note);
 

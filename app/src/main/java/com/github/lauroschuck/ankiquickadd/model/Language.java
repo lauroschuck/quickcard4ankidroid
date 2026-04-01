@@ -116,7 +116,12 @@ public enum Language {
     }
 
     public String getDisplayName() {
-        return locale.getDisplayLanguage(Locale.US);
+        return getDisplayName(Language.EN);
+    }
+
+    public String getDisplayName(Language inLanguage) {
+        var response = locale.getDisplayLanguage(inLanguage.locale);
+        return response.equals(getIsoCode()) ? locale.getDisplayLanguage() : response;
     }
 
     public String getIsoCode() {
