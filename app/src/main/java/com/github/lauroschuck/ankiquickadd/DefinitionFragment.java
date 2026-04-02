@@ -17,6 +17,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiDroidHelper;
@@ -78,6 +79,14 @@ public class DefinitionFragment extends Fragment {
         public void updateSelectedCount(int count) {
             requireActivity().runOnUiThread(() -> {
                 viewModel.setSelectedCount(count);
+            });
+        }
+
+        @JavascriptInterface
+        @SuppressWarnings("unused")
+        public void showToast(String message) {
+            requireActivity().runOnUiThread(() -> {
+                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
             });
         }
     }

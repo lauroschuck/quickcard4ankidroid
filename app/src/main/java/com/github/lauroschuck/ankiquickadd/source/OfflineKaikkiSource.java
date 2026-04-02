@@ -91,10 +91,29 @@ public class OfflineKaikkiSource implements DictionarySource {
                             document.body.className = 'mode-' + mode;
                         }
                         function toggleSense(cb) {
+                            const MAX_SENSES = {{maxSenses}};
+                            const posBlock = cb.closest('.pos-block');
+                            let checkedInPos = posBlock.querySelectorAll('.sense-checkbox:checked');
+
                             cb.closest('li.definition').classList.toggle('selected', cb.checked);
+
+                            checkedInPos = posBlock.querySelectorAll('.sense-checkbox:checked');
+                            const allSensesInPos = posBlock.querySelectorAll('.sense-checkbox');
+                            if (checkedInPos.length === MAX_SENSES) {
+                                allSensesInPos.forEach(s => {
+                                    if (!s.checked) s.disabled = true;
+                                });
+                                if (window.Android && window.Android.showToast) {
+                                    const posName = posBlock.querySelector('h3').innerText;
+                                    window.Android.showToast('Maximum of ' + MAX_SENSES + ' definitions allowed per category (' + posName + ').');
+                                }
+                            } else {
+                                allSensesInPos.forEach(s => s.disabled = false);
+                            }
+
                             if (window.Android) {
-                                var count = document.querySelectorAll('.sense-checkbox:checked').length;
-                                Android.updateSelectedCount(count);
+                                var totalChecked = document.querySelectorAll('.sense-checkbox:checked').length;
+                                Android.updateSelectedCount(totalChecked);
                             }
                         }
                     </script>
@@ -216,6 +235,7 @@ public class OfflineKaikkiSource implements DictionarySource {
         try (SQLiteDatabase db = SQLiteDatabase.openDatabase(dbFile.getPath(), null, SQLiteDatabase.OPEN_READONLY)) {
             var data = new HashMap<String, Object>();
             data.put("word", word);
+            data.put("maxSenses", DictionaryNote.DEFINITION_FIELDS);
 
             // 0. Fetch language name for Wiktionary anchor and construct URL
             var langName = getLanguageName(db, learningLanguage);
