@@ -48,7 +48,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
 
     public DictionaryNote(@NonNull CardAssets assets) {
         super(
-                "ankiquickadd.DictionaryDefinitionV49",
+                "ankiquickadd.DictionaryDefinitionV51",
                 generateFieldNames(),
                 assets.getSharedCss() + assets.getDictionaryCss(),
                 generateCardTypes(assets));
@@ -95,7 +95,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
 
     private static CardType generateIndexedLearningTextToNativeTextCard(CardAssets assets, int index) {
         return new CardType(
-                String.format(Locale.US, "LearningText%d-NativeText", index),
+                String.format(Locale.US, "LearningText%d-NativeText%d", index, index),
                 assets.getIndexedTemplate(CardAssets.TemplateId.DICTIONARY_LEARNING_TEXT_TO_NATIVE_TEXT_FRONT, index),
                 assets.getIndexedTemplate(CardAssets.TemplateId.DICTIONARY_LEARNING_TEXT_TO_NATIVE_TEXT_BACK, index));
     }
@@ -144,7 +144,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
         ID(
                 "Id",
                 (l, n, s, i) ->
-                        String.format("%s-%s-%s-%s", s.getHost(), l.getIsoCode(), n.getIsoCode(), i.headword())),
+                        String.format("%s-%s-%s-%s", i.headword(), l.getIsoCode(), n.getIsoCode(), s.getHost())),
         LEARNING_WORD("LearningWord", (l, n, s, i) -> i.headword),
         LEARNING_LANG("LearningLang", (l, n, s, i) -> l.getDisplayName(n)),
         LEXICAL_CAT("LexicalCat", (l, n, s, i) -> i.lexicalCategory()),

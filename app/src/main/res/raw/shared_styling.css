@@ -60,26 +60,23 @@ html {
 
 .context {
     display: inline-block;
-    background-color: #f1f3f5;
+    background-color: rgba(0, 122, 255, 0.1);
     color: #57606a;
-    font-size: 0.75rem;
-    padding: 0.3em 0.8em;
-    border-radius: 0.4em;
+    font-size: 0.6rem;
+    padding: 0.4em 1em;
+    border-radius: 1em;
     margin-top: 0.5em;
     margin-bottom: 0.7em;
 }
 
 .context .lexical-cat {
-    font-size: 0.6rem;
     text-transform: uppercase;
 }
 
-.context .lang-code::before {
-    content: "("
-}
-
-.context .lang-code::after {
-    content: ")"
+.context:has(.top-lang) {
+    position: fixed;
+    right: 1em;
+    z-index: -1;
 }
 
 /*

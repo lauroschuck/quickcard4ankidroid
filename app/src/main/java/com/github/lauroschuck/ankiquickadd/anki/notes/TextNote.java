@@ -8,7 +8,7 @@ import lombok.NonNull;
 public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
     public TextNote(@NonNull CardAssets assets) {
         super(
-                "ankiquickadd.TextV49",
+                "ankiquickadd.TextV51",
                 generateFieldNames(),
                 assets.getSharedCss() + assets.getTextCss(),
                 generateCardTypes(assets));
@@ -20,7 +20,7 @@ public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
 
     private static CardType generateLearningToNativeCard(CardAssets assets) {
         return generateCard(
-                "Learning-Native",
+                "LearningText-NativeText",
                 CardAssets.TemplateId.TEXT_LEARNING_TO_NATIVE_FRONT,
                 CardAssets.TemplateId.TEXT_LEARNING_TO_NATIVE_BACK,
                 assets);
@@ -28,7 +28,7 @@ public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
 
     private static CardType generateNativeToLearningCard(CardAssets assets) {
         return generateCard(
-                "Native-Learning",
+                "NativeText-LearningText",
                 CardAssets.TemplateId.TEXT_NATIVE_TO_LEARNING_FRONT,
                 CardAssets.TemplateId.TEXT_NATIVE_TO_LEARNING_BACK,
                 assets);

@@ -1,12 +1,14 @@
 <div class="dictionary-note w2d back">
     <div class="top">
+        <div class="context">
+            <div class="top-lang">{{LearningLang}}</div>
+        </div>
         <div class="learning-word">
             {{#SourceUrl}}<a href="{{SourceUrl}}">{{LearningWord}}</a>{{/SourceUrl}}
             {{^SourceUrl}}{{LearningWord}}{{/SourceUrl}}
         </div>
         <div class="context">
             <span class="lexical-cat">{{LexicalCat}}</span>
-            <span class="lang-code">{{LearningLang}}</span>
         </div>
     </div>
 
