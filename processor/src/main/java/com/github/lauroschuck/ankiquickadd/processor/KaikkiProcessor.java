@@ -1,4 +1,4 @@
-package com.github.lauroschuck.ankiquickadd.tools;
+package com.github.lauroschuck.ankiquickadd.processor;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -19,9 +19,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Parallel version of KaikkiToSqlite with memory-safe backpressure.
- * Usage: java ParallelKaikkiToSqlite <learning_langs_csv> <num_threads> <nativeLang1:dumpPath1> ...
+ * Usage: java KaikkiProcessor <learning_langs_csv> <num_threads> <nativeLang1:dumpPath1> ...
  */
-public class ParallelKaikkiToSqlite {
+public class KaikkiProcessor {
 
     private static final long MIN_HEADWORDS = 1000;
     private static final JsonObject POISON_PILL = new JsonObject();
@@ -292,7 +292,7 @@ public class ParallelKaikkiToSqlite {
     public static void main(String[] args) {
         if (args.length < 3) {
             System.out.println(
-                    "Usage: java ParallelKaikkiToSqlite <learning_langs_csv> <num_threads> <nativeLang1:dumpPath1> ...");
+                    "Usage: java KaikkiProcessor <learning_langs_csv> <num_threads> <nativeLang1:dumpPath1> ...");
             return;
         }
 
@@ -300,10 +300,10 @@ public class ParallelKaikkiToSqlite {
         String[] learningLangs = args[0].split(",");
         int numThreads = Integer.parseInt(args[1]);
         String timestamp = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date());
-        String outDir = "out/" + timestamp;
+        String outDir = "processor/out/" + timestamp;
         new File(outDir).mkdirs();
 
-        ParallelKaikkiToSqlite converter = new ParallelKaikkiToSqlite();
+        KaikkiProcessor converter = new KaikkiProcessor();
         Map<String, Map<String, Boolean>> summaryTable = new TreeMap<>();
 
         String statsDbPath = outDir + File.separator + "stats.db";

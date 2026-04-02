@@ -182,7 +182,7 @@ public class AnkiIntegration {
 
         var request = new Request.Builder()
                 .url(urlString.toString())
-                .header("User-Agent", "SwedishAnkiQuickAdd/1.0 (https://github.com/lauroschuck/ankiquickadd)")
+                .header("User-Agent", "AnkiQuickAdd/1.0 (https://github.com/lauroschuck/ankiquickadd)")
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
