@@ -13,7 +13,7 @@ import lombok.NonNull;
 
 public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input> {
 
-    public static final int DEFINITION_FIELDS = 5;
+    public static final int DEFINITION_FIELDS = 10;
 
     private static List<IndexedField> INDEXED_FIELDS;
 
@@ -25,6 +25,10 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
                                 String.format(Locale.US, "Definition%d", index),
                                 (l, n, s, i) ->
                                         cleanHtml(getPotentialField(i, index - 1, Input.Definition::definition))),
+                        new IndexedField(
+                                index,
+                                String.format(Locale.US, "Definition%d_Included", index),
+                                (l, n, s, i) -> getPotentialField(i, index - 1, d -> "y")),
                         new IndexedField(
                                 index,
                                 String.format(Locale.US, "Definition%d_LearningText", index),
@@ -48,7 +52,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
 
     public DictionaryNote(@NonNull CardAssets assets) {
         super(
-                "ankiquickadd.DictionaryDefinitionV51",
+                "ankiquickadd.DictionaryDefinitionV52",
                 generateFieldNames(),
                 assets.getSharedCss() + assets.getDictionaryCss(),
                 generateCardTypes(assets));

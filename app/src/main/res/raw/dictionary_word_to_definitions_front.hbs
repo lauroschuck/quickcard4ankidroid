@@ -12,14 +12,16 @@
             <button>Hint</button>
             <div class="content">
                 [[#repeat REPEAT_SIZE]]
-                    {{#Definition[[INDEX]]_LearningText}}
-                        <div class="row text learning">
-                            <div class="main">{{Definition[[INDEX]]_LearningText}}</div>
-                            {{#Definition[[INDEX]]_AltLearningText}}
-                                <div class="alt">{{Definition[[INDEX]]_AltLearningText}}</div>
-                            {{/Definition[[INDEX]]_AltLearningText}}
-                        </div>
-                    {{/Definition[[INDEX]]_LearningText}}
+                    {{#Definition[[INDEX]]_Included}}
+                        {{#Definition[[INDEX]]_LearningText}}
+                            <div class="row text learning">
+                                <div class="main">{{Definition[[INDEX]]_LearningText}}</div>
+                                {{#Definition[[INDEX]]_AltLearningText}}
+                                    <div class="alt">{{Definition[[INDEX]]_AltLearningText}}</div>
+                                {{/Definition[[INDEX]]_AltLearningText}}
+                            </div>
+                        {{/Definition[[INDEX]]_LearningText}}
+                    {{/Definition[[INDEX]]_Included}}
                 [[/repeat]]
             </div>
         </div>

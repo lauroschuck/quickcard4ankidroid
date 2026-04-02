@@ -17,29 +17,31 @@
     <div class="bottom">
         <ol class="definitions">
             [[#repeat REPEAT_SIZE]]
-                {{#Definition[[INDEX]]}}
-                    <li>
-                        <div class="definition">{{Definition[[INDEX]]}}</div>
-                        <div class="example">
-                            {{#Definition[[INDEX]]_LearningText}}
-                                <div class="text learning">
-                                    <div class="main">{{Definition[[INDEX]]_LearningText}}</div>
-                                    {{#Definition[[INDEX]]_AltLearningText}}
-                                        <div class="alt">{{Definition[[INDEX]]_AltLearningText}}</div>
-                                    {{/Definition[[INDEX]]_AltLearningText}}
-                                </div>
-                            {{/Definition[[INDEX]]_LearningText}}
-                            {{#Definition[[INDEX]]_NativeText}}
-                                <div class="text native">
-                                    <div class="main">{{Definition[[INDEX]]_NativeText}}</div>
-                                    {{#Definition[[INDEX]]_AltNativeText}}
-                                        <div class="alt">{{Definition[[INDEX]]_AltNativeText}}</div>
-                                    {{/Definition[[INDEX]]_AltNativeText}}
-                                </div>
-                            {{/Definition[[INDEX]]_NativeText}}
-                        </div>
-                    </li>
-                {{/Definition[[INDEX]]}}
+                {{#Definition[[INDEX]]_Included}}
+                    {{#Definition[[INDEX]]}}
+                        <li>
+                            <div class="definition">{{Definition[[INDEX]]}}</div>
+                            <div class="example">
+                                {{#Definition[[INDEX]]_LearningText}}
+                                    <div class="text learning">
+                                        <div class="main">{{Definition[[INDEX]]_LearningText}}</div>
+                                        {{#Definition[[INDEX]]_AltLearningText}}
+                                            <div class="alt">{{Definition[[INDEX]]_AltLearningText}}</div>
+                                        {{/Definition[[INDEX]]_AltLearningText}}
+                                    </div>
+                                {{/Definition[[INDEX]]_LearningText}}
+                                {{#Definition[[INDEX]]_NativeText}}
+                                    <div class="text native">
+                                        <div class="main">{{Definition[[INDEX]]_NativeText}}</div>
+                                        {{#Definition[[INDEX]]_AltNativeText}}
+                                            <div class="alt">{{Definition[[INDEX]]_AltNativeText}}</div>
+                                        {{/Definition[[INDEX]]_AltNativeText}}
+                                    </div>
+                                {{/Definition[[INDEX]]_NativeText}}
+                            </div>
+                        </li>
+                    {{/Definition[[INDEX]]}}
+                {{/Definition[[INDEX]]_Included}}
             [[/repeat]]
         </ol>
 
