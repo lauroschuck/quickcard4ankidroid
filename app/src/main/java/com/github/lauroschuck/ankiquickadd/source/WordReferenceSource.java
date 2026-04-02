@@ -225,10 +225,10 @@ public class WordReferenceSource implements DictionarySource {
         String mode = obj.has("mode") ? obj.get("mode").getAsString() : "examples";
         String headword = obj.has("headword") ? obj.get("headword").getAsString() : null;
 
-        String sourceUrl = null;
+        Uri sourceUrl = null;
         if (headword != null && lastLearningLanguage != null && lastNativeLanguage != null) {
             String langPair = lastLearningLanguage.getIsoCode() + lastNativeLanguage.getIsoCode();
-            sourceUrl = "https://www.wordreference.com/" + langPair + "/" + Uri.encode(headword);
+            sourceUrl = Uri.parse("https://www.wordreference.com/" + langPair + "/" + Uri.encode(headword));
         }
 
         if ("definitions".equals(mode)) {

@@ -2,6 +2,7 @@ package com.github.lauroschuck.ankiquickadd.anki;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -55,8 +56,8 @@ public class AnkiIntegration {
     public <N extends AbstractAnkiNote<I>, I extends AbstractAnkiNote.Input> void addCards(
             @NonNull Language learningLanguage,
             @NonNull Language nativeLanguage,
-            String audioUrl,
-            String sourceUrl,
+            Uri audioUrl,
+            Uri sourceUrl,
             @NonNull N note,
             @NonNull List<I> cards) {
         addCards(learningLanguage, nativeLanguage, audioUrl, sourceUrl, note, cards, null);
@@ -65,8 +66,8 @@ public class AnkiIntegration {
     public <N extends AbstractAnkiNote<I>, I extends AbstractAnkiNote.Input> void addCards(
             @NonNull Language learningLanguage,
             @NonNull Language nativeLanguage,
-            String audioUrl,
-            String sourceUrl,
+            Uri audioUrl,
+            Uri sourceUrl,
             @NonNull N note,
             @NonNull List<I> cards,
             Consumer<String> onSuccess) {
@@ -124,18 +125,15 @@ public class AnkiIntegration {
         });
     }
 
-    private String processAudio(String audioUrl) {
+    private String processAudio(Uri audioUrl) {
         var ankiPkg = AddContentApi.getAnkiDroidPackageName(context);
-        if (audioUrl == null || audioUrl.isEmpty() || ankiPkg == null) {
+        if (audioUrl == null || ankiPkg == null) {
             // TODO some handling for this
             return null;
         }
-        if (audioUrl.startsWith("//")) {
-            audioUrl = "https:" + audioUrl;
-        }
 
         try {
-            var fileName = UUID.randomUUID() + "." + MimeTypeMap.getFileExtensionFromUrl(audioUrl);
+            var fileName = UUID.randomUUID() + "." + MimeTypeMap.getFileExtensionFromUrl(audioUrl.toString());
             var localFile = downloadFile(audioUrl, fileName);
             var uri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", localFile);
 
@@ -156,14 +154,14 @@ public class AnkiIntegration {
         return null;
     }
 
-    private File downloadFile(String urlString, String fileName) throws IOException {
+    private File downloadFile(Uri urlString, String fileName) throws IOException {
         var client = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(10, TimeUnit.SECONDS)
                 .build();
 
         var request = new Request.Builder()
-                .url(urlString)
+                .url(urlString.toString())
                 .header("User-Agent", "SwedishAnkiQuickAdd/1.0 (https://github.com/lauroschuck/ankiquickadd)")
                 .build();
 

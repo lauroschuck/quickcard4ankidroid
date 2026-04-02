@@ -1,5 +1,6 @@
 package com.github.lauroschuck.ankiquickadd.anki.notes;
 
+import android.net.Uri;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiException;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import java.util.List;
@@ -60,7 +61,7 @@ public abstract sealed class AbstractAnkiNote<I extends AbstractAnkiNote.Input> 
             @NonNull Language learningLanguage,
             @NonNull Language nativeLanguage,
             String audio,
-            String sourceUrl,
+            Uri sourceUrl,
             @NonNull String[] actualFieldNames,
             @NonNull List<? extends I> cards) {
         return cards.stream()
@@ -72,7 +73,7 @@ public abstract sealed class AbstractAnkiNote<I extends AbstractAnkiNote.Input> 
             @NonNull Language learningLanguage,
             @NonNull Language nativeLanguage,
             String audio,
-            String sourceUrl,
+            Uri sourceUrl,
             @NonNull String[] actualFieldNames,
             @NonNull I card) {
         var fields = new String[actualFieldNames.length];
@@ -128,7 +129,7 @@ public abstract sealed class AbstractAnkiNote<I extends AbstractAnkiNote.Input> 
 
         @FunctionalInterface
         interface FieldFunction<I> {
-            String apply(Language learningLanguage, Language nativeLanguage, String sourceUrl, I input);
+            String apply(Language learningLanguage, Language nativeLanguage, Uri sourceUrl, I input);
         }
     }
 

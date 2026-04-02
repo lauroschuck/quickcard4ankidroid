@@ -1,6 +1,7 @@
 package com.github.lauroschuck.ankiquickadd.source;
 
 import android.content.Context;
+import android.net.Uri;
 import android.webkit.WebView;
 import com.github.lauroschuck.ankiquickadd.anki.notes.AbstractAnkiNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
@@ -63,16 +64,16 @@ public interface DictionarySource {
     record SelectedDictionaryCards(
             Language learningLanguage,
             Language nativeLanguage,
-            String audioUrl,
-            String sourceUrl,
+            Uri audioUrl,
+            Uri sourceUrl,
             List<DictionaryNote.Input> inputs)
             implements SelectedCards<DictionaryNote.Input> {}
 
     record SelectedTextCards(
             Language learningLanguage,
             Language nativeLanguage,
-            String audioUrl,
-            String sourceUrl,
+            Uri audioUrl,
+            Uri sourceUrl,
             List<TextNote.Input> inputs)
             implements SelectedCards<TextNote.Input> {}
 
@@ -81,9 +82,9 @@ public interface DictionarySource {
 
         Language nativeLanguage();
 
-        String audioUrl();
+        Uri audioUrl();
 
-        String sourceUrl();
+        Uri sourceUrl();
 
         List<I> inputs();
     }

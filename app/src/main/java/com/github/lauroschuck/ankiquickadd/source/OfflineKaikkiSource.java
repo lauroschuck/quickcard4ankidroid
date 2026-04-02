@@ -3,6 +3,7 @@ package com.github.lauroschuck.ankiquickadd.source;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.text.TextUtils;
 import android.util.Log;
 import com.github.jknack.handlebars.Handlebars;
@@ -378,14 +379,14 @@ public class OfflineKaikkiSource implements DictionarySource {
         throw new IllegalStateException("No language name found for " + language.getIsoCode());
     }
 
-    private static String assembleWiktionaryLink(
+    private static Uri assembleWiktionaryLink(
             @NonNull String headword, @NonNull Language nativeLanguage, @NonNull String anchor) {
         try {
             var encodedWord = URLEncoder.encode(headword, "UTF-8");
             var encodedAnchor = URLEncoder.encode(anchor.replace(" ", "_"), "UTF-8");
-            return String.format(
+            return Uri.parse(String.format(
                     "https://%s.wiktionary.org/wiki/%s#%s",
-                    nativeLanguage.getIsoCode().toLowerCase(), encodedWord, encodedAnchor);
+                    nativeLanguage.getIsoCode().toLowerCase(), encodedWord, encodedAnchor));
         } catch (Exception e) {
             throw new RuntimeException(
                     String.format("Failed to construct link for %s in %s-%s", headword, anchor, nativeLanguage), e);
@@ -564,7 +565,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                 .map(Object::toString)
                 .collect(Collectors.toList())
                 .toArray(new String[] {});
-        Log.d(TAG, String.format("Query:\n%sArguments: %s", query, Arrays.toString(arguments)));
+
         var flattenedCards = new ArrayList<DictionaryNote.Input>();
         try (var cursor = db.rawQuery(query, arguments)) {
             while (cursor.moveToNext()) {
@@ -610,13 +611,13 @@ public class OfflineKaikkiSource implements DictionarySource {
         return "(" + TextUtils.join(",", placeholders) + ")";
     }
 
-    private String fetchAudioUrl(SQLiteDatabase db, String headword) {
+    private Uri fetchAudioUrl(SQLiteDatabase db, String headword) {
         // TODO handle multiple audios
         var audioQuery =
                 "SELECT audio_url FROM pronunciations p JOIN headwords h ON p.headword_id = h.id WHERE h.headword = ? LIMIT 1";
         try (var audioCursor = db.rawQuery(audioQuery, new String[] {headword})) {
             if (audioCursor.moveToFirst()) {
-                return audioCursor.getString(0);
+                return Uri.parse(audioCursor.getString(0));
             }
         }
         return null;

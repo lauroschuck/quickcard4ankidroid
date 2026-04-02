@@ -1,5 +1,6 @@
 package com.github.lauroschuck.ankiquickadd.anki.notes;
 
+import android.net.Uri;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import java.util.ArrayList;
 import java.util.List;
@@ -110,7 +111,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
             @NonNull Language learningLanguage,
             @NonNull Language nativeLanguage,
             String audio,
-            String sourceUrl,
+            Uri sourceUrl,
             @NonNull String[] actualFieldNames,
             @NonNull List<? extends DictionaryNote.Input> cards) {
         // Ensure there are no more than DEFINITION_FIELDS definitions
@@ -140,15 +141,18 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
     }
 
     enum NonIndexedField implements CardField<Input> {
-        ID("Id", (l, n, s, i) -> String.format("%s-%s-%s", l.getDisplayName(), n.getDisplayName(), i.headword())),
+        ID(
+                "Id",
+                (l, n, s, i) ->
+                        String.format("%s-%s-%s-%s", s.getHost(), l.getIsoCode(), n.getIsoCode(), i.headword())),
         LEARNING_WORD("LearningWord", (l, n, s, i) -> i.headword),
-        LEARNING_LANG("LearningLang", (l, n, s, i) -> l.getDisplayName()),
+        LEARNING_LANG("LearningLang", (l, n, s, i) -> l.getDisplayName(n)),
         LEXICAL_CAT("LexicalCat", (l, n, s, i) -> i.lexicalCategory()),
-        NATIVE_LANG("NativeLang", (l, n, s, i) -> n.getDisplayName()),
+        NATIVE_LANG("NativeLang", (l, n, s, i) -> n.getDisplayName(n)),
         PERSONAL_NOTES("PersonalNotes", (l, n, s, i) -> null),
         HIDDEN_NOTES("HiddenNotes", (l, n, s, i) -> null),
         AUDIO("Audio", null),
-        SOURCE_URL("SourceUrl", (l, n, s, i) -> s);
+        SOURCE_URL("SourceUrl", (l, n, s, i) -> s.toString());
 
         private final String fieldName;
         private final FieldFunction<Input> generator;

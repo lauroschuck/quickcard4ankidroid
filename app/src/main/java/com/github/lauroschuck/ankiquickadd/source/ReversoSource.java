@@ -150,11 +150,11 @@ public class ReversoSource implements DictionarySource {
         String mode = obj.has("mode") ? obj.get("mode").getAsString() : "examples";
         String headword = obj.has("headword") ? obj.get("headword").getAsString() : null;
 
-        String sourceUrl = null;
+        Uri sourceUrl = null;
         if (headword != null && lastLearningLanguage != null && lastNativeLanguage != null) {
             var langPath = lastLearningLanguage.getDisplayName().toLowerCase() + "-"
                     + lastNativeLanguage.getDisplayName().toLowerCase();
-            sourceUrl = "https://dictionary.reverso.net/" + langPath + "/" + Uri.encode(headword);
+            sourceUrl = Uri.parse("https://dictionary.reverso.net/" + langPath + "/" + Uri.encode(headword));
         }
 
         if ("definitions".equals(mode)) {

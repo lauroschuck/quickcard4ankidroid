@@ -64,7 +64,7 @@ public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
         PERSONAL_NOTES("PersonalNotes", (l, n, s, i) -> null),
         HIDDEN_NOTES("HiddenNotes", (l, n, s, i) -> null),
         AUDIO("Audio", null),
-        SOURCE_URL("SourceUrl", (l, n, s, i) -> s);
+        SOURCE_URL("SourceUrl", (l, n, s, i) -> s.toString());
 
         private final String fieldName;
         private final FieldFunction<Input> generator;
