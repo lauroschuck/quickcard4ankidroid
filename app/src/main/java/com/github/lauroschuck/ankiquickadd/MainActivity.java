@@ -26,10 +26,10 @@ import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.NonNull;
+import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = "AnkiQuickAdd";
     private static final String KEY_PROCESSED_WORDS = "processed_words";
     private Spinner sourceSpinner;
     private MainViewModel viewModel;
@@ -75,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
 
         Set<String> processedSet = prefs.getStringSet(KEY_PROCESSED_WORDS, new HashSet<>());
         viewModel.getProcessedWords().setValue(processedSet);
+        Timber.d("Loaded persistent data: %d enqueued, %d processed", enqueuedSet.size(), processedSet.size());
     }
 
     public void markWordAsProcessed(String word) {
@@ -84,6 +85,7 @@ public class MainActivity extends AppCompatActivity {
         Set<String> processed = new HashSet<>(prefs.getStringSet(KEY_PROCESSED_WORDS, new HashSet<>()));
         if (processed.add(cleanWord)) {
             prefs.edit().putStringSet(KEY_PROCESSED_WORDS, processed).apply();
+            Timber.d("Marked word as processed: %s", cleanWord);
         }
     }
 
@@ -93,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
         Set<String> words = new HashSet<>(prefs.getStringSet(EnqueueActivity.KEY_ENQUEUED_WORDS, new HashSet<>()));
         if (words.remove(word)) {
             prefs.edit().putStringSet(EnqueueActivity.KEY_ENQUEUED_WORDS, words).apply();
+            Timber.d("Removed word from enqueue: %s", word);
         }
     }
 
@@ -137,6 +140,7 @@ public class MainActivity extends AppCompatActivity {
                 || currentNative != viewModel.getLastUsedNativeLanguage()) {
             var word = viewModel.getCurrentWord().getValue();
             if (word != null && !word.isEmpty()) {
+                Timber.d("Language changed, refetching word: %s", word);
                 fetchDefinition(word, true);
             }
             viewModel.setLastUsedLearningLanguage(currentLearning);
@@ -156,6 +160,10 @@ public class MainActivity extends AppCompatActivity {
 
         viewModel.getSources().clear();
         viewModel.getSources().addAll(availableSources);
+        Timber.d(
+                "Loaded %d sources: %s",
+                availableSources.size(),
+                availableSources.stream().map(DictionarySource::getName).collect(Collectors.joining(", ")));
 
         if (availableSources.size() <= 1) {
             sourceSpinner.setVisibility(View.GONE);
@@ -176,6 +184,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 viewModel.setCurrentSource(viewModel.getSources().get(position));
+                Timber.d("Source selected: %s", viewModel.getCurrentSource().getName());
                 viewModel.setSearchWarning(null);
                 var word = viewModel.getCurrentWord().getValue();
                 if (word != null && !word.isEmpty()) {
@@ -191,6 +200,7 @@ public class MainActivity extends AppCompatActivity {
     private void handleIntent(Intent intent) {
         var selectedWord = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
         if (selectedWord != null) {
+            Timber.d("Received word via PROCESS_TEXT: %s", selectedWord);
             viewModel.setRootIsSearch(false);
             fetchDefinition(selectedWord.toLowerCase(Locale.ROOT), false);
         } else {
@@ -220,6 +230,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void fetchDefinition(@NonNull String word, boolean isFromHistory) {
+        Timber.d("Fetching definition for: %s (isFromHistory=%b)", word, isFromHistory);
         if (!isFromHistory
                 && (viewModel.getWordHistory().isEmpty()
                         || !viewModel.getWordHistory().peek().equals(word))) {
@@ -247,6 +258,7 @@ public class MainActivity extends AppCompatActivity {
                     .fetch(word, learningLanguage, nativeLanguage, new DictionarySource.OnResultListener() {
                         @Override
                         public void onSuccess(String html, String headword) {
+                            Timber.d("Successfully fetched definition for: %s", word);
                             runOnUiThread(() -> {
                                 Fragment current = getCurrentFragment();
                                 if (current instanceof DefinitionFragment) {
@@ -257,8 +269,10 @@ public class MainActivity extends AppCompatActivity {
 
                         @Override
                         public void onError(String message) {
+                            Timber.w("Error fetching definition for %s: %s", word, message);
                             var lowercaseWord = word.toLowerCase(Locale.ROOT);
                             if (!word.equals(lowercaseWord)) {
+                                Timber.d("Retrying with lowercase word: %s", lowercaseWord);
                                 fetchDefinition(lowercaseWord, true);
                             } else {
                                 runOnUiThread(() -> {
@@ -271,6 +285,8 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
                     });
+        } else {
+            Timber.e("No current source selected when fetching definition for: %s", word);
         }
     }
 

@@ -6,7 +6,6 @@ import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,14 +26,13 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import java.io.IOException;
 import lombok.NonNull;
+import timber.log.Timber;
 
 public class DefinitionFragment extends Fragment {
 
-    private static final String TAG = "DefinitionFragment";
     private MainViewModel viewModel;
     private WebView webView;
     private View createCardsFabContainer;
-    private TextView badgeText;
     private TabLayout noteTypeTabLayout;
     private MediaPlayer mediaPlayer;
     private AnkiIntegration ankiIntegration;
@@ -44,11 +42,13 @@ public class DefinitionFragment extends Fragment {
         @SuppressWarnings("unused")
         public void processSelectedCards(@NonNull String json) {
             requireActivity().runOnUiThread(() -> {
-                Log.d(TAG, "Selected cards JSON: " + json);
+                Timber.d("Selected cards JSON received from WebView");
                 var selectedCards = viewModel.getCurrentSource().getCardsFromSelection(json);
                 if (AnkiDroidHelper.isApiAvailable(requireContext())) {
                     var activity = (MainActivity) requireActivity();
-                    Log.d(TAG, "Selected cards: " + selectedCards.inputs());
+                    Timber.i(
+                            "Adding %d selected cards to Anki",
+                            selectedCards.inputs().size());
                     if (selectedCards instanceof DictionarySource.SelectedDictionaryCards dictCards) {
                         ankiIntegration.addCards(
                                 dictCards.learningLanguage(),
@@ -68,8 +68,13 @@ public class DefinitionFragment extends Fragment {
                                 textCards.inputs(),
                                 activity::markWordAsProcessed);
                     } else {
+                        Timber.e(
+                                "Unknown selected card type: %s",
+                                selectedCards.getClass().getName());
                         throw new RuntimeException("Unknown selected card type " + selectedCards);
                     }
+                } else {
+                    Timber.w("AnkiDroid API not available");
                 }
             });
         }
@@ -78,6 +83,7 @@ public class DefinitionFragment extends Fragment {
         @SuppressWarnings("unused")
         public void updateSelectedCount(int count) {
             requireActivity().runOnUiThread(() -> {
+                Timber.v("Update selected count: %d", count);
                 viewModel.setSelectedCount(count);
             });
         }
@@ -86,6 +92,7 @@ public class DefinitionFragment extends Fragment {
         @SuppressWarnings("unused")
         public void showToast(String message) {
             requireActivity().runOnUiThread(() -> {
+                Timber.d("Toast from WebView: %s", message);
                 Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
             });
         }
@@ -101,13 +108,12 @@ public class DefinitionFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         ankiIntegration = new AnkiIntegration((Activity) requireContext());
-
         viewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
 
         webView = view.findViewById(R.id.webView);
         createCardsFabContainer = view.findViewById(R.id.createCardsFabContainer);
         FloatingActionButton createCardsFab = view.findViewById(R.id.createCardsFab);
-        badgeText = view.findViewById(R.id.badgeText);
+        var badgeText = view.findViewById(R.id.badgeText);
         FloatingActionButton closeButton = view.findViewById(R.id.closeButton);
         noteTypeTabLayout = view.findViewById(R.id.noteTypeTabLayout);
 
@@ -117,17 +123,11 @@ public class DefinitionFragment extends Fragment {
         closeButton.setOnClickListener(v -> ((MainActivity) requireActivity()).closeDefinition());
         createCardsFab.setOnClickListener(v -> triggerJsExtraction());
 
-        viewModel.getCurrentWord().observe(getViewLifecycleOwner(), word -> {
-            if (word != null && !word.isEmpty()) {
-                // Word fetching is still initiated by MainActivity for now
-            }
-        });
-
         viewModel.getSelectedCount().observe(getViewLifecycleOwner(), count -> {
             if (count > 0) {
                 createCardsFabContainer.setVisibility(View.VISIBLE);
                 badgeText.setVisibility(View.VISIBLE);
-                badgeText.setText(String.valueOf(count));
+                ((TextView) badgeText).setText(String.valueOf(count));
             } else {
                 createCardsFabContainer.setVisibility(View.GONE);
                 badgeText.setVisibility(View.GONE);
@@ -140,6 +140,7 @@ public class DefinitionFragment extends Fragment {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 String mode = tab.getPosition() == 0 ? "definitions" : "examples";
+                Timber.d("Switching mode to: %s", mode);
                 webView.evaluateJavascript("setMode('" + mode + "')", null);
                 viewModel.setSelectedCount(0);
             }
@@ -158,7 +159,10 @@ public class DefinitionFragment extends Fragment {
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onConsoleMessage(ConsoleMessage consoleMessage) {
-                Log.d("WebViewConsole", consoleMessage.message());
+                Timber.tag("WebViewConsole")
+                        .d(
+                                "[%s:%d] %s",
+                                consoleMessage.sourceId(), consoleMessage.lineNumber(), consoleMessage.message());
                 return true;
             }
         });
@@ -166,6 +170,7 @@ public class DefinitionFragment extends Fragment {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 var url = request.getUrl().toString();
+                Timber.d("WebView loading URL: %s", url);
                 if (url.startsWith("app://fetch/")) {
                     var word = Uri.decode(url.substring("app://fetch/".length()));
                     ((MainActivity) requireActivity()).fetchDefinition(word);
@@ -188,6 +193,7 @@ public class DefinitionFragment extends Fragment {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                Timber.v("WebView page finished: %s", url);
                 injectCheckboxListener();
                 var mode = noteTypeTabLayout.getSelectedTabPosition() == 0 ? "definitions" : "examples";
                 webView.evaluateJavascript("setMode('" + mode + "')", null);
@@ -196,6 +202,7 @@ public class DefinitionFragment extends Fragment {
     }
 
     private void playAudio(String url) {
+        Timber.i("Playing audio from: %s", url);
         if (mediaPlayer != null) {
             mediaPlayer.release();
         }
@@ -209,11 +216,12 @@ public class DefinitionFragment extends Fragment {
             mediaPlayer.prepareAsync();
             mediaPlayer.setOnPreparedListener(MediaPlayer::start);
             mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                Timber.e("MediaPlayer error: what=%d, extra=%d", what, extra);
                 ((MainActivity) requireActivity()).showSnackbar("Audio playback failed", true);
                 return true;
             });
         } catch (IOException e) {
-            Log.e(TAG, "Audio error", e);
+            Timber.e(e, "Error setting data source for audio");
         }
     }
 
@@ -228,11 +236,15 @@ public class DefinitionFragment extends Fragment {
     }
 
     private void triggerJsExtraction() {
+        Timber.d(
+                "Triggering JS extraction for source: %s",
+                viewModel.getCurrentSource().getName());
         webView.evaluateJavascript(viewModel.getCurrentSource().getExtractionJs(), null);
     }
 
     public void loadHtml(@NonNull String html) {
         if (webView != null) {
+            Timber.v("Loading HTML content into WebView (length: %d)", html.length());
             webView.loadDataWithBaseURL("https://en.wiktionary.org/", html, "text/html", "UTF-8", null);
         }
     }
@@ -241,6 +253,7 @@ public class DefinitionFragment extends Fragment {
     public void onDestroy() {
         super.onDestroy();
         if (mediaPlayer != null) {
+            Timber.d("Releasing MediaPlayer");
             mediaPlayer.release();
             mediaPlayer = null;
         }

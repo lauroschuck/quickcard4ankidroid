@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.preference.PreferenceManager;
-import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 import androidx.core.content.ContextCompat;
@@ -31,13 +30,13 @@ import lombok.NonNull;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import timber.log.Timber;
 
 /**
  * Handles the integration with AnkiDroid for creating language flashcards.
  */
 public class AnkiIntegration {
 
-    private static final String TAG = "AnkiIntegration";
     private static final int AD_PERM_REQUEST = 0;
 
     private static final ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -49,6 +48,7 @@ public class AnkiIntegration {
         this.context = context;
         this.ankiDroidHelper = new AnkiDroidHelper(context);
         if (ankiDroidHelper.shouldRequestPermission()) {
+            Timber.i("Requesting AnkiDroid permission");
             ankiDroidHelper.requestPermission(context, AD_PERM_REQUEST);
         }
     }
@@ -72,55 +72,75 @@ public class AnkiIntegration {
             @NonNull List<I> cards,
             Consumer<String> onSuccess) {
         if (cards.isEmpty()) {
+            Timber.w("No cards selected to add");
             showSnackbar(context, "No cards selected.", true);
             return;
         }
-        Log.i(
-                TAG,
-                String.format(
-                        "Adding %s-%s %s cards: %s",
-                        learningLanguage, nativeLanguage, note.getClass().getSimpleName(), cards));
+
+        Timber.i(
+                "Adding %d %s cards for %s-%s",
+                cards.size(), note.getClass().getSimpleName(), learningLanguage, nativeLanguage);
 
         executorService.execute(() -> {
-            var prefs = PreferenceManager.getDefaultSharedPreferences(context);
-            var parentDeckName =
-                    prefs.getString(SettingsActivity.KEY_PARENT_DECK_NAME, SettingsActivity.DEFAULT_PARENT_DECK_NAME);
-            var deckName = String.format(
-                    "%s::%s-%s",
-                    parentDeckName,
-                    learningLanguage.getDisplayName(learningLanguage),
-                    nativeLanguage.getDisplayName(learningLanguage));
-            var deckId = getDeckId(deckName);
-            var modelId = getModelId(deckId, note);
+            try {
+                var prefs = PreferenceManager.getDefaultSharedPreferences(context);
+                var parentDeckName = prefs.getString(
+                        SettingsActivity.KEY_PARENT_DECK_NAME, SettingsActivity.DEFAULT_PARENT_DECK_NAME);
+                var deckName = String.format(
+                        "%s::%s-%s",
+                        parentDeckName,
+                        learningLanguage.getDisplayName(learningLanguage),
+                        nativeLanguage.getDisplayName(learningLanguage));
 
-            var actualFieldNames = ankiDroidHelper.getApi().getFieldList(modelId);
-            if (actualFieldNames == null) {
-                showSnackbar(context, "Card add failed: Model Error", true);
-                return;
-            }
+                Timber.d("Target deck: %s", deckName);
+                var deckId = getDeckId(deckName);
+                var modelId = getModelId(deckId, note);
 
-            var audio = audioUrl == null ? null : processAudio(audioUrl);
-
-            var fieldsList =
-                    note.generateFields(learningLanguage, nativeLanguage, audio, sourceUrl, actualFieldNames, cards);
-
-            var tagsList = new LinkedList<Set<String>>();
-            for (int i = 0; i < fieldsList.size(); i++) {
-                tagsList.add(note.getTags());
-            }
-
-            ankiDroidHelper.removeDuplicates(fieldsList, tagsList, modelId);
-            int added = ankiDroidHelper.getApi().addNotes(modelId, deckId, fieldsList, tagsList);
-
-            if (added > 0) {
-                showSnackbar(context, "Successfully sent " + added + " cards to Anki", false);
-                if (onSuccess != null) {
-                    for (I card : cards) {
-                        onSuccess.accept(card.headword());
-                    }
+                var actualFieldNames = ankiDroidHelper.getApi().getFieldList(modelId);
+                if (actualFieldNames == null) {
+                    Timber.e("Could not get field list for modelId: %d", modelId);
+                    showSnackbar(context, "Card add failed: Model Error", true);
+                    return;
                 }
-            } else {
-                showSnackbar(context, "Card add failed: No notes added", true);
+
+                var audio = audioUrl == null ? null : processAudio(audioUrl);
+
+                var fieldsList = note.generateFields(
+                        learningLanguage, nativeLanguage, audio, sourceUrl, actualFieldNames, cards);
+
+                var tagsList = new LinkedList<Set<String>>();
+                for (int i = 0; i < fieldsList.size(); i++) {
+                    tagsList.add(note.getTags());
+                }
+
+                ankiDroidHelper.removeDuplicates(fieldsList, tagsList, modelId);
+
+                if (fieldsList.isEmpty()) {
+                    Timber.i("No new notes to add (all were duplicates)");
+                    showSnackbar(context, "Notes already exist in Anki", false);
+                    return;
+                }
+
+                int added = ankiDroidHelper.getApi().addNotes(modelId, deckId, fieldsList, tagsList);
+                Timber.i("Successfully added %d/%d notes to Anki", added, fieldsList.size());
+
+                if (added > 0) {
+                    showSnackbar(context, "Successfully sent " + added + " cards to Anki", false);
+                    if (onSuccess != null) {
+                        for (int i = 0; i < added; i++) {
+                            // This is a bit of a simplification as we don't know exactly which ones were added if some
+                            // failed
+                            // but usually it's all or nothing if they aren't duplicates
+                            onSuccess.accept(cards.get(i).headword());
+                        }
+                    }
+                } else {
+                    Timber.w("No notes were added to Anki");
+                    showSnackbar(context, "Card add failed: No notes added", true);
+                }
+            } catch (Exception e) {
+                Timber.e(e, "Error adding cards to Anki");
+                showSnackbar(context, "Error adding cards: " + e.getMessage(), true);
             }
         });
     }
@@ -128,10 +148,10 @@ public class AnkiIntegration {
     private String processAudio(Uri audioUrl) {
         var ankiPkg = AddContentApi.getAnkiDroidPackageName(context);
         if (audioUrl == null || ankiPkg == null) {
-            // TODO some handling for this
             return null;
         }
 
+        Timber.d("Processing audio: %s", audioUrl);
         try {
             var fileName = UUID.randomUUID() + "." + MimeTypeMap.getFileExtensionFromUrl(audioUrl.toString());
             var localFile = downloadFile(audioUrl, fileName);
@@ -140,6 +160,7 @@ public class AnkiIntegration {
             context.grantUriPermission(ankiPkg, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
             try {
                 String internalName = ankiDroidHelper.getApi().addMediaFromUri(uri, fileName, "audio");
+                Timber.d("Media added to Anki with internal name: %s", internalName);
                 if (internalName != null) {
                     return internalName;
                 }
@@ -148,9 +169,8 @@ public class AnkiIntegration {
                 context.revokeUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
             }
         } catch (Exception e) {
-            Log.e(TAG, "Audio processing failed for URL " + audioUrl, e);
+            Timber.e(e, "Audio processing failed for URL %s", audioUrl);
         }
-        // TODO some handling for this
         return null;
     }
 
@@ -180,6 +200,7 @@ public class AnkiIntegration {
                 }
                 output.flush();
             }
+            Timber.d("File downloaded to: %s", file.getAbsolutePath());
             return file;
         }
     }
@@ -187,6 +208,7 @@ public class AnkiIntegration {
     private long getDeckId(String deckName) {
         var deckId = ankiDroidHelper.findDeckIdByName(deckName);
         if (deckId == null) {
+            Timber.i("Deck '%s' not found, creating new one", deckName);
             deckId = ankiDroidHelper.getApi().addNewDeck(deckName);
             if (deckId == null) {
                 throw new IllegalStateException(String.format("Could not add deck '%s'", deckName));
@@ -200,6 +222,7 @@ public class AnkiIntegration {
         var modelId = ankiDroidHelper.findModelIdByName(
                 note.getModelName(), note.getFieldNames().size());
         if (modelId == null) {
+            Timber.i("Model '%s' not found, creating new one", note.getModelName());
             modelId = ankiDroidHelper
                     .getApi()
                     .addNewCustomModel(
