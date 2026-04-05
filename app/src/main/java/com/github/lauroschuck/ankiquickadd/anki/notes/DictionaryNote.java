@@ -52,7 +52,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
 
     public DictionaryNote(@NonNull CardAssets assets) {
         super(
-                "ankiquickadd.DictionaryDefinitionV52",
+                "ankiquickadd.DictionaryDefinitionV54",
                 generateFieldNames(),
                 assets.getSharedCss() + assets.getDictionaryCss(),
                 generateCardTypes(assets));
@@ -150,6 +150,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
                 (l, n, s, i) ->
                         String.format("%s-%s-%s-%s", i.headword(), l.getIsoCode(), n.getIsoCode(), s.getHost())),
         LEARNING_WORD("LearningWord", (l, n, s, i) -> i.headword),
+        IPA("IPA", (l, n, s, i) -> i.ipa()),
         LEARNING_LANG("LearningLang", (l, n, s, i) -> l.getDisplayName(n)),
         LEXICAL_CAT("LexicalCat", (l, n, s, i) -> i.lexicalCategory()),
         NATIVE_LANG("NativeLang", (l, n, s, i) -> n.getDisplayName(n)),
@@ -185,7 +186,8 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
     record IndexedField(int index, @NonNull String fieldName, FieldFunction<Input> valueGenerator)
             implements CardField<Input> {}
 
-    public record Input(@NonNull String headword, String lexicalCategory, @NonNull List<Definition> definitions)
+    public record Input(
+            @NonNull String headword, String ipa, String lexicalCategory, @NonNull List<Definition> definitions)
             implements AbstractAnkiNote.Input {
 
         public Input {

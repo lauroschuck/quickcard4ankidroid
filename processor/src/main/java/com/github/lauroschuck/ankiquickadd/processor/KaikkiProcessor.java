@@ -16,6 +16,8 @@ import java.util.*;
 import java.util.Date;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Parallel version of KaikkiToSqlite with memory-safe backpressure.
@@ -39,10 +41,12 @@ public class KaikkiProcessor {
                 pOffset,
                 pPronunciation,
                 pRelation,
-                pLanguage;
+                pLanguage,
+                pUpdateIpa;
         final Map<String, Long> headwordCache = new HashMap<>();
         final Map<String, Integer> headwordSenseCounter = new HashMap<>();
         final Map<Long, Set<String>> headwordAudioCache = new HashMap<>();
+        final Map<Long, Set<String>> headwordIpaCache = new HashMap<>();
         final BlockingQueue<JsonObject> queue = new LinkedBlockingQueue<>(2000);
         final Thread writerThread;
 
@@ -79,6 +83,7 @@ public class KaikkiProcessor {
             this.pRelation =
                     conn.prepareStatement("INSERT INTO relations (lexical_entry_id, type, word) VALUES (?, ?, ?)");
             this.pLanguage = conn.prepareStatement("INSERT OR IGNORE INTO languages (iso, name) VALUES (?, ?)");
+            this.pUpdateIpa = conn.prepareStatement("UPDATE headwords SET ipa = ? WHERE id = ?");
 
             this.writerThread = new Thread(this::consume);
             this.writerThread.start();
@@ -112,7 +117,11 @@ public class KaikkiProcessor {
                 pLanguage.addBatch();
             }
 
-            if (entry.has("sounds")) processPronunciationsInternal(headwordId, entry.getAsJsonArray("sounds"));
+            if (entry.has("sounds")) {
+                JsonArray sounds = entry.getAsJsonArray("sounds");
+                processPronunciationsInternal(headwordId, sounds);
+                processIpaInternal(headwordId, sounds);
+            }
             if (entry.has("senses")) {
                 String pos = entry.has("pos") ? entry.get("pos").getAsString() : "unknown";
                 processSensesInternal(headwordId, pos, entry.getAsJsonArray("senses"), word);
@@ -133,6 +142,39 @@ public class KaikkiProcessor {
                     pPronunciation.setString(3, aggregateSoundDescription(sound));
                     pPronunciation.addBatch();
                     pronunciationCount++;
+                }
+            }
+        }
+
+        private void processIpaInternal(long headwordId, JsonArray sounds) throws Exception {
+            List<String> ipas = new ArrayList<>();
+            for (JsonElement soundElem : sounds) {
+                JsonObject sound = soundElem.getAsJsonObject();
+                if (sound.has("ipa")) {
+                    String ipaText = sound.get("ipa").getAsString();
+                    var tags = Stream.of("tags", "raw_tags")
+                            .filter(sound::has)
+                            .map(sound::getAsJsonArray)
+                            .flatMap(ja -> ja.asList().stream())
+                            .map(JsonElement::getAsString)
+                            .distinct()
+                            .collect(Collectors.toList());
+                    String tagsText = (tags.isEmpty() ? "" : " (" + String.join(", ", tags) + ") ");
+                    ipas.add(tagsText + ipaText);
+                }
+            }
+
+            if (!ipas.isEmpty()) {
+                // Same headword can be in multiple etymologies and lexical categories,
+                // so since we merge that, we need to be able to merge all of them,
+                // and the cache helps to find previous values and merge them.
+                Set<String> cached = headwordIpaCache.getOrDefault(headwordId, new LinkedHashSet<>());
+                boolean changed = cached.addAll(ipas);
+
+                if (changed) {
+                    pUpdateIpa.setString(1, String.join(", ", cached));
+                    pUpdateIpa.setLong(2, headwordId);
+                    pUpdateIpa.addBatch();
                 }
             }
         }
@@ -278,6 +320,7 @@ public class KaikkiProcessor {
             pRelation.executeBatch();
             pSenseLink.executeBatch();
             pLanguage.executeBatch();
+            pUpdateIpa.executeBatch();
             conn.commit();
         }
 
@@ -493,7 +536,7 @@ public class KaikkiProcessor {
         st.execute("DROP TABLE IF EXISTS pronunciations");
         st.execute("DROP TABLE IF EXISTS headwords");
         st.execute("DROP TABLE IF EXISTS languages");
-        st.execute("CREATE TABLE headwords (id INTEGER PRIMARY KEY AUTOINCREMENT, headword TEXT UNIQUE)");
+        st.execute("CREATE TABLE headwords (id INTEGER PRIMARY KEY AUTOINCREMENT, headword TEXT UNIQUE, ipa TEXT)");
         st.execute(
                 "CREATE TABLE lexical_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, headword_id INTEGER, lexical_category TEXT, sense_index INTEGER, FOREIGN KEY(headword_id) REFERENCES headwords(id))");
         st.execute(

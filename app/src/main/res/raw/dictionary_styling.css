@@ -2,10 +2,6 @@
  * Dictionary note - Card top
  */
 
-.dictionary-note.w2d .learning-word {
-    margin-bottom: 0;
-}
-
 .hint:not(:has(.content .row)) {
     display: none;
 }

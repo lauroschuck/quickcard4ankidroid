@@ -30,7 +30,9 @@
                     {{#SourceUrl}}<a href="{{SourceUrl}}">{{LearningWord}}</a>{{/SourceUrl}}
                     {{^SourceUrl}}{{LearningWord}}{{/SourceUrl}}
                 </div>
-
+                {{#IPA}}
+                    <div class="ipa">{{IPA}}</div>
+                {{/IPA}}
                 <div class="definition">{{Definition[[INDEX]]}}</div>
             </div>
 

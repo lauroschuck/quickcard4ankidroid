@@ -74,7 +74,10 @@ public class OfflineKaikkiSource implements DictionarySource {
                         .relation-group { margin: 4px 0; font-size: 0.9em; }
                         .relation-label { cursor: pointer; background: #eee; padding: 2px 6px; border-radius: 3px; margin-right: 8px; font-weight: bold; color: #36c; }
                         .relation-label:hover { background: #ddd; }
+
+                        .pronunciation-header { font-size: 0.9em; font-weight: bold; color: #555; margin-bottom: 4px; }
                         .pronunciation-box { background: #f0f7ff; padding: 10px; border-radius: 4px; margin-bottom: 1em; border-left: 4px solid #36c; }
+                        .ipa-text { font-family: "Lucida Sans Unicode", "Arial Unicode MS", sans-serif; font-size: 1.1em; color: #202122; margin-bottom: 8px; display: block; }
                         .pronunciation-item { margin-bottom: 4px; display: flex; align-items: center; }
                         .play-button { text-decoration: none; background: #36c; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 12px; margin-right: 8px; }
                         .pron-desc { font-size: 0.9em; color: #555; }
@@ -136,8 +139,12 @@ public class OfflineKaikkiSource implements DictionarySource {
                     </div>
                     {{/if}}
 
-                    {{#if pronunciations}}
+                    {{#if hasPronunciation}}
                     <div class='pronunciation-box'>
+                        <div class='pronunciation-header'>Pronunciation</div>
+                        {{#if ipa}}
+                        <span class='ipa-text'>{{{ipa}}}</span>
+                        {{/if}}
                         {{#each pronunciations}}
                         <div class='pronunciation-item'>
                             <a class='play-button' href='app://play/{{encodedUrl}}'>&#9658;</a>
@@ -146,6 +153,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                         {{/each}}
                     </div>
                     {{/if}}
+
                     {{#each posBlocks}}
                     <div class='pos-block'>
                         <h3>{{pos}}</h3>
@@ -241,9 +249,20 @@ public class OfflineKaikkiSource implements DictionarySource {
             // 0. Fetch language name for Wiktionary anchor and construct URL
             var langName = getLanguageName(db, learningLanguage);
             data.put("langName", langName);
-            data.put("wiktionaryUrl", assembleWiktionaryLink(word, nativeLanguage, langName));
+            data.put(
+                    "wiktionaryUrl",
+                    assembleWiktionaryLink(word, nativeLanguage, langName).toString());
 
-            // 1. Fetch Pronunciations
+            // 1. Fetch IPA
+            String ipa = null;
+            try (var cursor = db.rawQuery("SELECT ipa FROM headwords WHERE headword = ?", new String[] {word})) {
+                if (cursor.moveToFirst()) {
+                    ipa = cursor.getString(0);
+                }
+            }
+            data.put("ipa", ipa);
+
+            // 2. Fetch Pronunciations
             var pronunciations = new ArrayList<Map<String, String>>();
             var pronQuery =
                     "SELECT audio_url, description FROM pronunciations p JOIN headwords h ON p.headword_id = h.id WHERE h.headword = ? COLLATE BINARY";
@@ -260,9 +279,10 @@ public class OfflineKaikkiSource implements DictionarySource {
                 }
             }
             data.put("pronunciations", pronunciations);
+            data.put("hasPronunciation", (ipa != null && !ipa.isEmpty()) || !pronunciations.isEmpty());
             Log.d(TAG, "Found " + pronunciations.size() + " pronunciations");
 
-            // 2. Fetch variations (other casings)
+            // 3. Fetch variations (other casings)
             var variations = new ArrayList<String>();
             String varQuery =
                     "SELECT headword FROM headwords WHERE headword = ? COLLATE NOCASE AND headword != ? COLLATE BINARY";
@@ -275,7 +295,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                 data.put("variations", variations);
             }
 
-            // 3. Fetch Lexical Entries and nest everything
+            // 4. Fetch Lexical Entries and nest everything
             var posBlocks = new ArrayList<Map<String, Object>>();
             String mainQuery =
                     "SELECT le.id, le.lexical_category FROM lexical_entries le JOIN headwords h ON le.headword_id = h.id WHERE h.headword = ? COLLATE BINARY ORDER BY le.lexical_category, le.sense_index";
@@ -483,9 +503,11 @@ public class OfflineKaikkiSource implements DictionarySource {
                     var exampleIds = obj.getAsJsonArray("examples");
                     var cards = new ArrayList<TextNote.Input>();
                     String headword = null;
+                    String ipa = null;
                     for (var idElem : exampleIds) {
                         var card = fetchCardForExample(db, idElem.getAsLong());
                         headword = card.headword();
+                        ipa = card.ipa();
                         cards.add(card);
                     }
                     var audioUrl = fetchAudioUrl(db, headword);
@@ -503,10 +525,8 @@ public class OfflineKaikkiSource implements DictionarySource {
                         entryMap.put(entryId, exampleId);
                     }
                     var cards = fetchCardForDefinition(db, entryMap);
-                    var headword = cards.stream()
-                            .findFirst()
-                            .map(DictionaryNote.Input::headword)
-                            .orElseThrow();
+                    var firstCard = cards.stream().findFirst().orElseThrow();
+                    var headword = firstCard.headword();
                     var audioUrl = fetchAudioUrl(db, headword);
                     var sourceUrl = assembleWiktionaryLink(
                             headword, lastNativeLanguage, getLanguageName(db, lastLearningLanguage));
@@ -521,7 +541,7 @@ public class OfflineKaikkiSource implements DictionarySource {
     }
 
     private TextNote.Input fetchCardForExample(SQLiteDatabase db, long exId) {
-        var query = "SELECT e.learning_text, e.native_text, le.lexical_category, h.headword, e.lexical_entry_id "
+        var query = "SELECT e.learning_text, e.native_text, le.lexical_category, h.headword, h.ipa, e.lexical_entry_id "
                 + "FROM examples e "
                 + "JOIN lexical_entries le ON e.lexical_entry_id = le.id "
                 + "JOIN headwords h ON le.headword_id = h.id "
@@ -536,13 +556,14 @@ public class OfflineKaikkiSource implements DictionarySource {
             var nativeTextRaw = cursor.getString(1);
             var lexicalCategory = cursor.getString(2);
             var headword = cursor.getString(3);
-            var entryId = cursor.getLong(4);
+            var ipa = cursor.getString(4);
+            var entryId = cursor.getLong(5);
 
             var learningText = applyBolding(learningTextRaw, exId, "L", db);
             var nativeText = applyBolding(nativeTextRaw, exId, "N", db);
             var glosses = fetchGlosses(db, entryId);
 
-            return new TextNote.Input(headword, learningText, nativeText, glosses, lexicalCategory);
+            return new TextNote.Input(headword, ipa, learningText, nativeText, glosses, lexicalCategory);
         }
     }
 
@@ -550,7 +571,7 @@ public class OfflineKaikkiSource implements DictionarySource {
         var examples = entryMap.values().stream().filter(Objects::nonNull).collect(Collectors.toList());
         var query = String.format(
                 """
-            SELECT le.id, h.headword, le.lexical_category, e.id, e.learning_text, e.native_text
+            SELECT le.id, h.headword, h.ipa, le.lexical_category, e.id, e.learning_text, e.native_text
             FROM headwords h
             JOIN lexical_entries le ON le.headword_id = h.id
             LEFT JOIN examples e ON e.lexical_entry_id = le.id
@@ -571,18 +592,19 @@ public class OfflineKaikkiSource implements DictionarySource {
             while (cursor.moveToNext()) {
                 var entryId = cursor.getLong(0);
                 var headword = cursor.getString(1);
-                var lexicalCategory = cursor.getString(2);
+                var ipa = cursor.getString(2);
+                var lexicalCategory = cursor.getString(3);
                 var definitionText = fetchGlosses(db, entryId);
                 DictionaryNote.Input.Definition definition;
-                if (cursor.isNull(3)) {
+                if (cursor.isNull(4)) {
                     definition = new DictionaryNote.Input.Definition(definitionText, null, null);
                 } else {
-                    var exampleId = cursor.getLong(3);
-                    var learningText = applyBolding(cursor.getString(4), exampleId, "L", db);
-                    var nativeText = applyBolding(cursor.getString(5), exampleId, "N", db);
+                    var exampleId = cursor.getLong(4);
+                    var learningText = applyBolding(cursor.getString(5), exampleId, "L", db);
+                    var nativeText = applyBolding(cursor.getString(6), exampleId, "N", db);
                     definition = new DictionaryNote.Input.Definition(definitionText, learningText, nativeText);
                 }
-                var input = new DictionaryNote.Input(headword, lexicalCategory, List.of(definition));
+                var input = new DictionaryNote.Input(headword, ipa, lexicalCategory, List.of(definition));
                 Log.d(TAG, String.format("Intermediary input: %s", input));
                 flattenedCards.add(input);
             }
@@ -597,8 +619,8 @@ public class OfflineKaikkiSource implements DictionarySource {
                             .map(input -> input.definitions().get(0))
                             .collect(Collectors.toList());
                     var firstInput = inputs.get(0);
-                    var input =
-                            new DictionaryNote.Input(firstInput.headword(), firstInput.lexicalCategory(), definitions);
+                    var input = new DictionaryNote.Input(
+                            firstInput.headword(), firstInput.ipa(), firstInput.lexicalCategory(), definitions);
                     Log.d(TAG, String.format("Condensed input: %s", input));
                     return input;
                 })

@@ -25,6 +25,11 @@ html {
     border-bottom: 0.1em solid rgba(0, 122, 255, 0.15);
 }
 
+.ipa {
+    color: #57606a;
+    margin-bottom: 0.4em;
+}
+
 .definition {
     color: #2980b9;
     font-size: 1.1rem;
@@ -74,9 +79,11 @@ html {
 }
 
 .context:has(.top-lang) {
-    position: fixed;
+    margin-top: 0;
+    position: absolute;
     right: 1em;
-    z-index: -1;
+    top: 0.6em;
+    opacity: 0.5;
 }
 
 /*
@@ -133,6 +140,10 @@ html {
 
 .night_mode .context {
     background-color: #21262d;
+    color: #8b949e;
+}
+
+.night_mode .ipa {
     color: #8b949e;
 }
 

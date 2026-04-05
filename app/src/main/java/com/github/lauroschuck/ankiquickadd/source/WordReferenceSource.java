@@ -249,7 +249,7 @@ public class WordReferenceSource implements DictionarySource {
                                 e.get("definition"), e.get("learningText"), e.get("nativeText")))
                         .collect(Collectors.toList());
 
-                inputs.add(new DictionaryNote.Input(headword != null ? headword : "", lexicalCat, definitions));
+                inputs.add(new DictionaryNote.Input(headword != null ? headword : "", null, lexicalCat, definitions));
             }
             return new SelectedDictionaryCards(lastLearningLanguage, lastNativeLanguage, null, sourceUrl, inputs);
         } else {
