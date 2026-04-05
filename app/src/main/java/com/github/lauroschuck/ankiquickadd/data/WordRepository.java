@@ -44,6 +44,19 @@ public class WordRepository {
             if (updated.remove(word)) {
                 enqueuedWords.setValue(updated);
                 saveEnqueuedWords(updated);
+
+                Set<String> processed = processedWords.getValue();
+                if (processed != null) {
+                    Set<String> updatedProcessed = new HashSet<>(processed);
+                    if (updatedProcessed.remove(word)) {
+                        processedWords.setValue(updatedProcessed);
+                        prefs.edit()
+                                .putStringSet(KEY_PROCESSED_WORDS, updatedProcessed)
+                                .apply();
+                        Timber.d("Removed word from processed: %s", word);
+                    }
+                }
+
                 Timber.d("Removed word from enqueue: %s", word);
             }
         }
@@ -60,14 +73,13 @@ public class WordRepository {
     }
 
     public void markWordAsProcessed(String word) {
-        String cleanWord = word.toLowerCase().trim();
         Set<String> current = processedWords.getValue();
         if (current == null) current = new HashSet<>();
         Set<String> updated = new HashSet<>(current);
-        if (updated.add(cleanWord)) {
+        if (updated.add(word)) {
             processedWords.postValue(updated);
             prefs.edit().putStringSet(KEY_PROCESSED_WORDS, updated).apply();
-            Timber.d("Marked word as processed: %s", cleanWord);
+            Timber.d("Marked word as processed: %s", word);
         }
     }
 
