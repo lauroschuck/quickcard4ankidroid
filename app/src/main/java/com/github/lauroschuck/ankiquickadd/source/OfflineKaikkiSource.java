@@ -56,7 +56,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                         .h-usage-example-translation { font-style: normal; color: #54595d; display: block; font-size: 0.9em; margin-left: 2em; margin-top: 0.2em; }
                         a { color: #36c; text-decoration: none; }
 
-                        .example-checkbox, .sense-checkbox, .example-radio { margin-right: 8px; vertical-align: middle; }
+                        .example-checkbox, .sense-checkbox, .example-radio, .audio-radio { margin-right: 8px; vertical-align: middle; }
 
                         /* Mode Toggling */
                         body.mode-examples .sense-checkbox, body.mode-examples .example-radio { display: none !important; }
@@ -79,6 +79,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                         .pronunciation-box { background: #f0f7ff; padding: 10px; border-radius: 4px; margin-bottom: 1em; border-left: 4px solid #36c; }
                         .ipa-text { font-family: "Lucida Sans Unicode", "Arial Unicode MS", sans-serif; font-size: 1.1em; color: #202122; margin-bottom: 8px; display: block; }
                         .pronunciation-item { margin-bottom: 4px; display: flex; align-items: center; }
+                        .pronunciation-item:only-child .audio-radio { display: none; }
                         .play-button { text-decoration: none; background: #36c; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 12px; margin-right: 8px; }
                         .pron-desc { font-size: 0.9em; color: #555; }
                         .no-desc { color: #999; font-style: italic; }
@@ -145,12 +146,15 @@ public class OfflineKaikkiSource implements DictionarySource {
                         {{#if ipa}}
                         <span class='ipa-text'>{{{ipa}}}</span>
                         {{/if}}
-                        {{#each pronunciations}}
-                        <div class='pronunciation-item'>
-                            <a class='play-button' href='app://play/{{encodedUrl}}'>&#9658;</a>
-                            <span class='pron-desc'>{{{description}}}</span>
+                        <div class="pronunciation-items">
+                            {{#each pronunciations}}
+                                <div class='pronunciation-item'>
+                                    <input type='radio' name='audio-choice' value='{{url}}' class='audio-radio' {{#if @first}}checked{{/if}}>
+                                    <a class='play-button' href='app://play/{{encodedUrl}}'>&#9658;</a>
+                                    <span class='pron-desc'>{{{description}}}</span>
+                                </div>
+                            {{/each}}
                         </div>
-                        {{/each}}
                     </div>
                     {{/if}}
 
@@ -271,6 +275,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                     Map<String, String> pron = new HashMap<>();
                     String url = cursor.getString(0);
                     String desc = cursor.getString(1);
+                    pron.put("url", url);
                     pron.put("encodedUrl", URLEncoder.encode(url, "UTF-8"));
                     pron.put(
                             "description",
@@ -454,6 +459,9 @@ public class OfflineKaikkiSource implements DictionarySource {
         return """
                 (() => {
                     const isDefinitions = document.body.classList.contains('mode-definitions');
+                    const selectedAudio = document.querySelector('input[name="audio-choice"]:checked');
+                    const audioUrl = selectedAudio ? selectedAudio.value : null;
+
                     if (isDefinitions) {
                         const entries = [];
                         document.querySelectorAll('.sense-checkbox:checked').forEach(cb => {
@@ -464,14 +472,14 @@ public class OfflineKaikkiSource implements DictionarySource {
                                 exampleId: radio ? radio.value : null
                             });
                         });
-                        Android.processSelectedCards(JSON.stringify({ mode: 'definitions', entries: entries }));
+                        Android.processSelectedCards(JSON.stringify({ mode: 'definitions', entries: entries, audioUrl: audioUrl }));
                     } else {
                         const selectedIds = [];
                         document.querySelectorAll('.example-checkbox:checked').forEach(cb => {
                             const id = cb.id.replace('example-', '');
                             selectedIds.push(id);
                         });
-                        Android.processSelectedCards(JSON.stringify({ mode: 'examples', examples: selectedIds }));
+                        Android.processSelectedCards(JSON.stringify({ mode: 'examples', examples: selectedIds, audioUrl: audioUrl }));
                     }
                 })();
                 """;
@@ -482,6 +490,9 @@ public class OfflineKaikkiSource implements DictionarySource {
         try {
             var obj = new Gson().fromJson(json, JsonObject.class);
             var mode = obj.has("mode") ? obj.get("mode").getAsString() : "examples";
+            var selectedAudio = obj.has("audioUrl") && !obj.get("audioUrl").isJsonNull()
+                    ? Uri.parse(obj.get("audioUrl").getAsString())
+                    : null;
 
             if (lastLearningLanguage == null || lastNativeLanguage == null) {
                 throw new IllegalArgumentException(
@@ -503,17 +514,15 @@ public class OfflineKaikkiSource implements DictionarySource {
                     var exampleIds = obj.getAsJsonArray("examples");
                     var cards = new ArrayList<TextNote.Input>();
                     String headword = null;
-                    String ipa = null;
                     for (var idElem : exampleIds) {
                         var card = fetchCardForExample(db, idElem.getAsLong());
                         headword = card.headword();
-                        ipa = card.ipa();
                         cards.add(card);
                     }
-                    var audioUrl = fetchAudioUrl(db, headword);
                     var sourceUrl = assembleWiktionaryLink(
                             headword, lastNativeLanguage, getLanguageName(db, lastLearningLanguage));
-                    return new SelectedTextCards(lastLearningLanguage, lastNativeLanguage, audioUrl, sourceUrl, cards);
+                    return new SelectedTextCards(
+                            lastLearningLanguage, lastNativeLanguage, selectedAudio, sourceUrl, cards);
                 } else {
                     var entries = obj.getAsJsonArray("entries");
                     var entryMap = new LinkedHashMap<Long, Long>();
@@ -527,11 +536,10 @@ public class OfflineKaikkiSource implements DictionarySource {
                     var cards = fetchCardForDefinition(db, entryMap);
                     var firstCard = cards.stream().findFirst().orElseThrow();
                     var headword = firstCard.headword();
-                    var audioUrl = fetchAudioUrl(db, headword);
                     var sourceUrl = assembleWiktionaryLink(
                             headword, lastNativeLanguage, getLanguageName(db, lastLearningLanguage));
                     return new SelectedDictionaryCards(
-                            lastLearningLanguage, lastNativeLanguage, audioUrl, sourceUrl, cards);
+                            lastLearningLanguage, lastNativeLanguage, selectedAudio, sourceUrl, cards);
                 }
             }
         } catch (RuntimeException e) {
@@ -631,18 +639,6 @@ public class OfflineKaikkiSource implements DictionarySource {
         var placeholders = new String[size];
         Arrays.fill(placeholders, "?");
         return "(" + TextUtils.join(",", placeholders) + ")";
-    }
-
-    private Uri fetchAudioUrl(SQLiteDatabase db, String headword) {
-        // TODO handle multiple audios
-        var audioQuery =
-                "SELECT audio_url FROM pronunciations p JOIN headwords h ON p.headword_id = h.id WHERE h.headword = ? LIMIT 1";
-        try (var audioCursor = db.rawQuery(audioQuery, new String[] {headword})) {
-            if (audioCursor.moveToFirst()) {
-                return Uri.parse(audioCursor.getString(0));
-            }
-        }
-        return null;
     }
 
     private String fetchGlosses(SQLiteDatabase db, long entryId) {
