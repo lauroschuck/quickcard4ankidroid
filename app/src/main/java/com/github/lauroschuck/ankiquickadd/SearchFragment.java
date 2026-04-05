@@ -57,7 +57,7 @@ public class SearchFragment extends Fragment {
             return false;
         });
 
-        viewModel.getSearchWarning().observe(getViewLifecycleOwner(), warning -> {
+        viewModel.getNavigationManager().getSearchWarning().observe(getViewLifecycleOwner(), warning -> {
             if (warning != null && !warning.isEmpty()) {
                 warningText.setVisibility(View.VISIBLE);
                 warningText.setText(warning);
@@ -84,7 +84,7 @@ public class SearchFragment extends Fragment {
             }
         });
 
-        viewModel.getEnqueuedWords().observe(getViewLifecycleOwner(), words -> {
+        viewModel.getWordRepository().getEnqueuedWords().observe(getViewLifecycleOwner(), words -> {
             adapter.setWords(words);
             enqueueHeader.setVisibility(words.isEmpty() ? View.GONE : View.VISIBLE);
             if (words.isEmpty()) {
@@ -92,7 +92,7 @@ public class SearchFragment extends Fragment {
             }
         });
 
-        viewModel.getProcessedWords().observe(getViewLifecycleOwner(), processed -> {
+        viewModel.getWordRepository().getProcessedWords().observe(getViewLifecycleOwner(), processed -> {
             adapter.setProcessedWords(processed);
         });
     }

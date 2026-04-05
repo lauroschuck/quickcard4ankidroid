@@ -33,6 +33,7 @@ public class DefinitionFragment extends Fragment {
     private MainViewModel viewModel;
     private WebView webView;
     private View createCardsFabContainer;
+    private TextView badgeText;
     private TabLayout noteTypeTabLayout;
     private MediaPlayer mediaPlayer;
     private AnkiIntegration ankiIntegration;
@@ -43,7 +44,12 @@ public class DefinitionFragment extends Fragment {
         public void processSelectedCards(@NonNull String json) {
             requireActivity().runOnUiThread(() -> {
                 Timber.d("Selected cards JSON received from WebView");
-                var selectedCards = viewModel.getCurrentSource().getCardsFromSelection(json);
+                var currentSource = viewModel.getDictionaryRepository().getCurrentSource();
+                if (currentSource == null) {
+                    Timber.e("No current source selected");
+                    return;
+                }
+                var selectedCards = currentSource.getCardsFromSelection(json);
                 if (AnkiDroidHelper.isApiAvailable(requireContext())) {
                     var activity = (MainActivity) requireActivity();
                     Timber.i(
@@ -84,7 +90,11 @@ public class DefinitionFragment extends Fragment {
         public void updateSelectedCount(int count) {
             requireActivity().runOnUiThread(() -> {
                 Timber.v("Update selected count: %d", count);
-                viewModel.setSelectedCount(count);
+                if (noteTypeTabLayout.getSelectedTabPosition() == 0) {
+                    viewModel.setDefinitionSelectedCount(count);
+                } else {
+                    viewModel.setExampleSelectedCount(count);
+                }
             });
         }
 
@@ -113,7 +123,7 @@ public class DefinitionFragment extends Fragment {
         webView = view.findViewById(R.id.webView);
         createCardsFabContainer = view.findViewById(R.id.createCardsFabContainer);
         FloatingActionButton createCardsFab = view.findViewById(R.id.createCardsFab);
-        var badgeText = view.findViewById(R.id.badgeText);
+        badgeText = view.findViewById(R.id.badgeText);
         FloatingActionButton closeButton = view.findViewById(R.id.closeButton);
         noteTypeTabLayout = view.findViewById(R.id.noteTypeTabLayout);
 
@@ -123,16 +133,28 @@ public class DefinitionFragment extends Fragment {
         closeButton.setOnClickListener(v -> ((MainActivity) requireActivity()).closeDefinition());
         createCardsFab.setOnClickListener(v -> triggerJsExtraction());
 
-        viewModel.getSelectedCount().observe(getViewLifecycleOwner(), count -> {
-            if (count > 0) {
-                createCardsFabContainer.setVisibility(View.VISIBLE);
-                badgeText.setVisibility(View.VISIBLE);
-                ((TextView) badgeText).setText(String.valueOf(count));
-            } else {
-                createCardsFabContainer.setVisibility(View.GONE);
-                badgeText.setVisibility(View.GONE);
+        viewModel.getDefinitionSelectedCount().observe(getViewLifecycleOwner(), count -> {
+            if (noteTypeTabLayout.getSelectedTabPosition() == 0) {
+                updateBadge(count);
             }
         });
+
+        viewModel.getExampleSelectedCount().observe(getViewLifecycleOwner(), count -> {
+            if (noteTypeTabLayout.getSelectedTabPosition() == 1) {
+                updateBadge(count);
+            }
+        });
+    }
+
+    private void updateBadge(int count) {
+        if (count > 0) {
+            createCardsFabContainer.setVisibility(View.VISIBLE);
+            badgeText.setVisibility(View.VISIBLE);
+            badgeText.setText(String.valueOf(count));
+        } else {
+            createCardsFabContainer.setVisibility(View.GONE);
+            badgeText.setVisibility(View.GONE);
+        }
     }
 
     private void setupTabs() {
@@ -142,7 +164,15 @@ public class DefinitionFragment extends Fragment {
                 String mode = tab.getPosition() == 0 ? "definitions" : "examples";
                 Timber.d("Switching mode to: %s", mode);
                 webView.evaluateJavascript("setMode('" + mode + "')", null);
-                viewModel.setSelectedCount(0);
+
+                int count = tab.getPosition() == 0
+                        ? (viewModel.getDefinitionSelectedCount().getValue() != null
+                                ? viewModel.getDefinitionSelectedCount().getValue()
+                                : 0)
+                        : (viewModel.getExampleSelectedCount().getValue() != null
+                                ? viewModel.getExampleSelectedCount().getValue()
+                                : 0);
+                updateBadge(count);
             }
 
             @Override
@@ -180,7 +210,7 @@ public class DefinitionFragment extends Fragment {
                     playAudio(audioUrl);
                     return true;
                 } else if (url.startsWith("app://source/")) {
-                    viewModel.getCurrentSource().handleSourceAction(url, webView);
+                    viewModel.getDictionaryRepository().getCurrentSource().handleSourceAction(url, webView);
                     return true;
                 } else if (url.startsWith("http://") || url.startsWith("https://")) {
                     var intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
@@ -236,10 +266,9 @@ public class DefinitionFragment extends Fragment {
     }
 
     private void triggerJsExtraction() {
-        Timber.d(
-                "Triggering JS extraction for source: %s",
-                viewModel.getCurrentSource().getName());
-        webView.evaluateJavascript(viewModel.getCurrentSource().getExtractionJs(), null);
+        var currentSource = viewModel.getDictionaryRepository().getCurrentSource();
+        Timber.d("Triggering JS extraction for source: %s", currentSource.getName());
+        webView.evaluateJavascript(currentSource.getExtractionJs(), null);
     }
 
     public void loadHtml(@NonNull String html) {

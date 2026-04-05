@@ -18,19 +18,14 @@ import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.ServiceLoader;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.NonNull;
 import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String KEY_PROCESSED_WORDS = "processed_words";
     private Spinner sourceSpinner;
     private MainViewModel viewModel;
 
@@ -52,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
         sourceSpinner = findViewById(R.id.sourceSpinner);
         var settingsButton = findViewById(R.id.settingsButton);
 
-        setupSources();
+        setupSourceSpinner();
         setupBackPressed();
 
         settingsButton.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
@@ -63,40 +58,15 @@ public class MainActivity extends AppCompatActivity {
         viewModel.setLastUsedNativeLanguage(
                 getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN));
 
-        loadPersistentData();
-
         handleIntent(getIntent());
     }
 
-    private void loadPersistentData() {
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        Set<String> enqueuedSet = prefs.getStringSet(EnqueueActivity.KEY_ENQUEUED_WORDS, new HashSet<>());
-        viewModel.setEnqueuedWords(new ArrayList<>(enqueuedSet));
-
-        Set<String> processedSet = prefs.getStringSet(KEY_PROCESSED_WORDS, new HashSet<>());
-        viewModel.getProcessedWords().setValue(processedSet);
-        Timber.d("Loaded persistent data: %d enqueued, %d processed", enqueuedSet.size(), processedSet.size());
-    }
-
     public void markWordAsProcessed(String word) {
-        String cleanWord = word.toLowerCase().trim();
-        viewModel.markWordAsProcessed(cleanWord);
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        Set<String> processed = new HashSet<>(prefs.getStringSet(KEY_PROCESSED_WORDS, new HashSet<>()));
-        if (processed.add(cleanWord)) {
-            prefs.edit().putStringSet(KEY_PROCESSED_WORDS, processed).apply();
-            Timber.d("Marked word as processed: %s", cleanWord);
-        }
+        viewModel.getWordRepository().markWordAsProcessed(word);
     }
 
     public void removeEnqueuedWord(String word) {
-        viewModel.removeEnqueuedWord(word);
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        Set<String> words = new HashSet<>(prefs.getStringSet(EnqueueActivity.KEY_ENQUEUED_WORDS, new HashSet<>()));
-        if (words.remove(word)) {
-            prefs.edit().putStringSet(EnqueueActivity.KEY_ENQUEUED_WORDS, words).apply();
-            Timber.d("Removed word from enqueue: %s", word);
-        }
+        viewModel.getWordRepository().removeEnqueuedWord(word);
     }
 
     public DictionaryNote getDictionaryNote() {
@@ -111,15 +81,17 @@ public class MainActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (!viewModel.getWordHistory().isEmpty()) {
-                    viewModel.getWordHistory().pop(); // Remove current word
-                    if (!viewModel.getWordHistory().isEmpty()) {
-                        fetchDefinition(viewModel.getWordHistory().peek(), true);
+                var history = viewModel.getNavigationManager().getWordHistory();
+                if (!history.isEmpty()) {
+                    history.pop(); // Remove current word
+                    if (!history.isEmpty()) {
+                        fetchDefinition(history.peek(), true);
                         return;
                     }
                 }
 
-                if (viewModel.isRootIsSearch() && getCurrentFragment() instanceof DefinitionFragment) {
+                if (viewModel.getNavigationManager().isRootIsSearch()
+                        && getCurrentFragment() instanceof DefinitionFragment) {
                     showSearchFragment(null);
                 } else {
                     setEnabled(false);
@@ -138,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (currentLearning != viewModel.getLastUsedLearningLanguage()
                 || currentNative != viewModel.getLastUsedNativeLanguage()) {
-            var word = viewModel.getCurrentWord().getValue();
+            var word = viewModel.getNavigationManager().getCurrentWord().getValue();
             if (word != null && !word.isEmpty()) {
                 Timber.d("Language changed, refetching word: %s", word);
                 fetchDefinition(word, true);
@@ -147,23 +119,11 @@ public class MainActivity extends AppCompatActivity {
             viewModel.setLastUsedNativeLanguage(currentNative);
         }
 
-        loadPersistentData();
+        viewModel.getWordRepository().reload();
     }
 
-    private void setupSources() {
-        var availableSources = new ArrayList<DictionarySource>();
-        ServiceLoader<DictionarySource> loader = ServiceLoader.load(DictionarySource.class);
-        for (DictionarySource source : loader) {
-            source.setContext(this);
-            availableSources.add(source);
-        }
-
-        viewModel.getSources().clear();
-        viewModel.getSources().addAll(availableSources);
-        Timber.d(
-                "Loaded %d sources: %s",
-                availableSources.size(),
-                availableSources.stream().map(DictionarySource::getName).collect(Collectors.joining(", ")));
+    private void setupSourceSpinner() {
+        var availableSources = viewModel.getDictionaryRepository().getSources();
 
         if (availableSources.size() <= 1) {
             sourceSpinner.setVisibility(View.GONE);
@@ -176,17 +136,15 @@ public class MainActivity extends AppCompatActivity {
             sourceSpinner.setAdapter(adapter);
         }
 
-        if (!viewModel.getSources().isEmpty()) {
-            viewModel.setCurrentSource(viewModel.getSources().get(0));
-        }
-
         sourceSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                viewModel.setCurrentSource(viewModel.getSources().get(position));
-                Timber.d("Source selected: %s", viewModel.getCurrentSource().getName());
-                viewModel.setSearchWarning(null);
-                var word = viewModel.getCurrentWord().getValue();
+                viewModel.getDictionaryRepository().selectSource(position);
+                Timber.d(
+                        "Source selected: %s",
+                        viewModel.getDictionaryRepository().getCurrentSource().getName());
+                viewModel.getNavigationManager().setSearchWarning(null);
+                var word = viewModel.getNavigationManager().getCurrentWord().getValue();
                 if (word != null && !word.isEmpty()) {
                     fetchDefinition(word, true);
                 }
@@ -201,18 +159,18 @@ public class MainActivity extends AppCompatActivity {
         var selectedWord = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
         if (selectedWord != null) {
             Timber.d("Received word via PROCESS_TEXT: %s", selectedWord);
-            viewModel.setRootIsSearch(false);
+            viewModel.getNavigationManager().setRootIsSearch(false);
             fetchDefinition(selectedWord.toLowerCase(Locale.ROOT), false);
         } else {
-            viewModel.setRootIsSearch(true);
+            viewModel.getNavigationManager().setRootIsSearch(true);
             showSearchFragment(null);
         }
     }
 
     public void showSearchFragment(String warning) {
-        viewModel.setCurrentWord("");
-        viewModel.getWordHistory().clear();
-        viewModel.setSearchWarning(warning);
+        viewModel.getNavigationManager().setCurrentWord("");
+        viewModel.getNavigationManager().getWordHistory().clear();
+        viewModel.getNavigationManager().setSearchWarning(warning);
 
         getSupportFragmentManager()
                 .beginTransaction()
@@ -221,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void closeDefinition() {
-        viewModel.setRootIsSearch(true);
+        viewModel.getNavigationManager().setRootIsSearch(true);
         showSearchFragment(null);
     }
 
@@ -231,14 +189,15 @@ public class MainActivity extends AppCompatActivity {
 
     public void fetchDefinition(@NonNull String word, boolean isFromHistory) {
         Timber.d("Fetching definition for: %s (isFromHistory=%b)", word, isFromHistory);
+        var navManager = viewModel.getNavigationManager();
         if (!isFromHistory
-                && (viewModel.getWordHistory().isEmpty()
-                        || !viewModel.getWordHistory().peek().equals(word))) {
-            viewModel.getWordHistory().push(word);
+                && (navManager.getWordHistory().isEmpty()
+                        || !navManager.getWordHistory().peek().equals(word))) {
+            navManager.getWordHistory().push(word);
         }
 
-        viewModel.setCurrentWord(word);
-        viewModel.setSearchWarning(null);
+        navManager.setCurrentWord(word);
+        navManager.setSearchWarning(null);
 
         // Ensure we are in DefinitionFragment
         if (!(getCurrentFragment() instanceof DefinitionFragment)) {
@@ -252,39 +211,38 @@ public class MainActivity extends AppCompatActivity {
         var learningLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV);
         var nativeLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN);
 
-        if (viewModel.getCurrentSource() != null) {
-            viewModel
-                    .getCurrentSource()
-                    .fetch(word, learningLanguage, nativeLanguage, new DictionarySource.OnResultListener() {
-                        @Override
-                        public void onSuccess(String html, String headword) {
-                            Timber.d("Successfully fetched definition for: %s", word);
-                            runOnUiThread(() -> {
-                                Fragment current = getCurrentFragment();
-                                if (current instanceof DefinitionFragment) {
-                                    ((DefinitionFragment) current).loadHtml(html);
-                                }
-                            });
-                        }
-
-                        @Override
-                        public void onError(String message) {
-                            Timber.w("Error fetching definition for %s: %s", word, message);
-                            var lowercaseWord = word.toLowerCase(Locale.ROOT);
-                            if (!word.equals(lowercaseWord)) {
-                                Timber.d("Retrying with lowercase word: %s", lowercaseWord);
-                                fetchDefinition(lowercaseWord, true);
-                            } else {
-                                runOnUiThread(() -> {
-                                    if (!viewModel.getWordHistory().isEmpty()
-                                            && viewModel.getWordHistory().peek().equals(word)) {
-                                        viewModel.getWordHistory().pop();
-                                    }
-                                    showSearchFragment("Word not found: " + word);
-                                });
-                            }
+        var currentSource = viewModel.getDictionaryRepository().getCurrentSource();
+        if (currentSource != null) {
+            currentSource.fetch(word, learningLanguage, nativeLanguage, new DictionarySource.OnResultListener() {
+                @Override
+                public void onSuccess(String html, String headword) {
+                    Timber.d("Successfully fetched definition for: %s", word);
+                    runOnUiThread(() -> {
+                        Fragment current = getCurrentFragment();
+                        if (current instanceof DefinitionFragment) {
+                            ((DefinitionFragment) current).loadHtml(html);
                         }
                     });
+                }
+
+                @Override
+                public void onError(String message) {
+                    Timber.w("Error fetching definition for %s: %s", word, message);
+                    var lowercaseWord = word.toLowerCase(Locale.ROOT);
+                    if (!word.equals(lowercaseWord)) {
+                        Timber.d("Retrying with lowercase word: %s", lowercaseWord);
+                        fetchDefinition(lowercaseWord, true);
+                    } else {
+                        runOnUiThread(() -> {
+                            if (!navManager.getWordHistory().isEmpty()
+                                    && navManager.getWordHistory().peek().equals(word)) {
+                                navManager.getWordHistory().pop();
+                            }
+                            showSearchFragment("Word not found: " + word);
+                        });
+                    }
+                }
+            });
         } else {
             Timber.e("No current source selected when fetching definition for: %s", word);
         }
@@ -303,7 +261,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void showSnackbar(String message, boolean isError) {
-        // Implement snackbar logic if needed, or use Toast
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 }

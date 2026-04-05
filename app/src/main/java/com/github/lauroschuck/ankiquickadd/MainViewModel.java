@@ -1,34 +1,29 @@
 package com.github.lauroschuck.ankiquickadd;
 
+import android.app.Application;
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModel;
+import com.github.lauroschuck.ankiquickadd.data.DictionaryRepository;
+import com.github.lauroschuck.ankiquickadd.data.NavigationManager;
+import com.github.lauroschuck.ankiquickadd.data.WordRepository;
 import com.github.lauroschuck.ankiquickadd.model.Language;
-import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.Stack;
 import lombok.Getter;
 import lombok.Setter;
 
-public class MainViewModel extends ViewModel {
-    private final MutableLiveData<String> currentWord = new MutableLiveData<>("");
-    private final MutableLiveData<String> searchWarning = new MutableLiveData<>(null);
-    private final MutableLiveData<Integer> selectedCount = new MutableLiveData<>(0);
-    private final MutableLiveData<List<String>> enqueuedWords = new MutableLiveData<>(new ArrayList<>());
-    private final MutableLiveData<Set<String>> processedWords = new MutableLiveData<>(new HashSet<>());
+public class MainViewModel extends AndroidViewModel {
+    @Getter
+    private final DictionaryRepository dictionaryRepository;
 
     @Getter
-    private final List<DictionarySource> sources = new ArrayList<>();
-
-    @Setter
-    @Getter
-    private DictionarySource currentSource;
+    private final WordRepository wordRepository;
 
     @Getter
-    private final Stack<String> wordHistory = new Stack<>();
+    private final NavigationManager navigationManager;
+
+    private final MutableLiveData<Integer> definitionSelectedCount = new MutableLiveData<>(0);
+    private final MutableLiveData<Integer> exampleSelectedCount = new MutableLiveData<>(0);
 
     @Setter
     @Getter
@@ -38,62 +33,26 @@ public class MainViewModel extends ViewModel {
     @Getter
     private Language lastUsedNativeLanguage;
 
-    @Setter
-    @Getter
-    private boolean rootIsSearch = true;
-
-    public LiveData<String> getCurrentWord() {
-        return currentWord;
+    public MainViewModel(@NonNull Application application) {
+        super(application);
+        this.dictionaryRepository = new DictionaryRepository(application);
+        this.wordRepository = new WordRepository(application);
+        this.navigationManager = new NavigationManager();
     }
 
-    public void setCurrentWord(String word) {
-        currentWord.setValue(word);
+    public LiveData<Integer> getDefinitionSelectedCount() {
+        return definitionSelectedCount;
     }
 
-    public LiveData<String> getSearchWarning() {
-        return searchWarning;
+    public void setDefinitionSelectedCount(int count) {
+        definitionSelectedCount.setValue(count);
     }
 
-    public void setSearchWarning(String warning) {
-        searchWarning.setValue(warning);
+    public LiveData<Integer> getExampleSelectedCount() {
+        return exampleSelectedCount;
     }
 
-    public LiveData<Integer> getSelectedCount() {
-        return selectedCount;
-    }
-
-    public void setSelectedCount(int count) {
-        selectedCount.setValue(count);
-    }
-
-    public LiveData<List<String>> getEnqueuedWords() {
-        return enqueuedWords;
-    }
-
-    public void setEnqueuedWords(List<String> words) {
-        enqueuedWords.setValue(words);
-    }
-
-    public void removeEnqueuedWord(String word) {
-        List<String> current = enqueuedWords.getValue();
-        if (current != null) {
-            List<String> updated = new ArrayList<>(current);
-            if (updated.remove(word)) {
-                enqueuedWords.setValue(updated);
-            }
-        }
-    }
-
-    public MutableLiveData<Set<String>> getProcessedWords() {
-        return processedWords;
-    }
-
-    public void markWordAsProcessed(String word) {
-        Set<String> current = processedWords.getValue();
-        if (current == null) current = new HashSet<>();
-        Set<String> updated = new HashSet<>(current);
-        if (updated.add(word.toLowerCase().trim())) {
-            processedWords.postValue(updated);
-        }
+    public void setExampleSelectedCount(int count) {
+        exampleSelectedCount.setValue(count);
     }
 }
