@@ -1,132 +1,37 @@
 package com.github.lauroschuck.ankiquickadd.model;
 
 import java.util.Locale;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 
-public enum Language {
-    AF,
-    AM,
-    AR,
-    AZ,
-    BE,
-    BG,
-    BN,
-    BS,
-    CA,
-    CS(true),
-    CY,
-    DA,
-    DE(true),
-    EL(true),
-    EN(true),
-    ES,
-    ET,
-    EU,
-    FA,
-    FI,
-    FR(true),
-    FY,
-    GA,
-    GD,
-    GL,
-    GN,
-    GU,
-    HA,
-    HE,
-    HI,
-    HR,
-    HU,
-    HY,
-    ID(true),
-    IG,
-    IS,
-    IT(true),
-    IW,
-    JA(true),
-    KA,
-    KM,
-    KN,
-    KO(true),
-    KU,
-    KY,
-    LB,
-    LN,
-    LO,
-    LT,
-    LV,
-    MK,
-    ML,
-    MN,
-    MR,
-    MS,
-    MT,
-    MY,
-    NB,
-    NE,
-    NL(true),
-    NO,
-    OR,
-    PA,
-    PL(true),
-    PT(true),
-    RO,
-    RU(true),
-    SK,
-    SL,
-    SO,
-    SQ,
-    SR,
-    SV,
-    SW,
-    TA,
-    TE,
-    TG,
-    TH,
-    TL,
-    TR(true),
-    UK,
-    UR,
-    UZ,
-    VI(true),
-    ZH(true),
-    ZU;
+@EqualsAndHashCode
+public class Language {
 
     private final Locale locale;
-    private final boolean availableAsNative;
 
-    Language() {
-        this(false);
+    private Language(@NonNull String language) {
+        locale = new Locale(language);
     }
 
-    Language(boolean availableAsNative) {
-        this.availableAsNative = availableAsNative;
-        locale = new Locale(getIsoCode());
-    }
-
-    public static Language ofIsoCode(@NonNull String isoCode) {
-        return Language.valueOf(isoCode.toUpperCase(Locale.US));
-    }
-
-    public static Language[] valuesAvailableAsNative() {
-        return Stream.of(values())
-                .filter(l -> l.availableAsNative)
-                .collect(Collectors.toList())
-                .toArray(new Language[0]);
+    public static Language ofIsoCode(@NonNull String language) {
+        return new Language(language);
     }
 
     public String getDisplayName() {
-        return getDisplayName(Language.EN);
+        return getDisplayName(Locale.ENGLISH);
     }
 
     public String getDisplayName(Language inLanguage) {
-        var response = locale.getDisplayLanguage(inLanguage.locale);
+        return getDisplayName(inLanguage.locale);
+    }
+
+    private String getDisplayName(Locale inLanguage) {
+        var response = locale.getDisplayLanguage(inLanguage);
         return response.equals(getIsoCode()) ? locale.getDisplayLanguage() : response;
     }
 
     public String getIsoCode() {
-        return name().toLowerCase(Locale.US);
+        return locale.getLanguage();
     }
 
     @Override

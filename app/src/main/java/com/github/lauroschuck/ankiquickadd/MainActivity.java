@@ -53,10 +53,8 @@ public class MainActivity extends AppCompatActivity {
         settingsButton.setOnClickListener(v -> navigateToSettings());
 
         var prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        viewModel.setLastUsedLearningLanguage(
-                getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV));
-        viewModel.setLastUsedNativeLanguage(
-                getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN));
+        viewModel.setLastUsedLearningLanguage(getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE));
+        viewModel.setLastUsedNativeLanguage(getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE));
 
         handleIntent(getIntent());
     }
@@ -109,11 +107,13 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         var prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        var currentLearning = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV);
-        var currentNative = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN);
+        var currentLearning = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE);
+        var currentNative = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE);
 
-        if (currentLearning != viewModel.getLastUsedLearningLanguage()
-                || currentNative != viewModel.getLastUsedNativeLanguage()) {
+        if (currentLearning != null
+                && currentNative != null
+                && (!currentLearning.equals(viewModel.getLastUsedLearningLanguage())
+                        || !currentNative.equals(viewModel.getLastUsedNativeLanguage()))) {
             var word = viewModel.getNavigationManager().getCurrentWord().getValue();
             if (word != null && !word.isEmpty()) {
                 Timber.d("Language changed, refetching word: %s", word);
@@ -212,8 +212,13 @@ public class MainActivity extends AppCompatActivity {
         }
 
         var prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        var learningLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE, Language.SV);
-        var nativeLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN);
+        var learningLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE);
+        var nativeLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE);
+
+        if (learningLanguage == null || nativeLanguage == null) {
+            showSearchFragment("Please select a dictionary in Settings.");
+            return;
+        }
 
         var currentSource = viewModel.getDictionaryRepository().getCurrentSource();
         if (currentSource != null) {
@@ -256,12 +261,10 @@ public class MainActivity extends AppCompatActivity {
         return getSupportFragmentManager().findFragmentById(R.id.fragmentContainer);
     }
 
-    private Language getLanguageFromPref(SharedPreferences prefs, String key, Language defaultLang) {
-        var iso = prefs.getString(key, defaultLang.getIsoCode());
-        for (Language l : Language.values()) {
-            if (l.getIsoCode().equals(iso)) return l;
-        }
-        return defaultLang;
+    private Language getLanguageFromPref(SharedPreferences prefs, String key) {
+        var iso = prefs.getString(key, null);
+        if (iso == null || iso.isEmpty()) return null;
+        return Language.ofIsoCode(iso);
     }
 
     public void showSnackbar(String message, boolean isError) {
