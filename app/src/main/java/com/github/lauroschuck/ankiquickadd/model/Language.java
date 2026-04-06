@@ -49,6 +49,7 @@ public enum Language {
     KM,
     KN,
     KO(true),
+    KU,
     KY,
     LB,
     LN,

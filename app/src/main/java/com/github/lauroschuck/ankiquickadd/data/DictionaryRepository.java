@@ -12,16 +12,27 @@ import timber.log.Timber;
 public class DictionaryRepository {
     private final List<DictionarySource> sources = new ArrayList<>();
     private final MutableLiveData<DictionarySource> currentSource = new MutableLiveData<>();
+    private final Context context;
 
     public DictionaryRepository(Context context) {
+        this.context = context;
+        reloadSources();
+    }
+
+    public void reloadSources() {
+        sources.clear();
         ServiceLoader<DictionarySource> loader = ServiceLoader.load(DictionarySource.class);
         for (DictionarySource source : loader) {
             source.setContext(context);
             sources.add(source);
         }
         Timber.d("Loaded %d dictionary sources", sources.size());
-        if (!sources.isEmpty()) {
+
+        // If current source is null or no longer exists, pick the first one
+        if (currentSource.getValue() == null && !sources.isEmpty()) {
             currentSource.setValue(sources.get(0));
+        } else if (sources.isEmpty()) {
+            currentSource.setValue(null);
         }
     }
 
@@ -40,6 +51,8 @@ public class DictionaryRepository {
     public void selectSource(int index) {
         if (index >= 0 && index < sources.size()) {
             currentSource.setValue(sources.get(index));
+        } else {
+            currentSource.setValue(null);
         }
     }
 }

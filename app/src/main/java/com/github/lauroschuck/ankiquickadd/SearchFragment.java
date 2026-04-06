@@ -30,6 +30,8 @@ public class SearchFragment extends Fragment {
     private View enqueueHeader;
     private ImageView enqueueChevron;
     private EnqueueAdapter adapter;
+    private View searchRoot;
+    private View emptyStateContainer;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -41,12 +43,15 @@ public class SearchFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
 
+        searchRoot = view.findViewById(R.id.searchRoot);
+        emptyStateContainer = view.findViewById(R.id.emptyStateContainer);
         searchEditText = view.findViewById(R.id.searchEditText);
         warningText = view.findViewById(R.id.warningText);
         Button searchButton = view.findViewById(R.id.searchButton);
         enqueueRecyclerView = view.findViewById(R.id.enqueueRecyclerView);
         enqueueHeader = view.findViewById(R.id.enqueueHeader);
         enqueueChevron = view.findViewById(R.id.enqueueChevron);
+        Button openSettingsButton = view.findViewById(R.id.openSettingsButton);
 
         searchButton.setOnClickListener(v -> performSearch());
         searchEditText.setOnEditorActionListener((v, actionId, event) -> {
@@ -55,6 +60,12 @@ public class SearchFragment extends Fragment {
                 return true;
             }
             return false;
+        });
+
+        openSettingsButton.setOnClickListener(v -> {
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).navigateToSettings();
+            }
         });
 
         viewModel.getNavigationManager().getSearchWarning().observe(getViewLifecycleOwner(), warning -> {
@@ -66,7 +77,23 @@ public class SearchFragment extends Fragment {
             }
         });
 
+        viewModel.getDownloadedDictionaries().observe(getViewLifecycleOwner(), downloaded -> {
+            updateUiState(downloaded);
+        });
+
         setupEnqueueSection();
+    }
+
+    private void updateUiState(List<MainViewModel.DownloadedDictionary> downloaded) {
+        boolean hasDownloaded = downloaded != null && !downloaded.isEmpty();
+
+        if (hasDownloaded) {
+            searchRoot.setVisibility(View.VISIBLE);
+            emptyStateContainer.setVisibility(View.GONE);
+        } else {
+            searchRoot.setVisibility(View.GONE);
+            emptyStateContainer.setVisibility(View.VISIBLE);
+        }
     }
 
     private void setupEnqueueSection() {

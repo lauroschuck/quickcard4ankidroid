@@ -3,16 +3,25 @@ package com.github.lauroschuck.ankiquickadd;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import com.github.lauroschuck.ankiquickadd.data.PCloudRepository;
 import com.github.lauroschuck.ankiquickadd.model.Language;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.function.Supplier;
-import lombok.NonNull;
+import java.util.List;
+import java.util.Locale;
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -21,73 +30,183 @@ public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_PARENT_DECK_NAME = "parent_deck_name";
     public static final String DEFAULT_PARENT_DECK_NAME = "Anki Quick Add";
 
-    private static final Language[] ALL_LANGUAGES = sortedLanguages(Language::values);
-    private static final Language[] NATIVE_LANGUAGES = sortedLanguages(Language::valuesAvailableAsNative);
-
-    private Spinner learningLanguageSpinner;
-    private Spinner nativeLanguageSpinner;
     private EditText parentDeckNameEditText;
-    private SharedPreferences prefs;
+    private RecyclerView dictionariesRecyclerView;
+    private View downloadSection;
+    private Spinner newLearningLanguageSpinner;
+    private Spinner newNativeLanguageSpinner;
+    private TextView dictionaryStatsText;
+    private Button downloadButton;
 
-    private static Language[] sortedLanguages(Supplier<Language[]> supplier) {
-        var languages = supplier.get();
-        Arrays.sort(languages, Comparator.comparing(Language::getDisplayName));
-        return languages;
-    }
+    private SharedPreferences prefs;
+    private MainViewModel viewModel;
+    private DictionaryAdapter adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
 
-        learningLanguageSpinner = findViewById(R.id.learningLanguageSpinner);
-        nativeLanguageSpinner = findViewById(R.id.nativeLanguageSpinner);
-        parentDeckNameEditText = findViewById(R.id.parentDeckNameEditText);
+        viewModel = new ViewModelProvider(this).get(MainViewModel.class);
         prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
-        learningLanguageSpinner.setAdapter(createArrayAdapter(ALL_LANGUAGES));
-        nativeLanguageSpinner.setAdapter(createArrayAdapter(NATIVE_LANGUAGES));
+        initViews();
+        setupRecyclerView();
+        setupObservers();
 
-        // Load saved values
-        String learningIso = prefs.getString(KEY_LEARNING_LANGUAGE, Language.SV.getIsoCode());
-        String nativeIso = prefs.getString(KEY_NATIVE_LANGUAGE, Language.EN.getIsoCode());
-        String parentDeckName = prefs.getString(KEY_PARENT_DECK_NAME, DEFAULT_PARENT_DECK_NAME);
-
-        setSpinnerToValue(learningLanguageSpinner, learningIso);
-        setSpinnerToValue(nativeLanguageSpinner, nativeIso);
-        parentDeckNameEditText.setText(parentDeckName);
+        // Load initial data
+        parentDeckNameEditText.setText(prefs.getString(KEY_PARENT_DECK_NAME, DEFAULT_PARENT_DECK_NAME));
     }
 
-    @NonNull
-    private ArrayAdapter<Language> createArrayAdapter(Language[] languages) {
-        var languageArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, languages);
-        languageArrayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        return languageArrayAdapter;
+    private void initViews() {
+        parentDeckNameEditText = findViewById(R.id.parentDeckNameEditText);
+        dictionariesRecyclerView = findViewById(R.id.dictionariesRecyclerView);
+        downloadSection = findViewById(R.id.downloadSection);
+        newLearningLanguageSpinner = findViewById(R.id.newLearningLanguageSpinner);
+        newNativeLanguageSpinner = findViewById(R.id.newNativeLanguageSpinner);
+        dictionaryStatsText = findViewById(R.id.dictionaryStatsText);
+        downloadButton = findViewById(R.id.downloadButton);
+
+        findViewById(R.id.addDictionaryButton).setOnClickListener(v -> {
+            downloadSection.setVisibility(downloadSection.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+        });
+
+        downloadButton.setOnClickListener(v -> {
+            Language learning = (Language) newLearningLanguageSpinner.getSelectedItem();
+            Language nativeLang = (Language) newNativeLanguageSpinner.getSelectedItem();
+            if (learning != null && nativeLang != null) {
+                viewModel.downloadDictionary(learning, nativeLang);
+            }
+        });
+
+        newLearningLanguageSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Language selected = (Language) parent.getItemAtPosition(position);
+                updateNativeSpinner(selected);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        newNativeLanguageSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                updateStatsDisplay();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
     }
 
-    private void setSpinnerToValue(Spinner spinner, String isoCode) {
-        var position = ((ArrayAdapter) spinner.getAdapter()).getPosition(Language.ofIsoCode(isoCode));
-        spinner.setSelection(position);
+    private void setupRecyclerView() {
+        adapter = new DictionaryAdapter(new DictionaryAdapter.OnDictionaryActionListener() {
+            @Override
+            public void onSelect(Language learning, Language nativeLang) {
+                setActiveDictionary(learning, nativeLang);
+            }
+
+            @Override
+            public void onDelete(MainViewModel.DownloadedDictionary dict) {
+                confirmDelete(dict);
+            }
+        });
+        dictionariesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        dictionariesRecyclerView.setAdapter(adapter);
+    }
+
+    private void setupObservers() {
+        viewModel.getDownloadedDictionaries().observe(this, dicts -> {
+            updateAdapterData();
+        });
+
+        viewModel.getActiveDownload().observe(this, info -> {
+            updateAdapterData();
+            downloadButton.setEnabled(info == null);
+        });
+
+        viewModel.getObservableStats().observe(this, stats -> {
+            updateLearningSpinner();
+        });
+    }
+
+    private void updateAdapterData() {
+        String lIso = prefs.getString(KEY_LEARNING_LANGUAGE, "");
+        String nIso = prefs.getString(KEY_NATIVE_LANGUAGE, "");
+        List<MainViewModel.DownloadedDictionary> dicts =
+                viewModel.getDownloadedDictionaries().getValue();
+        MainViewModel.DownloadInfo info = viewModel.getActiveDownload().getValue();
+        if (dicts != null) {
+            adapter.setData(dicts, lIso, nIso, info);
+        }
+    }
+
+    private void updateLearningSpinner() {
+        List<Language> languages = viewModel.getAvailableLearningLanguages();
+        List<Language> sortedList = new ArrayList<>(languages);
+        sortedList.sort(Comparator.comparing(Language::getDisplayName));
+
+        ArrayAdapter<Language> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, sortedList);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        newLearningLanguageSpinner.setAdapter(adapter);
+    }
+
+    private void updateNativeSpinner(Language learning) {
+        List<Language> languages = viewModel.getAvailableNativeLanguages(learning);
+        List<Language> sortedList = new ArrayList<>(languages);
+        sortedList.sort(Comparator.comparing(Language::getDisplayName));
+
+        ArrayAdapter<Language> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, sortedList);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        newNativeLanguageSpinner.setAdapter(adapter);
+
+        updateStatsDisplay();
+    }
+
+    private void updateStatsDisplay() {
+        Language learning = (Language) newLearningLanguageSpinner.getSelectedItem();
+        Language nativeLang = (Language) newNativeLanguageSpinner.getSelectedItem();
+
+        PCloudRepository.DictionaryStats stats = viewModel.getStatsFor(learning, nativeLang);
+        if (stats != null) {
+            dictionaryStatsText.setVisibility(View.VISIBLE);
+            dictionaryStatsText.setText(
+                    String.format(Locale.US, "%d headwords, %d example phrases", stats.headwords(), stats.examples()));
+        } else {
+            dictionaryStatsText.setVisibility(View.GONE);
+        }
+    }
+
+    private void setActiveDictionary(Language learning, Language nativeLang) {
+        prefs.edit()
+                .putString(KEY_LEARNING_LANGUAGE, learning.getIsoCode())
+                .putString(KEY_NATIVE_LANGUAGE, nativeLang.getIsoCode())
+                .apply();
+        updateAdapterData();
+        Toast.makeText(this, "Active dictionary set to " + learning.getDisplayName(), Toast.LENGTH_SHORT)
+                .show();
+    }
+
+    private void confirmDelete(MainViewModel.DownloadedDictionary dict) {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Dictionary")
+                .setMessage(String.format(
+                        "Are you sure you want to delete the %s-%s dictionary?",
+                        dict.learning().getDisplayName(), dict.nativeLang().getDisplayName()))
+                .setPositiveButton("Delete", (dialog, which) -> viewModel.deleteDictionary(dict))
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        // Save values
-        var learningLang = (Language) learningLanguageSpinner.getSelectedItem();
-        var nativeLang = (Language) nativeLanguageSpinner.getSelectedItem();
         String parentDeckName = parentDeckNameEditText.getText().toString().trim();
-
         if (parentDeckName.isEmpty()) {
-            Toast.makeText(this, "Parent deck name cannot be empty. Reverting to default.", Toast.LENGTH_SHORT)
-                    .show();
             parentDeckName = DEFAULT_PARENT_DECK_NAME;
         }
-
-        prefs.edit()
-                .putString(KEY_LEARNING_LANGUAGE, learningLang.getIsoCode())
-                .putString(KEY_NATIVE_LANGUAGE, nativeLang.getIsoCode())
-                .putString(KEY_PARENT_DECK_NAME, parentDeckName)
-                .apply();
+        prefs.edit().putString(KEY_PARENT_DECK_NAME, parentDeckName).apply();
     }
 }

@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
         setupSourceSpinner();
         setupBackPressed();
 
-        settingsButton.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
+        settingsButton.setOnClickListener(v -> navigateToSettings());
 
         var prefs = PreferenceManager.getDefaultSharedPreferences(this);
         viewModel.setLastUsedLearningLanguage(
@@ -59,6 +59,10 @@ public class MainActivity extends AppCompatActivity {
                 getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE, Language.EN));
 
         handleIntent(getIntent());
+    }
+
+    public void navigateToSettings() {
+        startActivity(new Intent(this, SettingsActivity.class));
     }
 
     public void markWordAsProcessed(String word) {
