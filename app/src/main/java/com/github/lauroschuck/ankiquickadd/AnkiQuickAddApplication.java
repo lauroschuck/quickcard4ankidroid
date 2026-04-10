@@ -3,7 +3,7 @@ package com.github.lauroschuck.ankiquickadd;
 import android.app.Application;
 import android.util.Log;
 import androidx.annotation.NonNull;
-import com.github.lauroschuck.ankiquickadd.firebase.AnalyticsHelper;
+import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import timber.log.Timber;
 
@@ -24,7 +24,7 @@ public class AnkiQuickAddApplication extends Application {
             Timber.plant(new CrashReportingTree());
         }
 
-        AnalyticsHelper.init(this);
+        FirebaseHelper.init(this);
     }
 
     private static class CrashReportingTree extends Timber.Tree {
@@ -50,7 +50,7 @@ public class AnkiQuickAddApplication extends Application {
                         default -> "UNKNOWN-" + priority;
                     };
 
-            AnalyticsHelper.logExceptionBreadcrumb(prorityString + "/" + tag + ": " + message);
+            FirebaseHelper.logExceptionBreadcrumb(prorityString + "/" + tag + ": " + message);
 
             if (throwable != null && (priority == Log.WARN || priority == Log.ERROR)) {
                 FirebaseCrashlytics.getInstance().recordException(throwable);

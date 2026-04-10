@@ -11,7 +11,7 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import java.util.Locale;
 import lombok.NonNull;
 
-public class AnalyticsHelper {
+public class FirebaseHelper {
 
     private static FirebaseAnalytics analytics;
     private static FirebaseCrashlytics crashlytics;

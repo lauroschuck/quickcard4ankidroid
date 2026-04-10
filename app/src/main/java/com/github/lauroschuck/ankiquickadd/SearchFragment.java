@@ -16,7 +16,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.github.lauroschuck.ankiquickadd.firebase.AnalyticsHelper;
+import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -131,7 +131,7 @@ public class SearchFragment extends Fragment {
         if (!query.isEmpty()) {
             hideKeyboard();
             ((MainActivity) requireActivity()).fetchDefinition(query);
-            AnalyticsHelper.logSearch(query, AnalyticsHelper.SearchMethod.MANUAL);
+            FirebaseHelper.logSearch(query, FirebaseHelper.SearchMethod.MANUAL);
         }
     }
 
@@ -176,7 +176,7 @@ public class SearchFragment extends Fragment {
                 hideKeyboard();
                 String targetWord = word.toLowerCase(Locale.ROOT);
                 ((MainActivity) requireActivity()).fetchDefinition(targetWord);
-                AnalyticsHelper.logSearch(targetWord, AnalyticsHelper.SearchMethod.ENQUEUED);
+                FirebaseHelper.logSearch(targetWord, FirebaseHelper.SearchMethod.ENQUEUED);
             });
             holder.removeButton.setOnClickListener(v -> {
                 if (isProcessed) {

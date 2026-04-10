@@ -6,7 +6,7 @@ import android.preference.PreferenceManager;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import com.github.lauroschuck.ankiquickadd.EnqueueActivity;
-import com.github.lauroschuck.ankiquickadd.firebase.AnalyticsHelper;
+import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -57,9 +57,9 @@ public class WordRepository {
                                 .apply();
                         Timber.d("Removed word from processed: %s", word);
                     }
-                    AnalyticsHelper.logRemovedEnqueuedWord(word, removed);
+                    FirebaseHelper.logRemovedEnqueuedWord(word, removed);
                 } else {
-                    AnalyticsHelper.logRemovedEnqueuedWord(word, null);
+                    FirebaseHelper.logRemovedEnqueuedWord(word, null);
                 }
 
                 Timber.d("Removed word from enqueue: %s", word);

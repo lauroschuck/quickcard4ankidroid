@@ -17,7 +17,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.github.lauroschuck.ankiquickadd.data.PCloudRepository;
-import com.github.lauroschuck.ankiquickadd.firebase.AnalyticsHelper;
+import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -186,7 +186,7 @@ public class SettingsActivity extends AppCompatActivity {
                 .putString(KEY_NATIVE_LANGUAGE, nativeLang.getIsoCode())
                 .apply();
         updateAdapterData();
-        AnalyticsHelper.setUserLanguages(learning, nativeLang);
+        FirebaseHelper.setUserLanguages(learning, nativeLang);
         Toast.makeText(
                         this,
                         String.format(
@@ -204,7 +204,7 @@ public class SettingsActivity extends AppCompatActivity {
                         dict.learning().getDisplayName(), dict.nativeLang().getDisplayName()))
                 .setPositiveButton("Delete", (dialog, which) -> {
                     viewModel.deleteDictionary(dict);
-                    AnalyticsHelper.logDeleteDictionary(dict.learning(), dict.nativeLang());
+                    FirebaseHelper.logDeleteDictionary(dict.learning(), dict.nativeLang());
                 })
                 .setNegativeButton("Cancel", null)
                 .show();

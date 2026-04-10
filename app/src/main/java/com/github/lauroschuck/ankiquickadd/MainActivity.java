@@ -16,7 +16,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.github.lauroschuck.ankiquickadd.anki.notes.CardAssets;
 import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
-import com.github.lauroschuck.ankiquickadd.firebase.AnalyticsHelper;
+import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
 import java.util.List;
@@ -57,8 +57,7 @@ public class MainActivity extends AppCompatActivity {
         viewModel.setLastUsedLearningLanguage(getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE));
         viewModel.setLastUsedNativeLanguage(getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE));
 
-        AnalyticsHelper.setUserLanguages(
-                viewModel.getLastUsedLearningLanguage(), viewModel.getLastUsedNativeLanguage());
+        FirebaseHelper.setUserLanguages(viewModel.getLastUsedLearningLanguage(), viewModel.getLastUsedNativeLanguage());
 
         handleIntent(getIntent());
     }
@@ -125,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
             }
             viewModel.setLastUsedLearningLanguage(currentLearning);
             viewModel.setLastUsedNativeLanguage(currentNative);
-            AnalyticsHelper.setUserLanguages(currentLearning, currentNative);
+            FirebaseHelper.setUserLanguages(currentLearning, currentNative);
         }
 
         viewModel.getWordRepository().reload();
@@ -171,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
             viewModel.getNavigationManager().setRootIsSearch(false);
             String word = selectedWord.toLowerCase(Locale.ROOT);
             fetchDefinition(word);
-            AnalyticsHelper.logSearch(word, AnalyticsHelper.SearchMethod.CONTEXT_MENU);
+            FirebaseHelper.logSearch(word, FirebaseHelper.SearchMethod.CONTEXT_MENU);
         } else {
             viewModel.getNavigationManager().setRootIsSearch(true);
             showSearchFragment(null);
@@ -237,7 +236,7 @@ public class MainActivity extends AppCompatActivity {
                         Fragment current = getCurrentFragment();
                         if (current instanceof DefinitionFragment) {
                             ((DefinitionFragment) current).loadHtml(html);
-                            AnalyticsHelper.logFetchDefinition(headword, true);
+                            FirebaseHelper.logFetchDefinition(headword, true);
                         }
                     });
                 }
@@ -256,7 +255,7 @@ public class MainActivity extends AppCompatActivity {
                                 navManager.getWordHistory().pop();
                             }
                             showSearchFragment("Word not found: " + word);
-                            AnalyticsHelper.logFetchDefinition(word, false);
+                            FirebaseHelper.logFetchDefinition(word, false);
                         });
                     }
                 }
