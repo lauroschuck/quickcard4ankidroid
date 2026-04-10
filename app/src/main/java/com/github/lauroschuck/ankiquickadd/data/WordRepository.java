@@ -6,6 +6,7 @@ import android.preference.PreferenceManager;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import com.github.lauroschuck.ankiquickadd.EnqueueActivity;
+import com.github.lauroschuck.ankiquickadd.firebase.AnalyticsHelper;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -48,13 +49,17 @@ public class WordRepository {
                 Set<String> processed = processedWords.getValue();
                 if (processed != null) {
                     Set<String> updatedProcessed = new HashSet<>(processed);
-                    if (updatedProcessed.remove(word)) {
+                    var removed = updatedProcessed.remove(word);
+                    if (removed) {
                         processedWords.setValue(updatedProcessed);
                         prefs.edit()
                                 .putStringSet(KEY_PROCESSED_WORDS, updatedProcessed)
                                 .apply();
                         Timber.d("Removed word from processed: %s", word);
                     }
+                    AnalyticsHelper.logRemovedEnqueuedWord(word, removed);
+                } else {
+                    AnalyticsHelper.logRemovedEnqueuedWord(word, null);
                 }
 
                 Timber.d("Removed word from enqueue: %s", word);

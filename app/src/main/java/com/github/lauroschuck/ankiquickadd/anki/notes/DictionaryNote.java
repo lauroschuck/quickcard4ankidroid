@@ -196,6 +196,17 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
             }
         }
 
-        public record Definition(@NonNull String definition, String learningText, String nativeText) {}
+        public record Definition(@NonNull String definition, String learningText, String nativeText) {
+
+            public Definition {
+                if ((learningText == null) != (nativeText == null)) {
+                    throw new IllegalArgumentException("Both learningText and nativeText must be present or absent");
+                }
+            }
+
+            public boolean hasText() {
+                return learningText != null;
+            }
+        }
     }
 }

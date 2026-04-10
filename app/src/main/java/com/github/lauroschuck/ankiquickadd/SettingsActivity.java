@@ -17,6 +17,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.github.lauroschuck.ankiquickadd.data.PCloudRepository;
+import com.github.lauroschuck.ankiquickadd.firebase.AnalyticsHelper;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -185,7 +186,13 @@ public class SettingsActivity extends AppCompatActivity {
                 .putString(KEY_NATIVE_LANGUAGE, nativeLang.getIsoCode())
                 .apply();
         updateAdapterData();
-        Toast.makeText(this, "Active dictionary set to " + learning.getDisplayName(), Toast.LENGTH_SHORT)
+        AnalyticsHelper.setUserLanguages(learning, nativeLang);
+        Toast.makeText(
+                        this,
+                        String.format(
+                                "Active dictionary set to %s-%s",
+                                learning.getDisplayName(), nativeLang.getDisplayName()),
+                        Toast.LENGTH_SHORT)
                 .show();
     }
 
@@ -195,7 +202,10 @@ public class SettingsActivity extends AppCompatActivity {
                 .setMessage(String.format(
                         "Are you sure you want to delete the %s-%s dictionary?",
                         dict.learning().getDisplayName(), dict.nativeLang().getDisplayName()))
-                .setPositiveButton("Delete", (dialog, which) -> viewModel.deleteDictionary(dict))
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    viewModel.deleteDictionary(dict);
+                    AnalyticsHelper.logDeleteDictionary(dict.learning(), dict.nativeLang());
+                })
                 .setNegativeButton("Cancel", null)
                 .show();
     }

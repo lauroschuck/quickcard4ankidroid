@@ -7,7 +7,9 @@ import com.github.lauroschuck.ankiquickadd.anki.notes.AbstractAnkiNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
+import java.util.HashSet;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.NonNull;
 
 /**
@@ -67,7 +69,16 @@ public interface DictionarySource {
             Uri audioUrl,
             Uri sourceUrl,
             List<DictionaryNote.Input> inputs)
-            implements SelectedCards<DictionaryNote.Input> {}
+            implements SelectedCards<DictionaryNote.Input> {
+
+        public SelectedDictionaryCards {
+            var categories =
+                    inputs.stream().map(DictionaryNote.Input::lexicalCategory).collect(Collectors.toList());
+            if (categories.size() != new HashSet<>(categories).size()) {
+                throw new IllegalArgumentException("Duplicate lexical categories found: " + categories);
+            }
+        }
+    }
 
     record SelectedTextCards(
             Language learningLanguage,

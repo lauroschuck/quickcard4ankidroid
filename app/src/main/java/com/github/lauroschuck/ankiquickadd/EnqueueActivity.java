@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.widget.Toast;
+import com.github.lauroschuck.ankiquickadd.firebase.AnalyticsHelper;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -32,5 +33,6 @@ public class EnqueueActivity extends Activity {
         Set<String> words = new HashSet<>(prefs.getStringSet(KEY_ENQUEUED_WORDS, new HashSet<>()));
         words.add(word);
         prefs.edit().putStringSet(KEY_ENQUEUED_WORDS, words).apply();
+        AnalyticsHelper.logEnqueueWord(word);
     }
 }

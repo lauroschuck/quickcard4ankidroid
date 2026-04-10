@@ -21,6 +21,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiDroidHelper;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;
+import com.github.lauroschuck.ankiquickadd.firebase.AnalyticsHelper;
 import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
@@ -52,10 +53,17 @@ public class DefinitionFragment extends Fragment {
                 var selectedCards = currentSource.getCardsFromSelection(json);
                 if (AnkiDroidHelper.isApiAvailable(requireContext())) {
                     var activity = (MainActivity) requireActivity();
-                    Timber.i(
-                            "Adding %d selected cards to Anki",
-                            selectedCards.inputs().size());
+                    int count = selectedCards.inputs().size();
+                    Timber.i("Adding %d selected cards to Anki", count);
+
+                    AnalyticsHelper.NoteType noteType;
+                    String headword = "";
+                    if (!selectedCards.inputs().isEmpty()) {
+                        headword = selectedCards.inputs().get(0).headword();
+                    }
+
                     if (selectedCards instanceof DictionarySource.SelectedDictionaryCards dictCards) {
+                        noteType = AnalyticsHelper.NoteType.DICTIONARY;
                         ankiIntegration.addCards(
                                 dictCards.learningLanguage(),
                                 dictCards.nativeLanguage(),
@@ -64,7 +72,9 @@ public class DefinitionFragment extends Fragment {
                                 activity.getDictionaryNote(),
                                 dictCards.inputs(),
                                 activity::markWordAsProcessed);
+                        AnalyticsHelper.logExportDictionaryCards(headword, dictCards);
                     } else if (selectedCards instanceof DictionarySource.SelectedTextCards textCards) {
+                        noteType = AnalyticsHelper.NoteType.TEXT;
                         ankiIntegration.addCards(
                                 textCards.learningLanguage(),
                                 textCards.nativeLanguage(),
@@ -73,12 +83,14 @@ public class DefinitionFragment extends Fragment {
                                 activity.getTextNote(),
                                 textCards.inputs(),
                                 activity::markWordAsProcessed);
+                        AnalyticsHelper.logExportTextCards(headword, textCards);
                     } else {
                         Timber.e(
                                 "Unknown selected card type: %s",
                                 selectedCards.getClass().getName());
                         throw new RuntimeException("Unknown selected card type " + selectedCards);
                     }
+                    AnalyticsHelper.logExportCards(headword, noteType, count);
                 } else {
                     Timber.w("AnkiDroid API not available");
                 }
@@ -164,6 +176,8 @@ public class DefinitionFragment extends Fragment {
                 String mode = tab.getPosition() == 0 ? "definitions" : "examples";
                 Timber.d("Switching mode to: %s", mode);
                 webView.evaluateJavascript("setMode('" + mode + "')", null);
+                AnalyticsHelper.logChangeNoteType(
+                        tab.getPosition() == 0 ? AnalyticsHelper.NoteType.DICTIONARY : AnalyticsHelper.NoteType.TEXT);
 
                 int count = tab.getPosition() == 0
                         ? (viewModel.getDefinitionSelectedCount().getValue() != null

@@ -10,6 +10,7 @@ import com.github.lauroschuck.ankiquickadd.data.DictionaryRepository;
 import com.github.lauroschuck.ankiquickadd.data.NavigationManager;
 import com.github.lauroschuck.ankiquickadd.data.PCloudRepository;
 import com.github.lauroschuck.ankiquickadd.data.WordRepository;
+import com.github.lauroschuck.ankiquickadd.firebase.AnalyticsHelper;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import java.io.File;
 import java.util.ArrayList;
@@ -179,17 +180,19 @@ public class MainViewModel extends AndroidViewModel {
             }
 
             @Override
-            public void onSuccess(File file) {
+            public void onSuccess(File file, long elapsedMs) {
                 activeDownload.postValue(null);
+                AnalyticsHelper.logDownloadDictionary(learning, nativeLang, elapsedMs);
                 registerInMetadata(learning, nativeLang, file.getName());
                 refreshDownloadedDictionaries();
                 dictionaryRepository.reloadSources();
             }
 
             @Override
-            public void onError(String message) {
+            public void onError(String errorMessage, Throwable throwable, long elapsedMs) {
                 activeDownload.postValue(null);
-                Timber.e("Download failed: %s", message);
+                AnalyticsHelper.logDownloadDictionary(learning, nativeLang, elapsedMs, errorMessage, throwable);
+                Timber.e("Download failed: %s", errorMessage);
             }
         });
     }

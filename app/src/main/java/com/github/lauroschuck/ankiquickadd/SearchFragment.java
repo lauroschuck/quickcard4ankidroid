@@ -16,8 +16,10 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.github.lauroschuck.ankiquickadd.firebase.AnalyticsHelper;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import lombok.NonNull;
 
@@ -129,6 +131,7 @@ public class SearchFragment extends Fragment {
         if (!query.isEmpty()) {
             hideKeyboard();
             ((MainActivity) requireActivity()).fetchDefinition(query);
+            AnalyticsHelper.logSearch(query, AnalyticsHelper.SearchMethod.MANUAL);
         }
     }
 
@@ -171,7 +174,9 @@ public class SearchFragment extends Fragment {
 
             holder.itemView.setOnClickListener(v -> {
                 hideKeyboard();
-                ((MainActivity) requireActivity()).fetchDefinition(word);
+                String targetWord = word.toLowerCase(Locale.ROOT);
+                ((MainActivity) requireActivity()).fetchDefinition(targetWord);
+                AnalyticsHelper.logSearch(targetWord, AnalyticsHelper.SearchMethod.ENQUEUED);
             });
             holder.removeButton.setOnClickListener(v -> {
                 if (isProcessed) {

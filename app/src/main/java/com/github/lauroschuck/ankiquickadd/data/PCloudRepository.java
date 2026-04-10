@@ -3,6 +3,7 @@ package com.github.lauroschuck.ankiquickadd.data;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.SystemClock;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -101,10 +102,11 @@ public class PCloudRepository {
         String fileName = String.format("wiktionary_kaikki_%s-%s.db", learning.getIsoCode(), nativeLang.getIsoCode());
         Request request = new Request.Builder().url(BASE_URL + fileName).build();
 
+        long start = SystemClock.uptimeMillis();
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                callback.onError(e.getMessage());
+                callback.onError("Call failure", e, SystemClock.uptimeMillis() - start);
             }
 
             @Override
@@ -115,7 +117,7 @@ public class PCloudRepository {
                             response.request().url(),
                             response.code(),
                             response.body().string());
-                    callback.onError("Server returned " + response.code());
+                    callback.onError("Server returned " + response.code(), null, SystemClock.uptimeMillis() - start);
                     return;
                 }
 
@@ -134,13 +136,14 @@ public class PCloudRepository {
                         downloaded += read;
                         callback.onProgress(downloaded, totalBytes);
                     }
+                    var elapsed = SystemClock.uptimeMillis() - start;
                     if (tempFile.renameTo(outFile)) {
-                        callback.onSuccess(outFile);
+                        callback.onSuccess(outFile, elapsed);
                     } else {
-                        callback.onError("Failed to finalize download");
+                        callback.onError("Failed temp file rename", null, elapsed);
                     }
                 } catch (IOException e) {
-                    callback.onError(e.getMessage());
+                    callback.onError("Body read error", e, SystemClock.uptimeMillis() - start);
                 } finally {
                     if (tempFile.exists()) {
                         tempFile.delete();
@@ -161,8 +164,8 @@ public class PCloudRepository {
     public interface DownloadCallback {
         void onProgress(long downloaded, long total);
 
-        void onSuccess(File file);
+        void onSuccess(File file, long elapsedMs);
 
-        void onError(String message);
+        void onError(String message, Throwable throwable, long elapsedMs);
     }
 }
