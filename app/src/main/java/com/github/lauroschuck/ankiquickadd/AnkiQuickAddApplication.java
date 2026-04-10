@@ -1,7 +1,10 @@
 package com.github.lauroschuck.ankiquickadd;
 
 import android.app.Application;
+import android.util.Log;
+import androidx.annotation.NonNull;
 import com.github.lauroschuck.ankiquickadd.firebase.AnalyticsHelper;
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import timber.log.Timber;
 
 public class AnkiQuickAddApplication extends Application {
@@ -9,12 +12,49 @@ public class AnkiQuickAddApplication extends Application {
     public void onCreate() {
         super.onCreate();
         if (BuildConfig.DEBUG) {
-            Timber.plant(new Timber.DebugTree());
+            Timber.plant(new Timber.DebugTree() {
+
+                @Override
+                protected void log(int priority, String tag, @NonNull String message, Throwable throwable) {
+                    super.log(priority, tag, message, throwable);
+                    CrashReportingTree.logToCrashlytics(priority, tag, message, throwable);
+                }
+            });
         } else {
-            // Optional: Plant a release tree if needed (e.g., for crash reporting)
-            // Timber.plant(new ReleaseTree());
+            Timber.plant(new CrashReportingTree());
         }
 
         AnalyticsHelper.init(this);
+    }
+
+    private static class CrashReportingTree extends Timber.Tree {
+
+        @Override
+        protected void log(int priority, String tag, @NonNull String message, Throwable throwable) {
+            if (priority == Log.VERBOSE || priority == Log.DEBUG) {
+                return;
+            }
+            logToCrashlytics(priority, tag, message, throwable);
+        }
+
+        protected static void logToCrashlytics(int priority, String tag, @NonNull String message, Throwable throwable) {
+
+            var prorityString =
+                    switch (priority) {
+                        case Log.ASSERT -> "ASSERT";
+                        case Log.ERROR -> "ERROR";
+                        case Log.WARN -> "WARN";
+                        case Log.INFO -> "INFO";
+                        case Log.DEBUG -> "DEBUG";
+                        case Log.VERBOSE -> "VERBOSE";
+                        default -> "UNKNOWN-" + priority;
+                    };
+
+            AnalyticsHelper.logExceptionBreadcrumb(prorityString + "/" + tag + ": " + message);
+
+            if (throwable != null && (priority == Log.WARN || priority == Log.ERROR)) {
+                FirebaseCrashlytics.getInstance().recordException(throwable);
+            }
+        }
     }
 }

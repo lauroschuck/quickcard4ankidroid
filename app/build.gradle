@@ -2,6 +2,7 @@ plugins {
     id 'com.android.application'
     id 'com.diffplug.spotless'
     id 'com.google.gms.google-services'
+    id 'com.google.firebase.crashlytics'
 }
 
 android {
@@ -45,8 +46,9 @@ dependencies {
         exclude group: 'org.openjdk.nashorn', module: 'nashorn-core'
     }
     implementation 'com.jakewharton.timber:timber:5.0.1'
-    implementation platform('com.google.firebase:firebase-bom:34.11.0')
+    implementation platform('com.google.firebase:firebase-bom:34.12.0')
     implementation 'com.google.firebase:firebase-analytics'
+    implementation("com.google.firebase:firebase-crashlytics")
 
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'

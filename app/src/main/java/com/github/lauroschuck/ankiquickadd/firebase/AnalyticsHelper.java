@@ -7,25 +7,32 @@ import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
 import com.google.firebase.analytics.FirebaseAnalytics;
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import java.util.Locale;
 import lombok.NonNull;
 
 public class AnalyticsHelper {
-    private static FirebaseAnalytics firebaseAnalytics;
+
+    private static FirebaseAnalytics analytics;
+    private static FirebaseCrashlytics crashlytics;
 
     public static void init(Context context) {
-        firebaseAnalytics = FirebaseAnalytics.getInstance(context);
+        analytics = FirebaseAnalytics.getInstance(context);
+        crashlytics = FirebaseCrashlytics.getInstance();
     }
 
     public static void setUserLanguages(Language learning, Language nativeLang) {
-        if (firebaseAnalytics == null) {
+        if (analytics == null) {
             return;
         }
+        var crashlytics = FirebaseCrashlytics.getInstance();
         if (learning != null) {
-            firebaseAnalytics.setUserProperty("learning_language", learning.getIsoCode());
+            analytics.setUserProperty("learning_language", learning.getIsoCode());
+            crashlytics.setCustomKey("learning_language", learning.getIsoCode());
         }
         if (nativeLang != null) {
-            firebaseAnalytics.setUserProperty("native_language", nativeLang.getIsoCode());
+            analytics.setUserProperty("native_language", nativeLang.getIsoCode());
+            crashlytics.setCustomKey("native_language", nativeLang.getIsoCode());
         }
     }
 
@@ -165,9 +172,14 @@ public class AnalyticsHelper {
     }
 
     private static void logEvent(String name, Bundle bundle) {
-        if (firebaseAnalytics != null) {
-            firebaseAnalytics.logEvent(name, bundle);
+        if (analytics != null) {
+            analytics.logEvent(name, bundle);
+            logExceptionBreadcrumb(String.format("Event: %s\nBundle: %s", name, bundle));
         }
+    }
+
+    public static void logExceptionBreadcrumb(@NonNull String message) {
+        crashlytics.log(message);
     }
 
     public enum SearchMethod {
