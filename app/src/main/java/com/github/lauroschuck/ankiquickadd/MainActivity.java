@@ -34,7 +34,6 @@ public class MainActivity extends AppCompatActivity {
     private Spinner sourceSpinner;
     private MainViewModel viewModel;
 
-    private CardAssets cardAssets;
     private DictionaryNote dictionaryNote;
     private TextNote textNote;
 
@@ -45,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
 
         viewModel = new ViewModelProvider(this).get(MainViewModel.class);
 
-        cardAssets = new CardAssets(getApplicationContext());
+        var cardAssets = new CardAssets(getApplicationContext());
         dictionaryNote = new DictionaryNote(cardAssets);
         textNote = new TextNote(cardAssets);
 
@@ -248,7 +247,7 @@ public class MainActivity extends AppCompatActivity {
         var nativeLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE);
 
         if (learningLanguage == null || nativeLanguage == null) {
-            showSearchFragment("Please select a dictionary in Settings.");
+            showSearchFragment(getString(R.string.error_select_dictionary));
             return;
         }
 
@@ -281,7 +280,7 @@ public class MainActivity extends AppCompatActivity {
                                     && navManager.getWordHistory().peek().equals(word)) {
                                 navManager.getWordHistory().pop();
                             }
-                            showSearchFragment("Word not found: " + word);
+                            showSearchFragment(getString(R.string.error_word_not_found, word));
                         });
                     }
                 }

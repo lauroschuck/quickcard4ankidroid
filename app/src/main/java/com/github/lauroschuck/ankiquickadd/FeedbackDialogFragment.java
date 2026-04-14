@@ -34,10 +34,10 @@ public class FeedbackDialogFragment extends AppCompatDialogFragment {
                 (TextInputLayout) messageInput.getParent().getParent();
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
-                .setTitle("Send Feedback")
+                .setTitle(R.string.feedback_title)
                 .setView(view)
-                .setPositiveButton("Send", null)
-                .setNegativeButton("Cancel", null)
+                .setPositiveButton(R.string.feedback_send, null)
+                .setNegativeButton(R.string.feedback_cancel, null)
                 .create();
 
         dialog.setOnShowListener(dialogInterface -> {
@@ -50,21 +50,21 @@ public class FeedbackDialogFragment extends AppCompatDialogFragment {
                 boolean isValid = true;
 
                 if (name.isEmpty()) {
-                    nameLayout.setError("Name is required");
+                    nameLayout.setError(getString(R.string.feedback_error_name_required));
                     isValid = false;
                 } else {
                     nameLayout.setError(null);
                 }
 
                 if (!email.isEmpty() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                    emailLayout.setError("Invalid email format");
+                    emailLayout.setError(getString(R.string.feedback_error_email_invalid));
                     isValid = false;
                 } else {
                     emailLayout.setError(null);
                 }
 
                 if (message.isEmpty()) {
-                    messageLayout.setError("Message cannot be empty");
+                    messageLayout.setError(getString(R.string.feedback_error_message_empty));
                     isValid = false;
                 } else {
                     messageLayout.setError(null);
@@ -83,7 +83,7 @@ public class FeedbackDialogFragment extends AppCompatDialogFragment {
                         documentReference -> {
                             if (isAdded()) {
                                 FirebaseHelper.logFeedback(true);
-                                Toast.makeText(requireContext(), "Feedback sent! Thank you.", Toast.LENGTH_SHORT)
+                                Toast.makeText(requireContext(), R.string.feedback_success, Toast.LENGTH_SHORT)
                                         .show();
                                 dismiss();
                             }
@@ -94,7 +94,7 @@ public class FeedbackDialogFragment extends AppCompatDialogFragment {
                                 FirebaseHelper.logFeedback(false);
                                 Toast.makeText(
                                                 requireContext(),
-                                                "Error sending feedback. Please try again.",
+                                                R.string.feedback_error_generic,
                                                 Toast.LENGTH_SHORT)
                                         .show();
                                 button.setEnabled(true);
