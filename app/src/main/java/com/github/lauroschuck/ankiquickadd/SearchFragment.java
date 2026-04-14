@@ -183,13 +183,12 @@ public class SearchFragment extends Fragment {
                     ((MainActivity) requireActivity()).removeEnqueuedWord(word);
                 } else {
                     new AlertDialog.Builder(requireContext())
-                            .setTitle("Remove Enqueued Word")
-                            .setMessage("Are you sure you want to remove '" + word
-                                    + "'?\nIt may not have been added to Anki yet.")
-                            .setPositiveButton("Remove", (dialog, which) -> {
+                            .setTitle(R.string.dialog_remove_enqueued_title)
+                            .setMessage(getString(R.string.dialog_remove_enqueued_message, word))
+                            .setPositiveButton(R.string.dialog_remove_enqueued_confirm, (dialog, which) -> {
                                 ((MainActivity) requireActivity()).removeEnqueuedWord(word);
                             })
-                            .setNegativeButton("Cancel", null)
+                            .setNegativeButton(R.string.dialog_remove_enqueued_cancel, null)
                             .show();
                 }
             });

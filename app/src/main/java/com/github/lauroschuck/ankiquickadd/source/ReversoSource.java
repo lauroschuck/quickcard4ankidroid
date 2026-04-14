@@ -1,7 +1,6 @@
 package com.github.lauroschuck.ankiquickadd.source;
 
 import android.net.Uri;
-import android.util.Log;
 import android.webkit.WebView;
 import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
@@ -24,9 +23,9 @@ import okhttp3.Response;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import timber.log.Timber;
 
 public class ReversoSource implements DictionarySource {
-    private static final String TAG = "ReversoSource";
     private final OkHttpClient client = new OkHttpClient();
     private Language lastLearningLanguage;
     private Language lastNativeLanguage;
@@ -224,7 +223,7 @@ public class ReversoSource implements DictionarySource {
 
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Log.e(TAG, "Failed to fetch more examples", e);
+                Timber.e(e, "Failed to fetch more examples for %s", word);
             }
         });
     }
@@ -278,7 +277,7 @@ public class ReversoSource implements DictionarySource {
 
             webView.evaluateJavascript(js, null);
         } catch (Exception e) {
-            Log.e(TAG, "Error injecting examples", e);
+            Timber.e(e, "Error injecting examples from Reverso");
         }
     }
 
@@ -363,7 +362,7 @@ public class ReversoSource implements DictionarySource {
             listener.onSuccess(finalHtml, word);
 
         } catch (Exception e) {
-            Log.e(TAG, "Parsing error", e);
+            Timber.e(e, "Parsing error from Reverso response for %s", word);
             listener.onError("Error parsing Reverso Dictionary: " + e.getMessage());
         }
     }

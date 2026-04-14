@@ -5,7 +5,6 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.text.TextUtils;
-import android.util.Log;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Template;
 import com.github.lauroschuck.ankiquickadd.anki.notes.AbstractAnkiNote;
@@ -29,10 +28,9 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.NonNull;
+import timber.log.Timber;
 
 public class OfflineKaikkiSource implements DictionarySource {
-    private static final String TAG = "OfflineKaikkiSource";
-    private final Handlebars handlebars = new Handlebars();
     private Context context;
     private Template template;
     private Language lastLearningLanguage;
@@ -40,8 +38,9 @@ public class OfflineKaikkiSource implements DictionarySource {
 
     public OfflineKaikkiSource() {
         try {
-            this.template = handlebars.compileInline(
-                    """
+            this.template = new Handlebars()
+                    .compileInline(
+                            """
                 <html>
                 <head>
                     <style>
@@ -207,7 +206,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                 </html>
                 """);
         } catch (IOException e) {
-            Log.e(TAG, "Handlebars compilation failed", e);
+            throw new RuntimeException("Handlebars compilation failed", e);
         }
     }
 
@@ -235,12 +234,12 @@ public class OfflineKaikkiSource implements DictionarySource {
                 learningLanguage.getIsoCode().toLowerCase(),
                 nativeLanguage.getIsoCode().toLowerCase());
 
-        Log.d(TAG, "Fetching word: " + word + " from DB: " + dbName);
+        Timber.d("Fetching word: %s from DB: %s", word, dbName);
         copyDatabaseIfNeeded(dbName);
 
         var dbFile = context.getDatabasePath(dbName);
         if (!dbFile.exists()) {
-            Log.e(TAG, "Database file not found: " + dbFile.getAbsolutePath());
+            Timber.e("Database file not found: %s", dbFile.getAbsolutePath());
             listener.onError("Offline database not found: " + dbName);
             return;
         }
@@ -285,7 +284,7 @@ public class OfflineKaikkiSource implements DictionarySource {
             }
             data.put("pronunciations", pronunciations);
             data.put("hasPronunciation", (ipa != null && !ipa.isEmpty()) || !pronunciations.isEmpty());
-            Log.d(TAG, "Found " + pronunciations.size() + " pronunciations");
+            Timber.d("Found %d pronunciations", pronunciations.size());
 
             // 3. Fetch variations (other casings)
             var variations = new ArrayList<String>();
@@ -371,7 +370,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                 }
             }
             data.put("posBlocks", posBlocks);
-            Log.d(TAG, "Found " + posBlocks.size() + " POS blocks");
+            Timber.d("Found %d POS blocks", posBlocks.size());
 
             if (posBlocks.isEmpty()) {
                 // If word not found exactly, but we have variations, show them in a special "not found" page
@@ -385,11 +384,11 @@ public class OfflineKaikkiSource implements DictionarySource {
             }
 
             var html = template.apply(data);
-            Log.d(TAG, "Generated HTML length: " + html.length());
+            Timber.d("Generated HTML length: %d", html.length());
             listener.onSuccess(html, word);
 
-        } catch (Exception e) {
-            Log.e(TAG, "Template processing failed", e);
+        } catch (IOException e) {
+            Timber.e(e, "Template processing failed");
             listener.onError("Offline DB error: " + e.getMessage());
         }
     }
@@ -543,7 +542,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                 }
             }
         } catch (RuntimeException e) {
-            Log.e(TAG, "Error generating cards from selection", e);
+            Timber.e(e, "Error generating cards from selection");
             throw e;
         }
     }
@@ -568,7 +567,7 @@ public class OfflineKaikkiSource implements DictionarySource {
             var entryId = cursor.getLong(5);
 
             var learningText = applyBolding(learningTextRaw, exId, "L", db);
-            var nativeText = applyBolding(nativeTextRaw, exId, "N", db);
+            var nativeText = nativeTextRaw != null ? applyBolding(nativeTextRaw, exId, "N", db) : null;
             var glosses = fetchGlosses(db, entryId);
 
             return new TextNote.Input(headword, ipa, learningText, nativeText, glosses, lexicalCategory);
@@ -609,11 +608,12 @@ public class OfflineKaikkiSource implements DictionarySource {
                 } else {
                     var exampleId = cursor.getLong(4);
                     var learningText = applyBolding(cursor.getString(5), exampleId, "L", db);
-                    var nativeText = applyBolding(cursor.getString(6), exampleId, "N", db);
+                    var nativeTextRaw = cursor.getString(6);
+                    var nativeText = nativeTextRaw != null ? applyBolding(nativeTextRaw, exampleId, "N", db) : null;
                     definition = new DictionaryNote.Input.Definition(definitionText, learningText, nativeText);
                 }
                 var input = new DictionaryNote.Input(headword, ipa, lexicalCategory, List.of(definition));
-                Log.d(TAG, String.format("Intermediary input: %s", input));
+                Timber.d("Intermediary input: %s", input);
                 flattenedCards.add(input);
             }
         }
@@ -629,7 +629,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                     var firstInput = inputs.get(0);
                     var input = new DictionaryNote.Input(
                             firstInput.headword(), firstInput.ipa(), firstInput.lexicalCategory(), definitions);
-                    Log.d(TAG, String.format("Condensed input: %s", input));
+                    Timber.d("Condensed input: %s", input);
                     return input;
                 })
                 .collect(Collectors.toList());
@@ -669,7 +669,7 @@ public class OfflineKaikkiSource implements DictionarySource {
                     }
                 }
             } catch (IOException e) {
-                Log.e(TAG, "Database copy failed", e);
+                Timber.e(e, "Database copy failed");
             }
         }
     }

@@ -13,6 +13,7 @@ import com.github.lauroschuck.ankiquickadd.model.Language;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import timber.log.Timber;
 
 public class DictionaryAdapter extends RecyclerView.Adapter<DictionaryAdapter.ViewHolder> {
 
@@ -90,10 +91,12 @@ public class DictionaryAdapter extends RecyclerView.Adapter<DictionaryAdapter.Vi
                 Language nativeLang = Language.ofIsoCode(langs[1]);
                 holder.nameText.setText(String.format(
                         Locale.US, "Downloading %s-%s", learning.getDisplayName(), nativeLang.getDisplayName()));
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
+                Timber.w(e, "Error parsing dictionary name");
                 holder.nameText.setText("Downloading...");
             }
         } else {
+            Timber.w("Bad dictionary name: %s", info.fileName());
             holder.nameText.setText("Downloading...");
         }
 

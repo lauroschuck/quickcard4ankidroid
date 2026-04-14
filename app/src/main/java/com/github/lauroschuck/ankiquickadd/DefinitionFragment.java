@@ -266,6 +266,7 @@ public class DefinitionFragment extends Fragment {
             });
         } catch (IOException e) {
             Timber.e(e, "Error setting data source for audio");
+            ((MainActivity) requireActivity()).showSnackbar("Audio playback failed", true);
         }
     }
 

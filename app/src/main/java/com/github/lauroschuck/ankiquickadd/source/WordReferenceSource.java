@@ -1,7 +1,6 @@
 package com.github.lauroschuck.ankiquickadd.source;
 
 import android.net.Uri;
-import android.util.Log;
 import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
@@ -23,9 +22,9 @@ import okhttp3.Response;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import timber.log.Timber;
 
 public class WordReferenceSource implements DictionarySource {
-    private static final String TAG = "WordReferenceSource";
     private final OkHttpClient client = new OkHttpClient();
     private Language lastLearningLanguage;
     private Language lastNativeLanguage;
@@ -72,7 +71,7 @@ public class WordReferenceSource implements DictionarySource {
                     const headword = document.body.getAttribute('data-word');
                     const isDefinitions = document.body.classList.contains('mode-definitions');
 
-                    // Collapse the lexical categories into a simpler defintion
+                    // Collapse the lexical categories into a simpler definition
                     const posMapping = {
                         'n': 'noun',
                         'npl': 'noun', // noun plural
@@ -334,7 +333,7 @@ public class WordReferenceSource implements DictionarySource {
             listener.onSuccess(finalHtml, word);
 
         } catch (Exception e) {
-            Log.e(TAG, "Parsing error", e);
+            Timber.e(e, "Parsing error for %s", word);
             listener.onError("Error parsing WordReference: " + e.getMessage());
         }
     }

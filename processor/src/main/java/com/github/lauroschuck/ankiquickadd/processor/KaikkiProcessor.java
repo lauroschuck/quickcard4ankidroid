@@ -7,6 +7,7 @@ import com.google.gson.JsonParser;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
@@ -102,8 +103,8 @@ public class KaikkiProcessor {
                     }
                 }
                 commitInternal();
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (IOException e) {
+                throw new RuntimeException("Consumption failure", e);
             }
         }
 

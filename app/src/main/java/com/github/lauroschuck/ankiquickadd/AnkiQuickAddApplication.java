@@ -39,7 +39,7 @@ public class AnkiQuickAddApplication extends Application {
 
         protected static void logToCrashlytics(int priority, String tag, @NonNull String message, Throwable throwable) {
 
-            var prorityString =
+            var priorityString =
                     switch (priority) {
                         case Log.ASSERT -> "ASSERT";
                         case Log.ERROR -> "ERROR";
@@ -50,7 +50,7 @@ public class AnkiQuickAddApplication extends Application {
                         default -> "UNKNOWN-" + priority;
                     };
 
-            FirebaseHelper.logExceptionBreadcrumb(prorityString + "/" + tag + ": " + message);
+            FirebaseHelper.logExceptionBreadcrumb(priorityString + "/" + tag + ": " + message);
 
             if (throwable != null && (priority == Log.WARN || priority == Log.ERROR)) {
                 FirebaseCrashlytics.getInstance().recordException(throwable);

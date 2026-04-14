@@ -92,10 +92,7 @@ public class FeedbackDialogFragment extends AppCompatDialogFragment {
                             Timber.e(e, "Error sending feedback");
                             if (isAdded()) {
                                 FirebaseHelper.logFeedback(false);
-                                Toast.makeText(
-                                                requireContext(),
-                                                R.string.feedback_error_generic,
-                                                Toast.LENGTH_SHORT)
+                                Toast.makeText(requireContext(), R.string.feedback_error_generic, Toast.LENGTH_SHORT)
                                         .show();
                                 button.setEnabled(true);
                             }
