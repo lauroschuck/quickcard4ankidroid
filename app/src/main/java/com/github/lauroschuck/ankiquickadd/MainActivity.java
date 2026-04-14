@@ -11,6 +11,8 @@ import android.widget.Spinner;
 import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import com.github.lauroschuck.ankiquickadd.anki.notes.CardAssets;
@@ -19,6 +21,7 @@ import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
+import com.google.android.material.navigation.NavigationView;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -27,6 +30,7 @@ import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity {
 
+    private DrawerLayout drawerLayout;
     private Spinner sourceSpinner;
     private MainViewModel viewModel;
 
@@ -45,13 +49,26 @@ public class MainActivity extends AppCompatActivity {
         dictionaryNote = new DictionaryNote(cardAssets);
         textNote = new TextNote(cardAssets);
 
+        drawerLayout = findViewById(R.id.drawerLayout);
+        NavigationView navigationView = findViewById(R.id.navigationView);
         sourceSpinner = findViewById(R.id.sourceSpinner);
-        var settingsButton = findViewById(R.id.settingsButton);
+        var menuButton = findViewById(R.id.menuButton);
+
+        menuButton.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
+
+        navigationView.setNavigationItemSelectedListener(item -> {
+            int id = item.getItemId();
+            if (id == R.id.nav_settings) {
+                navigateToSettings();
+            } else if (id == R.id.nav_feedback) {
+                showFeedbackDialog();
+            }
+            drawerLayout.closeDrawer(GravityCompat.START);
+            return true;
+        });
 
         setupSourceSpinner();
         setupBackPressed();
-
-        settingsButton.setOnClickListener(v -> navigateToSettings());
 
         var prefs = PreferenceManager.getDefaultSharedPreferences(this);
         viewModel.setLastUsedLearningLanguage(getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE));
@@ -60,6 +77,10 @@ public class MainActivity extends AppCompatActivity {
         FirebaseHelper.setUserLanguages(viewModel.getLastUsedLearningLanguage(), viewModel.getLastUsedNativeLanguage());
 
         handleIntent(getIntent());
+    }
+
+    private void showFeedbackDialog() {
+        new FeedbackDialogFragment().show(getSupportFragmentManager(), FeedbackDialogFragment.TAG);
     }
 
     public void navigateToSettings() {
@@ -86,6 +107,11 @@ public class MainActivity extends AppCompatActivity {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
+                if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                    drawerLayout.closeDrawer(GravityCompat.START);
+                    return;
+                }
+
                 var history = viewModel.getNavigationManager().getWordHistory();
                 if (!history.isEmpty()) {
                     history.pop(); // Remove current word
@@ -232,11 +258,11 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onSuccess(String html, String headword) {
                     Timber.d("Successfully fetched definition for: %s", word);
+                    FirebaseHelper.logFetchDefinition(word, true);
                     runOnUiThread(() -> {
                         Fragment current = getCurrentFragment();
                         if (current instanceof DefinitionFragment) {
                             ((DefinitionFragment) current).loadHtml(html);
-                            FirebaseHelper.logFetchDefinition(headword, true);
                         }
                     });
                 }
@@ -249,13 +275,13 @@ public class MainActivity extends AppCompatActivity {
                         Timber.d("Retrying with lowercase word: %s", lowercaseWord);
                         fetchDefinition(lowercaseWord, true);
                     } else {
+                        FirebaseHelper.logFetchDefinition(word, false);
                         runOnUiThread(() -> {
                             if (!navManager.getWordHistory().isEmpty()
                                     && navManager.getWordHistory().peek().equals(word)) {
                                 navManager.getWordHistory().pop();
                             }
                             showSearchFragment("Word not found: " + word);
-                            FirebaseHelper.logFetchDefinition(word, false);
                         });
                     }
                 }

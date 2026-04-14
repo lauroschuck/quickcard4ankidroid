@@ -6,19 +6,28 @@ import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import lombok.NonNull;
 
 public class FirebaseHelper {
 
     private static FirebaseAnalytics analytics;
     private static FirebaseCrashlytics crashlytics;
+    private static FirebaseFirestore firestore;
 
     public static void init(Context context) {
         analytics = FirebaseAnalytics.getInstance(context);
         crashlytics = FirebaseCrashlytics.getInstance();
+        firestore = FirebaseFirestore.getInstance();
     }
 
     public static void setUserLanguages(Language learning, Language nativeLang) {
@@ -171,6 +180,12 @@ public class FirebaseHelper {
         logEvent("delete_dictionary", bundle);
     }
 
+    public static void logFeedback(boolean success) {
+        Bundle bundle = new Bundle();
+        bundle.putBoolean("success", success);
+        logEvent("send_feedback", bundle);
+    }
+
     private static void logEvent(String name, Bundle bundle) {
         if (analytics != null) {
             analytics.logEvent(name, bundle);
@@ -180,6 +195,28 @@ public class FirebaseHelper {
 
     public static void logExceptionBreadcrumb(@NonNull String message) {
         crashlytics.log(message);
+    }
+
+    public static void sendFeedback(
+            @NonNull String name,
+            @NonNull String email,
+            @NonNull String messsage,
+            @NonNull OnSuccessListener<? super DocumentReference> onSuccessListener,
+            @NonNull OnFailureListener onFailureListener) {
+        Map<String, Object> feedback = new HashMap<>();
+        feedback.put("name", name);
+        feedback.put("email", email);
+        feedback.put("timestamp", FieldValue.serverTimestamp());
+        feedback.put("message", messsage);
+        feedback.put("app_version", com.github.lauroschuck.ankiquickadd.BuildConfig.VERSION_NAME);
+        feedback.put("os_version", android.os.Build.VERSION.RELEASE);
+        feedback.put("device_model", android.os.Build.MODEL);
+
+        firestore
+                .collection("feedback")
+                .add(feedback)
+                .addOnSuccessListener(onSuccessListener)
+                .addOnFailureListener(onFailureListener);
     }
 
     public enum SearchMethod {
