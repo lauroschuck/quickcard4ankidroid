@@ -13,6 +13,8 @@ import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
+import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -20,9 +22,28 @@ import lombok.NonNull;
 
 public class FirebaseHelper {
 
+    private static FirebaseRemoteConfig remoteConfig;
     private static FirebaseAnalytics analytics;
     private static FirebaseCrashlytics crashlytics;
     private static FirebaseFirestore firestore;
+
+    public static void earlyInit() {
+        remoteConfig = FirebaseRemoteConfig.getInstance();
+        FirebaseRemoteConfigSettings configSettings = new FirebaseRemoteConfigSettings.Builder()
+                .setMinimumFetchIntervalInSeconds(3600) // Fetch every hour
+                .build();
+        remoteConfig.setConfigSettingsAsync(configSettings);
+        remoteConfig.fetchAndActivate();
+    }
+
+    public static String getDictionaryHostingBasePath() {
+        String path = remoteConfig.getString("dictionary_hosting_path");
+        if (path.isEmpty()) {
+            throw new IllegalStateException("No dictionary hosting path available");
+        }
+        // Ensure the path ends with a slash
+        return path.endsWith("/") ? path : path + "/";
+    }
 
     public static void init(Context context) {
         analytics = FirebaseAnalytics.getInstance(context);

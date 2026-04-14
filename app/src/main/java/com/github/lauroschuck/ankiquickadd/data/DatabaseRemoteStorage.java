@@ -4,6 +4,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.SystemClock;
+import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -18,20 +19,21 @@ import okhttp3.Request;
 import okhttp3.Response;
 import timber.log.Timber;
 
-public class PCloudRepository {
-    private static final String BASE_URL = "https://filedn.com/***REMOVED***/AnkiQuickAdd/";
+public class DatabaseRemoteStorage {
     private static final String STATS_DB_NAME = "stats.db";
 
     private final Context context;
     private final OkHttpClient client;
 
-    public PCloudRepository(Context context) {
+    public DatabaseRemoteStorage(Context context) {
         this.context = context;
         this.client = new OkHttpClient();
     }
 
     public void discoverAvailableLanguages(DiscoveryCallback callback) {
-        Request request = new Request.Builder().url(BASE_URL + STATS_DB_NAME).build();
+        Request request = new Request.Builder()
+                .url(FirebaseHelper.getDictionaryHostingBasePath() + STATS_DB_NAME)
+                .build();
 
         client.newCall(request).enqueue(new Callback() {
             @Override
@@ -100,7 +102,9 @@ public class PCloudRepository {
 
     public void downloadDictionary(Language learning, Language nativeLang, DownloadCallback callback) {
         String fileName = String.format("wiktionary_kaikki_%s-%s.db", learning.getIsoCode(), nativeLang.getIsoCode());
-        Request request = new Request.Builder().url(BASE_URL + fileName).build();
+        Request request = new Request.Builder()
+                .url(FirebaseHelper.getDictionaryHostingBasePath() + fileName)
+                .build();
 
         long start = SystemClock.uptimeMillis();
         client.newCall(request).enqueue(new Callback() {

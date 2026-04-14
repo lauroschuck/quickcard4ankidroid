@@ -10,7 +10,10 @@ import timber.log.Timber;
 public class AnkiQuickAddApplication extends Application {
     @Override
     public void onCreate() {
+        FirebaseHelper.earlyInit();
+
         super.onCreate();
+
         if (BuildConfig.DEBUG) {
             Timber.plant(new Timber.DebugTree() {
 

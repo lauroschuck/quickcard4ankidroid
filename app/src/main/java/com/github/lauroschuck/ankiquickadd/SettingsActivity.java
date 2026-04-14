@@ -16,7 +16,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import com.github.lauroschuck.ankiquickadd.data.PCloudRepository;
+import com.github.lauroschuck.ankiquickadd.data.DatabaseRemoteStorage;
 import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import java.util.ArrayList;
@@ -170,7 +170,7 @@ public class SettingsActivity extends AppCompatActivity {
         Language learning = (Language) newLearningLanguageSpinner.getSelectedItem();
         Language nativeLang = (Language) newNativeLanguageSpinner.getSelectedItem();
 
-        PCloudRepository.DictionaryStats stats = viewModel.getStatsFor(learning, nativeLang);
+        DatabaseRemoteStorage.DictionaryStats stats = viewModel.getStatsFor(learning, nativeLang);
         if (stats != null) {
             dictionaryStatsText.setVisibility(View.VISIBLE);
             dictionaryStatsText.setText(

@@ -6,9 +6,9 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import com.github.lauroschuck.ankiquickadd.data.DatabaseRemoteStorage;
 import com.github.lauroschuck.ankiquickadd.data.DictionaryRepository;
 import com.github.lauroschuck.ankiquickadd.data.NavigationManager;
-import com.github.lauroschuck.ankiquickadd.data.PCloudRepository;
 import com.github.lauroschuck.ankiquickadd.data.WordRepository;
 import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.github.lauroschuck.ankiquickadd.model.Language;
@@ -36,12 +36,12 @@ public class MainViewModel extends AndroidViewModel {
     private final NavigationManager navigationManager;
 
     @Getter
-    private final PCloudRepository pCloudRepository;
+    private final DatabaseRemoteStorage databaseRemoteStorage;
 
     private final MutableLiveData<Integer> definitionSelectedCount = new MutableLiveData<>(0);
     private final MutableLiveData<Integer> exampleSelectedCount = new MutableLiveData<>(0);
 
-    private final MutableLiveData<List<PCloudRepository.DictionaryStats>> allAvailableStats =
+    private final MutableLiveData<List<DatabaseRemoteStorage.DictionaryStats>> allAvailableStats =
             new MutableLiveData<>(new ArrayList<>());
 
     public record DownloadedDictionary(Language learning, Language nativeLang, File file) {}
@@ -74,15 +74,15 @@ public class MainViewModel extends AndroidViewModel {
         this.dictionaryRepository = new DictionaryRepository(application);
         this.wordRepository = new WordRepository(application);
         this.navigationManager = new NavigationManager();
-        this.pCloudRepository = new PCloudRepository(application);
+        this.databaseRemoteStorage = new DatabaseRemoteStorage(application);
         refreshAvailableLanguages();
         refreshDownloadedDictionaries();
     }
 
     public void refreshAvailableLanguages() {
-        pCloudRepository.discoverAvailableLanguages(new PCloudRepository.DiscoveryCallback() {
+        databaseRemoteStorage.discoverAvailableLanguages(new DatabaseRemoteStorage.DiscoveryCallback() {
             @Override
-            public void onSuccess(List<PCloudRepository.DictionaryStats> stats) {
+            public void onSuccess(List<DatabaseRemoteStorage.DictionaryStats> stats) {
                 allAvailableStats.postValue(stats);
                 Timber.i("Stats refreshed: %d pairs found", stats.size());
             }
@@ -141,26 +141,26 @@ public class MainViewModel extends AndroidViewModel {
     }
 
     public List<Language> getAvailableLearningLanguages() {
-        List<PCloudRepository.DictionaryStats> stats = allAvailableStats.getValue();
+        List<DatabaseRemoteStorage.DictionaryStats> stats = allAvailableStats.getValue();
         if (stats == null) return new ArrayList<>();
         return stats.stream()
-                .map(PCloudRepository.DictionaryStats::learning)
+                .map(DatabaseRemoteStorage.DictionaryStats::learning)
                 .distinct()
                 .collect(Collectors.toList());
     }
 
     public List<Language> getAvailableNativeLanguages(Language learning) {
-        List<PCloudRepository.DictionaryStats> stats = allAvailableStats.getValue();
+        List<DatabaseRemoteStorage.DictionaryStats> stats = allAvailableStats.getValue();
         if (stats == null || learning == null) return new ArrayList<>();
         return stats.stream()
                 .filter(s -> s.learning().equals(learning))
-                .map(PCloudRepository.DictionaryStats::nativeLang)
+                .map(DatabaseRemoteStorage.DictionaryStats::nativeLang)
                 .distinct()
                 .collect(Collectors.toList());
     }
 
-    public PCloudRepository.DictionaryStats getStatsFor(Language learning, Language nativeLang) {
-        List<PCloudRepository.DictionaryStats> stats = allAvailableStats.getValue();
+    public DatabaseRemoteStorage.DictionaryStats getStatsFor(Language learning, Language nativeLang) {
+        List<DatabaseRemoteStorage.DictionaryStats> stats = allAvailableStats.getValue();
         if (stats == null || learning == null || nativeLang == null) return null;
         return stats.stream()
                 .filter(s -> s.learning().equals(learning) && s.nativeLang().equals(nativeLang))
@@ -173,7 +173,7 @@ public class MainViewModel extends AndroidViewModel {
         String fileName = "wiktionary_kaikki_" + pair + ".db";
         activeDownload.postValue(new DownloadInfo(fileName, 0, 0));
 
-        pCloudRepository.downloadDictionary(learning, nativeLang, new PCloudRepository.DownloadCallback() {
+        databaseRemoteStorage.downloadDictionary(learning, nativeLang, new DatabaseRemoteStorage.DownloadCallback() {
             @Override
             public void onProgress(long downloaded, long total) {
                 activeDownload.postValue(new DownloadInfo(fileName, downloaded, total));
@@ -238,7 +238,7 @@ public class MainViewModel extends AndroidViewModel {
         }
     }
 
-    public LiveData<List<PCloudRepository.DictionaryStats>> getObservableStats() {
+    public LiveData<List<DatabaseRemoteStorage.DictionaryStats>> getObservableStats() {
         return allAvailableStats;
     }
 
