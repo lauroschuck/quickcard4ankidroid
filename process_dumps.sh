@@ -28,47 +28,85 @@ DUMPS=(
 
 LEARNING_LANGS="af,am,ar,az,be,bg,bn,bs,ca,cs,cy,da,de,el,en,es,et,eu,fa,fi,fr,fy,ga,gd,gl,gn,gu,ha,he,hi,hr,hu,hy,id,ig,is,it,iw,ja,ka,km,kn,ko,ky,lb,ln,lo,lt,lv,mk,ml,mn,mr,ms,mt,my,nb,ne,nl,no,or,pa,pl,pt,ro,ru,sk,sl,so,sq,sr,sv,sw,ta,te,tg,th,tl,tr,uk,ur,uz,vi,zh,zu"
 THREADS=4
-# Use absolute path for the download directory to prevent issues with Gradle's working directory
-DOWNLOAD_DIR="$(pwd)/kaikki_downloads"
+BASE_DOWNLOAD_DIR="$(pwd)/processor/downloads"
 
-# Ensure download directory exists
-mkdir -p "$DOWNLOAD_DIR"
+# Ensure base download directory exists
+mkdir -p "$BASE_DOWNLOAD_DIR"
 
-echo "Step 1: Downloading all dumps..."
+echo "Step 1: Downloading and decompressing new dumps..."
 for LANG_CODE in "${!DUMPS[@]}"; do
     URL="${DUMPS[$LANG_CODE]}"
     FILENAME=$(basename "$URL")
-    echo "Downloading $LANG_CODE dump..."
-    # -L follows redirects, -C - resumes download
-    curl -L -C - --output "$DOWNLOAD_DIR/$FILENAME" "$URL"
+
+    echo "Checking $LANG_CODE dump at $URL..."
+
+    # Get Last-Modified header. -L follows redirects, -I gets headers only.
+    LAST_MOD=$(curl -sIL "$URL" | grep -i '^last-modified:' | tail -n 1 | cut -d' ' -f2- | tr -d '\r')
+
+    if [ -z "$LAST_MOD" ]; then
+        echo "Warning: Could not get Last-Modified for $LANG_CODE. Using current date for directory."
+        TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+    else
+        TIMESTAMP=$(date -d "$LAST_MOD" +"%Y%m%d-%H%M%S" 2>/dev/null || date -jf "%a, %d %b %Y %T %Z" "$LAST_MOD" +"%Y%m%d-%H%M%S" 2>/dev/null)
+        if [ -z "$TIMESTAMP" ]; then
+             echo "Warning: Failed to parse date '$LAST_MOD'. Using current date."
+             TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+        fi
+    fi
+
+    LANG_DIR="$BASE_DOWNLOAD_DIR/$LANG_CODE/$TIMESTAMP"
+    mkdir -p "$LANG_DIR"
+
+    GZ_FILE="$LANG_DIR/$FILENAME"
+    JSONL_FILE="${GZ_FILE%.gz}"
+
+    # If the decompressed file exists, we consider this version done
+    if [ -f "$JSONL_FILE" ]; then
+        echo "$LANG_CODE dump ($TIMESTAMP) already exists and is decompressed. Skipping."
+        continue
+    fi
+
+    # Attempt download/resume. curl -C - will automatically handle existing partial files.
+    echo "Downloading/Resuming $LANG_CODE dump..."
+    curl -L -C - --output "$GZ_FILE" "$URL"
+
+    # Decompress using a temp file in the SAME directory to avoid "No space left on device"
+    # if /tmp is a small memory partition.
+    echo "Decompressing $LANG_CODE dump..."
+    TMP_FILE=$(mktemp --tmpdir="$LANG_DIR" "kaikki_${LANG_CODE}_XXXXXX.jsonl.tmp")
+
+    # Ensure cleanup of temp file if interrupted
+    trap 'rm -f "$TMP_FILE"' EXIT
+
+    gunzip -c "$GZ_FILE" > "$TMP_FILE"
+    mv "$TMP_FILE" "$JSONL_FILE"
+
+    # Reset trap
+    trap - EXIT
 done
 
 echo ""
-echo "Step 2: Decompressing all dumps..."
-for LANG_CODE in "${!DUMPS[@]}"; do
-    URL="${DUMPS[$LANG_CODE]}"
-    FILENAME=$(basename "$URL")
-    DUMP_GZ="$DOWNLOAD_DIR/$FILENAME"
-    echo "Decompressing $DUMP_GZ..."
-    # -f overwrites, -k keeps the original .gz
-    gunzip -f -k "$DUMP_GZ"
-done
-
-echo ""
-echo "Step 3: Running KaikkiProcessor for all dumps..."
-# Build the arguments string starting with learning languages and thread count
+echo "Step 2: Finding latest dumps and running KaikkiProcessor..."
 PROCESSOR_ARGS="$LEARNING_LANGS $THREADS"
 
+# Iterate again to find the latest directory for each language
 for LANG_CODE in "${!DUMPS[@]}"; do
-    URL="${DUMPS[$LANG_CODE]}"
-    FILENAME=$(basename "$URL")
-    # Determine the decompressed filename (stripping .gz)
-    DUMP_FILE="$DOWNLOAD_DIR/${FILENAME%.gz}"
-    # Append the language code and file path pair
-    PROCESSOR_ARGS="$PROCESSOR_ARGS $LANG_CODE:$DUMP_FILE"
+    LATEST_DIR=$(ls -d "$BASE_DOWNLOAD_DIR/$LANG_CODE"/*/ 2>/dev/null | sort -r | head -n 1)
+
+    if [ -n "$LATEST_DIR" ]; then
+        DUMP_FILE=$(ls "$LATEST_DIR"*.jsonl 2>/dev/null | head -n 1)
+        if [ -n "$DUMP_FILE" ]; then
+            PROCESSOR_ARGS="$PROCESSOR_ARGS $LANG_CODE:$DUMP_FILE"
+        else
+            echo "Warning: No .jsonl file found in $LATEST_DIR"
+        fi
+    else
+        echo "Error: No dump directory found for $LANG_CODE"
+    fi
 done
 
-# Run the processor once with all accumulated pairs
+echo ""
+echo "Step 3: Run KaikkiProcessor..."
 ./gradlew :processor:run --args="$PROCESSOR_ARGS"
 
 echo ""
