@@ -62,6 +62,13 @@ public class KaikkiProcessor {
             this.learningLangCode = learningLangCode;
             this.learningLangName = new Locale(learningLangCode).getDisplayLanguage(Locale.ENGLISH);
             this.conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
+            // Adjustments for performance
+            try (Statement st = conn.createStatement()) {
+                st.execute("PRAGMA synchronous = OFF");
+                st.execute("PRAGMA journal_mode = MEMORY");
+                st.execute("PRAGMA cache_size = 100000"); // Uses ~100MB of RAM for cache
+                st.execute("PRAGMA temp_store = MEMORY");
+            }
             this.conn.setAutoCommit(false);
             setupSchema(this.conn);
 
@@ -291,8 +298,12 @@ public class KaikkiProcessor {
             }
         }
 
-        private long getOrCreateHeadwordIdInternal(String word) throws Exception {
-            if (headwordCache.containsKey(word)) return headwordCache.get(word);
+        private long getOrCreateHeadwordIdInternal(String word) throws SQLException {
+            var cachedId = headwordCache.get(word);
+            if (cachedId != null) {
+                return cachedId;
+            }
+
             pHeadword.setString(1, word);
             int rows = pHeadword.executeUpdate();
             long id;
@@ -439,6 +450,7 @@ public class KaikkiProcessor {
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         Semaphore semaphore = new Semaphore(numThreads * 2);
         AtomicLong linesCount = new AtomicLong(0);
+        AtomicLong irrelevantLinesCount = new AtomicLong(0);
 
         try (BufferedReader br = new BufferedReader(new FileReader(dumpPath))) {
             String line;
@@ -453,6 +465,8 @@ public class KaikkiProcessor {
                                 : null;
                         if (entryLangCode != null && sessions.containsKey(entryLangCode)) {
                             sessions.get(entryLangCode).queue.put(entry);
+                        } else {
+                            irrelevantLinesCount.incrementAndGet();
                         }
                     } catch (Exception ignored) {
                     } finally {
@@ -474,11 +488,13 @@ public class KaikkiProcessor {
             executor.awaitTermination(1, TimeUnit.HOURS);
             System.out.print(String.format(
                     Locale.US,
-                    "\r[%d/%d] %s : processed %d lines... Done.",
+                    "\r[%d/%d] %s : processed %d lines (%d irrelevant, %.2f%%)... Done.",
                     dumpIndex,
                     totalDumps,
                     nativeLangCode,
-                    linesCount.get()));
+                    linesCount.get(),
+                    irrelevantLinesCount.get(),
+                    100.0 * irrelevantLinesCount.get() / linesCount.get()));
 
             System.out.println("\nSummary for dump: " + dumpPath);
             for (Map.Entry<String, DatabaseSession> entry : sessions.entrySet()) {
