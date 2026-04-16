@@ -60,7 +60,7 @@ public class KaikkiProcessor {
         DatabaseSession(String dbPath, String learningLangCode) throws Exception {
             this.dbPath = dbPath;
             this.learningLangCode = learningLangCode;
-            this.learningLangName = new Locale(learningLangCode).getDisplayLanguage(Locale.ENGLISH);
+            this.learningLangName = Locale.forLanguageTag(learningLangCode).getDisplayLanguage(Locale.ENGLISH);
             this.conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
             // Adjustments for performance
             try (Statement st = conn.createStatement()) {
@@ -110,12 +110,12 @@ public class KaikkiProcessor {
                     }
                 }
                 commitInternal();
-            } catch (IOException e) {
+            } catch (InterruptedException | SQLException e) {
                 throw new RuntimeException("Consumption failure", e);
             }
         }
 
-        private void processEntryInternal(JsonObject entry) throws Exception {
+        private void processEntryInternal(JsonObject entry) throws SQLException {
             String word = entry.get("word").getAsString();
             long headwordId = getOrCreateHeadwordIdInternal(word);
 
@@ -136,7 +136,7 @@ public class KaikkiProcessor {
             }
         }
 
-        private void processPronunciationsInternal(long headwordId, JsonArray sounds) throws Exception {
+        private void processPronunciationsInternal(long headwordId, JsonArray sounds) throws SQLException {
             Set<String> seenUrls = headwordAudioCache.computeIfAbsent(headwordId, k -> new HashSet<>());
             for (JsonElement soundElem : sounds) {
                 JsonObject sound = soundElem.getAsJsonObject();
@@ -154,7 +154,7 @@ public class KaikkiProcessor {
             }
         }
 
-        private void processIpaInternal(long headwordId, JsonArray sounds) throws Exception {
+        private void processIpaInternal(long headwordId, JsonArray sounds) throws SQLException {
             List<String> ipas = new ArrayList<>();
             for (JsonElement soundElem : sounds) {
                 JsonObject sound = soundElem.getAsJsonObject();
@@ -188,7 +188,7 @@ public class KaikkiProcessor {
         }
 
         private void processSensesInternal(long headwordId, String pos, JsonArray senses, String word)
-                throws Exception {
+                throws SQLException {
             int senseIdx = headwordSenseCounter.getOrDefault(word, 0);
             for (JsonElement senseElem : senses) {
                 JsonObject sense = senseElem.getAsJsonObject();
@@ -201,7 +201,7 @@ public class KaikkiProcessor {
             headwordSenseCounter.put(word, senseIdx);
         }
 
-        private long insertLexicalEntryInternal(long headwordId, String pos, int index) throws Exception {
+        private long insertLexicalEntryInternal(long headwordId, String pos, int index) throws SQLException {
             pEntry.setLong(1, headwordId);
             pEntry.setString(2, pos);
             pEntry.setInt(3, index);
@@ -212,7 +212,7 @@ public class KaikkiProcessor {
             }
         }
 
-        private void processGlossesInternal(long entryId, JsonObject sense) throws Exception {
+        private void processGlossesInternal(long entryId, JsonObject sense) throws SQLException {
             JsonArray glossArray =
                     sense.has("raw_glosses") ? sense.getAsJsonArray("raw_glosses") : sense.getAsJsonArray("glosses");
             if (glossArray == null) return;
@@ -225,7 +225,7 @@ public class KaikkiProcessor {
             }
         }
 
-        private void processLinksInternal(long entryId, JsonObject sense) throws Exception {
+        private void processLinksInternal(long entryId, JsonObject sense) throws SQLException {
             if (!sense.has("links")) return;
             for (JsonElement linkElem : sense.getAsJsonArray("links")) {
                 JsonArray linkArr = linkElem.getAsJsonArray();
@@ -243,7 +243,7 @@ public class KaikkiProcessor {
             }
         }
 
-        private void processExamplesInternal(long entryId, JsonObject sense) throws Exception {
+        private void processExamplesInternal(long entryId, JsonObject sense) throws SQLException {
             if (!sense.has("examples")) return;
             for (JsonElement exElem : sense.getAsJsonArray("examples")) {
                 JsonObject ex = exElem.getAsJsonObject();
@@ -272,12 +272,12 @@ public class KaikkiProcessor {
             }
         }
 
-        private void processRelationsInternal(long entryId, JsonObject sense) throws Exception {
+        private void processRelationsInternal(long entryId, JsonObject sense) throws SQLException {
             saveRelationsBatchInternal(entryId, "S", sense.getAsJsonArray("synonyms"));
             saveRelationsBatchInternal(entryId, "A", sense.getAsJsonArray("antonyms"));
         }
 
-        private void saveRelationsBatchInternal(long entryId, String type, JsonArray array) throws Exception {
+        private void saveRelationsBatchInternal(long entryId, String type, JsonArray array) throws SQLException {
             if (array == null) return;
             for (JsonElement e : array) {
                 pRelation.setLong(1, entryId);
@@ -287,7 +287,7 @@ public class KaikkiProcessor {
             }
         }
 
-        private void saveOffsetsInternal(long exId, String type, JsonArray offsets) throws Exception {
+        private void saveOffsetsInternal(long exId, String type, JsonArray offsets) throws SQLException {
             for (JsonElement e : offsets) {
                 JsonArray a = e.getAsJsonArray();
                 pOffset.setLong(1, exId);
@@ -325,7 +325,7 @@ public class KaikkiProcessor {
             return id;
         }
 
-        private void commitInternal() throws Exception {
+        private void commitInternal() throws SQLException {
             pGloss.executeBatch();
             pOffset.executeBatch();
             pPronunciation.executeBatch();
@@ -337,7 +337,7 @@ public class KaikkiProcessor {
         }
 
         @Override
-        public void close() throws Exception {
+        public void close() throws SQLException, InterruptedException {
             queue.put(POISON_PILL);
             writerThread.join();
             if (conn != null) conn.close();
