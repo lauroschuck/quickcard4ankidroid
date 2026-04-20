@@ -61,6 +61,8 @@ public class MainActivity extends AppCompatActivity {
                 navigateToSettings();
             } else if (id == R.id.nav_feedback) {
                 showFeedbackDialog();
+            } else if (id == R.id.nav_about) {
+                showAboutDialog();
             }
             drawerLayout.closeDrawer(GravityCompat.START);
             return true;
@@ -76,6 +78,10 @@ public class MainActivity extends AppCompatActivity {
         FirebaseHelper.setUserLanguages(viewModel.getLastUsedLearningLanguage(), viewModel.getLastUsedNativeLanguage());
 
         handleIntent(getIntent());
+    }
+
+    private void showAboutDialog() {
+        new AboutDialogFragment().show(getSupportFragmentManager(), AboutDialogFragment.TAG);
     }
 
     private void showFeedbackDialog() {

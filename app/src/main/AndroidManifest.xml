@@ -45,6 +45,13 @@
         <activity android:name="com.github.lauroschuck.ankiquickadd.SettingsActivity"
             android:label="Settings" />
 
+        <activity
+            android:name="com.google.android.gms.oss.licenses.OssLicensesMenuActivity"
+            android:theme="@style/LicensesTheme" />
+        <activity
+            android:name="com.google.android.gms.oss.licenses.OssLicensesActivity"
+            android:theme="@style/LicensesTheme" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

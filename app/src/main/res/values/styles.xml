@@ -10,4 +10,11 @@
         <!-- Background color resembling the Anki Note -->
         <item name="android:windowBackground">@color/anki_note</item>
     </style>
+
+    <!-- Specific theme for Open Source Licenses to ensure readability -->
+    <style name="LicensesTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">@color/anki_blue</item>
+        <item name="colorPrimaryDark">#0086d1</item>
+        <item name="android:windowBackground">@android:color/white</item>
+    </style>
 </resources>

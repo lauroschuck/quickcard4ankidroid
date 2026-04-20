@@ -3,6 +3,7 @@ plugins {
     id 'com.diffplug.spotless'
     id 'com.google.gms.google-services'
     id 'com.google.firebase.crashlytics'
+    id 'com.google.android.gms.oss-licenses-plugin'
 }
 
 android {
@@ -51,6 +52,8 @@ dependencies {
     implementation 'com.google.firebase:firebase-crashlytics'
     implementation 'com.google.firebase:firebase-firestore'
     implementation 'com.google.firebase:firebase-config'
+    
+    implementation 'com.google.android.gms:play-services-oss-licenses:17.1.0'
 
     compileOnly 'org.projectlombok:lombok:1.18.30'
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
