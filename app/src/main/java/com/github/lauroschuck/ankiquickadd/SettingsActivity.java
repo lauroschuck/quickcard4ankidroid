@@ -1,8 +1,10 @@
 package com.github.lauroschuck.ankiquickadd;
 
 import android.content.SharedPreferences;
+import android.icu.text.CompactDecimalFormat;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.text.format.Formatter;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -19,6 +21,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.github.lauroschuck.ankiquickadd.data.DatabaseRemoteStorage;
 import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.github.lauroschuck.ankiquickadd.model.Language;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -106,7 +112,7 @@ public class SettingsActivity extends AppCompatActivity {
         adapter = new DictionaryAdapter(new DictionaryAdapter.OnDictionaryActionListener() {
             @Override
             public void onSelect(Language learning, Language nativeLang) {
-                setActiveDictionary(learning, nativeLang);
+                setActiveDictionary(learning, learning, nativeLang);
             }
 
             @Override
@@ -173,14 +179,36 @@ public class SettingsActivity extends AppCompatActivity {
         DatabaseRemoteStorage.DictionaryStats stats = viewModel.getStatsFor(learning, nativeLang);
         if (stats != null) {
             dictionaryStatsText.setVisibility(View.VISIBLE);
-            dictionaryStatsText.setText(
-                    String.format(Locale.US, "%d headwords, %d example phrases", stats.headwords(), stats.examples()));
+            String sizeStr = Formatter.formatShortFileSize(this, stats.sizeBytes());
+
+            Instant lastMod = stats.lastModified();
+            String formattedDate;
+            if (lastMod != null) {
+                DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
+                        .withZone(ZoneId.systemDefault())
+                        .withLocale(Locale.US);
+                formattedDate = formatter.format(lastMod);
+            } else {
+                formattedDate = "Unknown";
+            }
+
+            CompactDecimalFormat df =
+                    CompactDecimalFormat.getInstance(Locale.US, CompactDecimalFormat.CompactStyle.SHORT);
+            dictionaryStatsText.setText(String.format(
+                    Locale.US,
+                    "Size: %s\nLast modified: %s\n%s headwords\n%s definitions\n%s example phrases\n%s pronunciations",
+                    sizeStr,
+                    formattedDate,
+                    df.format(stats.headwords()),
+                    df.format(stats.glosses()),
+                    df.format(stats.examples()),
+                    df.format(stats.pronunciations())));
         } else {
             dictionaryStatsText.setVisibility(View.GONE);
         }
     }
 
-    private void setActiveDictionary(Language learning, Language nativeLang) {
+    private void setActiveDictionary(Language learningContext, Language learning, Language nativeLang) {
         prefs.edit()
                 .putString(KEY_LEARNING_LANGUAGE, learning.getIsoCode())
                 .putString(KEY_NATIVE_LANGUAGE, nativeLang.getIsoCode())

@@ -80,25 +80,25 @@ for LANG_CODE in "${!DUMPS[@]}"; do
 
     gunzip -c "$GZ_FILE" > "$TMP_FILE"
     mv "$TMP_FILE" "$JSONL_FILE"
-
-    # Reset trap
     trap - EXIT
 done
 
 echo ""
-echo "Step 2: Finding latest dumps and running KaikkiProcessor..."
+echo "Step 2: Finding latest dumps..."
 PROCESSOR_ARGS="$LEARNING_LANGS $THREADS"
 
-# Iterate again to find the latest directory for each language
 for LANG_CODE in "${!DUMPS[@]}"; do
-    LATEST_DIR=$(ls -d "$BASE_DOWNLOAD_DIR/$LANG_CODE"/*/ 2>/dev/null | sort -r | head -n 1)
+    # The directory name is our timestamp: YYYYMMDD-HHMMSS
+    LATEST_DIR_PATH=$(ls -d "$BASE_DOWNLOAD_DIR/$LANG_CODE"/*/ 2>/dev/null | sort -r | head -n 1)
 
-    if [ -n "$LATEST_DIR" ]; then
-        DUMP_FILE=$(ls "$LATEST_DIR"*.jsonl 2>/dev/null | head -n 1)
+    if [ -n "$LATEST_DIR_PATH" ]; then
+        DUMP_FILE=$(ls "$LATEST_DIR_PATH"*.jsonl 2>/dev/null | head -n 1)
         if [ -n "$DUMP_FILE" ]; then
-            PROCESSOR_ARGS="$PROCESSOR_ARGS $LANG_CODE:$DUMP_FILE"
+            # Extract timestamp from directory path
+            TIMESTAMP=$(basename "$LATEST_DIR_PATH")
+            PROCESSOR_ARGS="$PROCESSOR_ARGS $LANG_CODE:$TIMESTAMP:$DUMP_FILE"
         else
-            echo "Warning: No .jsonl file found in $LATEST_DIR"
+            echo "Warning: No .jsonl file found in $LATEST_DIR_PATH"
         fi
     else
         echo "Error: No dump directory found for $LANG_CODE"
@@ -106,8 +106,8 @@ for LANG_CODE in "${!DUMPS[@]}"; do
 done
 
 echo ""
-echo "Step 3: Run KaikkiProcessor..."
+echo "Step 3: Running KaikkiProcessor..."
 ./gradlew :processor:run --args="$PROCESSOR_ARGS"
 
 echo ""
-echo "All dumps processed. Databases are available in processor/out/"
+echo "All dumps processed. Metadata and databases are available in processor/out/"

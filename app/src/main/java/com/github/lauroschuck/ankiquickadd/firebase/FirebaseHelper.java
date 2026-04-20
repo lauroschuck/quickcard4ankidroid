@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import lombok.NonNull;
+import timber.log.Timber;
 
 public class FirebaseHelper {
 
@@ -36,13 +37,13 @@ public class FirebaseHelper {
         remoteConfig.fetchAndActivate();
     }
 
-    public static String getDictionaryHostingBasePath() {
-        String path = remoteConfig.getString("dictionary_hosting_path");
-        if (path.isEmpty()) {
-            throw new IllegalStateException("No dictionary hosting path available");
+    public static String getDictionariesConfigJson() {
+        if (remoteConfig == null) {
+            throw new IllegalStateException("Remote Config not initialized");
         }
-        // Ensure the path ends with a slash
-        return path.endsWith("/") ? path : path + "/";
+        var key = "dictionaries_v1";
+        Timber.d("Obtaining dictionary metadata from remote config under key %s", key);
+        return remoteConfig.getString(key);
     }
 
     public static void init(Context context) {

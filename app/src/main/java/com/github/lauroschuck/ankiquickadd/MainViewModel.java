@@ -169,14 +169,18 @@ public class MainViewModel extends AndroidViewModel {
     }
 
     public void downloadDictionary(Language learning, Language nativeLang) {
-        String pair = learning.getIsoCode() + "-" + nativeLang.getIsoCode();
-        String fileName = "wiktionary_kaikki_" + pair + ".db";
-        activeDownload.postValue(new DownloadInfo(fileName, 0, 0));
+        DatabaseRemoteStorage.DictionaryStats stats = getStatsFor(learning, nativeLang);
+        if (stats == null) {
+            Timber.e("Cannot download dictionary: stats not found for %s-%s", learning, nativeLang);
+            return;
+        }
 
-        databaseRemoteStorage.downloadDictionary(learning, nativeLang, new DatabaseRemoteStorage.DownloadCallback() {
+        activeDownload.postValue(new DownloadInfo(stats.fileName(), 0, 0));
+
+        databaseRemoteStorage.downloadDictionary(stats, new DatabaseRemoteStorage.DownloadCallback() {
             @Override
             public void onProgress(long downloaded, long total) {
-                activeDownload.postValue(new DownloadInfo(fileName, downloaded, total));
+                activeDownload.postValue(new DownloadInfo(stats.fileName(), downloaded, total));
             }
 
             @Override

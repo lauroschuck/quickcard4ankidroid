@@ -1,15 +1,16 @@
 package com.github.lauroschuck.ankiquickadd.data;
 
 import android.content.Context;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.SystemClock;
 import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.github.lauroschuck.ankiquickadd.model.Language;
+import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import okhttp3.Call;
@@ -20,113 +21,96 @@ import okhttp3.Response;
 import timber.log.Timber;
 
 public class DatabaseRemoteStorage {
-    private static final String STATS_DB_NAME = "stats.db";
-
     private final Context context;
     private final OkHttpClient client;
+    private final Gson gson;
+    private final List<String> mirrors = new ArrayList<>();
 
     public DatabaseRemoteStorage(Context context) {
         this.context = context;
         this.client = new OkHttpClient();
+        this.gson = new Gson();
     }
 
     public void discoverAvailableLanguages(DiscoveryCallback callback) {
-        Request request = new Request.Builder()
-                .url(FirebaseHelper.getDictionaryHostingBasePath() + STATS_DB_NAME)
-                .build();
+        String json = FirebaseHelper.getDictionariesConfigJson();
+        if (json.isEmpty()) {
+            callback.onError("No dictionary metadata available from remote config");
+            return;
+        }
 
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                Timber.e(e, "Failed to download stats.db");
-                callback.onError(e.getMessage());
+        try {
+            Metadata root = gson.fromJson(json, Metadata.class);
+            mirrors.clear();
+            if (root.mirrors != null) {
+                mirrors.addAll(root.mirrors);
             }
 
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                if (!response.isSuccessful()) {
-                    Timber.w(
-                            "Call to %s returned %d: %s",
-                            response.request().url(),
-                            response.code(),
-                            response.body().string());
-                    callback.onError("Server returned " + response.code());
-                    return;
-                }
-
-                File tempFile = new File(context.getCacheDir(), STATS_DB_NAME);
-                try (var body = response.body();
-                        InputStream is = body.byteStream();
-                        FileOutputStream os = new FileOutputStream(tempFile)) {
-                    byte[] buffer = new byte[8192];
-                    int read;
-                    while ((read = is.read(buffer)) != -1) {
-                        os.write(buffer, 0, read);
-                    }
-                }
-
-                processStatsDb(tempFile, callback);
-            }
-        });
-    }
-
-    private void processStatsDb(File dbFile, DiscoveryCallback callback) {
-        List<DictionaryStats> stats = new ArrayList<>();
-
-        try (SQLiteDatabase db =
-                SQLiteDatabase.openDatabase(dbFile.getAbsolutePath(), null, SQLiteDatabase.OPEN_READONLY)) {
-            try (Cursor cursor =
-                    db.rawQuery("SELECT learning_lang, native_lang, headwords, examples FROM stats", null)) {
-                while (cursor.moveToNext()) {
-                    try {
-                        stats.add(new DictionaryStats(
-                                Language.ofIsoCode(cursor.getString(0)),
-                                Language.ofIsoCode(cursor.getString(1)),
-                                cursor.getInt(2),
-                                cursor.getInt(3)));
-                    } catch (Exception e) {
-                        Timber.w(
-                                "Unknown language code in stats.db: %s or %s",
-                                cursor.getString(0), cursor.getString(1));
-                    }
+            List<DictionaryStats> stats = new ArrayList<>();
+            for (DictionaryEntry entry : root.dictionaries) {
+                try {
+                    stats.add(new DictionaryStats(
+                            Language.ofIsoCode(entry.learningLang),
+                            Language.ofIsoCode(entry.nativeLang),
+                            entry.headwords,
+                            entry.examples,
+                            entry.sizeBytes,
+                            entry.glosses,
+                            entry.pronunciations,
+                            parseIsoDate(entry.lastModified),
+                            entry.file));
+                } catch (Exception e) {
+                    Timber.w(e, "Skipping invalid language pair: %s-%s", entry.learningLang, entry.nativeLang);
                 }
             }
             callback.onSuccess(stats);
         } catch (Exception e) {
-            Timber.e(e, "Error processing stats.db");
-            callback.onError(e.getMessage());
-        } finally {
-            dbFile.delete();
+            Timber.e(e, "Failed to parse dictionaries JSON from remote config");
+            callback.onError("Metadata parsing error");
         }
     }
 
-    public void downloadDictionary(Language learning, Language nativeLang, DownloadCallback callback) {
-        String fileName = String.format("wiktionary_kaikki_%s-%s.db", learning.getIsoCode(), nativeLang.getIsoCode());
-        Request request = new Request.Builder()
-                .url(FirebaseHelper.getDictionaryHostingBasePath() + fileName)
-                .build();
+    private Instant parseIsoDate(String iso) {
+        if (iso == null || iso.isEmpty()) return null;
+        try {
+            return Instant.parse(iso);
+        } catch (Exception e) {
+            Timber.w(e, "Failed to parse last_modified date: %s", iso);
+            return null;
+        }
+    }
+
+    public void downloadDictionary(DictionaryStats stats, DownloadCallback callback) {
+        if (mirrors.isEmpty()) {
+            callback.onError("No download mirrors available", null, 0);
+            return;
+        }
+
+        // Use the first mirror
+        String mirror = mirrors.get(0);
+        if (!mirror.endsWith("/")) {
+            mirror += "/";
+        }
+        String url = mirror + stats.fileName();
+
+        Request request = new Request.Builder().url(url).build();
+        Timber.d("Downloading dictionary from %s", url);
 
         long start = SystemClock.uptimeMillis();
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                callback.onError("Call failure", e, SystemClock.uptimeMillis() - start);
+                callback.onError("Download failure", e, SystemClock.uptimeMillis() - start);
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
                 if (!response.isSuccessful()) {
-                    Timber.w(
-                            "Call to %s returned %d: %s",
-                            response.request().url(),
-                            response.code(),
-                            response.body().string());
-                    callback.onError("Server returned " + response.code(), null, SystemClock.uptimeMillis() - start);
+                    callback.onError("Server error " + response.code(), null, SystemClock.uptimeMillis() - start);
                     return;
                 }
 
-                long totalBytes = response.body().contentLength();
-                File outFile = context.getDatabasePath(fileName);
+                File outFile = context.getDatabasePath(stats.fileName());
                 File tempFile = new File(outFile.getAbsolutePath() + ".tmp");
                 outFile.getParentFile().mkdirs();
 
@@ -135,29 +119,60 @@ public class DatabaseRemoteStorage {
                     byte[] buffer = new byte[8192];
                     int read;
                     long downloaded = 0;
+                    long totalBytes = response.body().contentLength();
                     while ((read = is.read(buffer)) != -1) {
                         os.write(buffer, 0, read);
                         downloaded += read;
                         callback.onProgress(downloaded, totalBytes);
                     }
-                    var elapsed = SystemClock.uptimeMillis() - start;
                     if (tempFile.renameTo(outFile)) {
-                        callback.onSuccess(outFile, elapsed);
+                        callback.onSuccess(outFile, SystemClock.uptimeMillis() - start);
                     } else {
-                        callback.onError("Failed temp file rename", null, elapsed);
+                        callback.onError("Rename failed", null, SystemClock.uptimeMillis() - start);
                     }
-                } catch (IOException e) {
-                    callback.onError("Body read error", e, SystemClock.uptimeMillis() - start);
                 } finally {
-                    if (tempFile.exists()) {
-                        tempFile.delete();
-                    }
+                    if (tempFile.exists()) tempFile.delete();
                 }
             }
         });
     }
 
-    public record DictionaryStats(Language learning, Language nativeLang, int headwords, int examples) {}
+    private static class Metadata {
+        List<String> mirrors;
+        List<DictionaryEntry> dictionaries;
+    }
+
+    private static class DictionaryEntry {
+        @SerializedName("learning_lang")
+        String learningLang;
+
+        @SerializedName("native_lang")
+        String nativeLang;
+
+        String file;
+
+        @SerializedName("last_modified")
+        String lastModified;
+
+        @SerializedName("size_bytes")
+        long sizeBytes;
+
+        int headwords;
+        int glosses;
+        int examples;
+        int pronunciations;
+    }
+
+    public record DictionaryStats(
+            Language learning,
+            Language nativeLang,
+            int headwords,
+            int examples,
+            long sizeBytes,
+            int glosses,
+            int pronunciations,
+            Instant lastModified,
+            String fileName) {}
 
     public interface DiscoveryCallback {
         void onSuccess(List<DictionaryStats> stats);

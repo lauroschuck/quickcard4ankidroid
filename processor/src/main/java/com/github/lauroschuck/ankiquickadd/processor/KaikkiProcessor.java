@@ -1,28 +1,55 @@
 package com.github.lauroschuck.ankiquickadd.processor;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
-import java.util.concurrent.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
  * Parallel version of KaikkiToSqlite with memory-safe backpressure.
- * Usage: java KaikkiProcessor <learning_langs_csv> <num_threads> <nativeLang1:dumpPath1> ...
+ * Usage: java KaikkiProcessor <learning_langs_csv> <num_threads> <nativeLang1:last_mod:dumpPath1> ...
  */
 public class KaikkiProcessor {
 
@@ -57,7 +84,7 @@ public class KaikkiProcessor {
         long pronunciationCount = 0;
         long linkCount = 0;
 
-        DatabaseSession(String dbPath, String learningLangCode) throws Exception {
+        DatabaseSession(String dbPath, String learningLangCode) throws SQLException {
             this.dbPath = dbPath;
             this.learningLangCode = learningLangCode;
             this.learningLangName = Locale.forLanguageTag(learningLangCode).getDisplayLanguage(Locale.ENGLISH);
@@ -344,10 +371,10 @@ public class KaikkiProcessor {
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws SQLException, IOException, InterruptedException {
         if (args.length < 3) {
             System.out.println(
-                    "Usage: java KaikkiProcessor <learning_langs_csv> <num_threads> <nativeLang1:dumpPath1> ...");
+                    "Usage: java KaikkiProcessor <learning_langs_csv> <num_threads> <nativeLang1:last_mod:dumpPath1> ...");
             return;
         }
 
@@ -355,75 +382,108 @@ public class KaikkiProcessor {
         String[] learningLangs = args[0].split(",");
         int numThreads = Integer.parseInt(args[1]);
         String timestamp = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date());
-        String outDir = "processor/out/" + timestamp;
+        
+        // Find the absolute root of the project to ensure output goes to project-root/processor/out/
+        String currentDir = System.getProperty("user.dir");
+        String outBase = currentDir.endsWith("processor") ? "out" : "processor/out";
+        String outDir = outBase + File.separator + timestamp;
         new File(outDir).mkdirs();
 
         KaikkiProcessor converter = new KaikkiProcessor();
         Map<String, Map<String, Boolean>> summaryTable = new TreeMap<>();
+        List<Map<String, Object>> dictionaryMetadataList = new ArrayList<>();
 
-        String statsDbPath = outDir + File.separator + "stats.db";
-        try (Connection statsConn = DriverManager.getConnection("jdbc:sqlite:" + statsDbPath)) {
-            statsConn.setAutoCommit(false);
-            setupStatsSchema(statsConn);
-            statsConn.commit();
+        int totalDumps = args.length - 2;
+        for (int i = 2; i < args.length; i++) {
+            String[] parts = args[i].split(":", 3);
+            if (parts.length < 3) {
+                System.err.println("Invalid argument format: " + args[i]);
+                continue;
+            }
 
-            PreparedStatement pStats = statsConn.prepareStatement(
-                    "INSERT INTO stats (learning_lang, native_lang, learning_lang_name, headwords, glosses, examples) VALUES (?, ?, ?, ?, ?, ?)");
+            String nativeLangCode = parts[0].toLowerCase().trim();
+            String lastModRaw = parts[1];
+            String dumpPath = parts[2];
 
-            int totalDumps = args.length - 2;
-            for (int i = 2; i < args.length; i++) {
-                String[] pair = args[i].split(":", 2);
-                if (pair.length < 2) continue;
+            String lastModIso = formatTimestampToIso(lastModRaw);
 
-                String nativeLangCode = pair[0].toLowerCase().trim();
-                String dumpPath = pair[1];
+            Locale nativeLocale = new Locale(nativeLangCode);
+            String nativeLangName = nativeLocale.getDisplayLanguage(Locale.ENGLISH);
+            System.out.println(String.format(
+                    Locale.US,
+                    "\nStarting pass of dump: %s (Native: %s, %s, Mod: %s) with %d threads",
+                    dumpPath,
+                    nativeLangCode,
+                    nativeLangName,
+                    lastModIso,
+                    numThreads));
 
-                Locale nativeLocale = new Locale(nativeLangCode);
-                String nativeLangName = nativeLocale.getDisplayLanguage(Locale.ENGLISH);
-                System.out.println(String.format(
-                        Locale.US,
-                        "\nStarting pass of dump: %s (Native: %s, %s) with %d threads",
-                        dumpPath,
-                        nativeLangCode,
-                        nativeLangName,
-                        numThreads));
-
-                Instant dumpStart = Instant.now();
-                Map<String, DatabaseSession> sessions = converter.processDumpParallel(
+            Instant dumpStart = Instant.now();
+            Map<String, DatabaseSession> sessions = converter.processDumpParallel(
                         dumpPath, nativeLangCode, learningLangs, outDir, i - 1, totalDumps, numThreads);
 
-                for (Map.Entry<String, DatabaseSession> entry : sessions.entrySet()) {
-                    String learningCode = entry.getKey();
-                    DatabaseSession session = entry.getValue();
-                    boolean kept = session.headwordCount >= MIN_HEADWORDS;
-                    summaryTable
-                            .computeIfAbsent(learningCode, k -> new TreeMap<>())
-                            .put(nativeLangCode, kept);
+            for (Map.Entry<String, DatabaseSession> entry : sessions.entrySet()) {
+                String learningCode = entry.getKey();
+                DatabaseSession session = entry.getValue();
+                boolean kept = session.headwordCount >= MIN_HEADWORDS;
+                summaryTable
+                        .computeIfAbsent(learningCode, k -> new TreeMap<>())
+                        .put(nativeLangCode, kept);
 
-                    if (kept) {
-                        pStats.setString(1, learningCode);
-                        pStats.setString(2, nativeLangCode);
-                        pStats.setString(3, session.learningLangName);
-                        pStats.setLong(4, session.headwordCount);
-                        pStats.setLong(5, session.glossCount);
-                        pStats.setLong(6, session.exampleCount);
-                        pStats.addBatch();
-                    }
+                if (kept) {
+                    File dbFile = new File(session.dbPath);
+                    Map<String, Object> meta = new LinkedHashMap<>();
+                    meta.put("learning_lang", learningCode);
+                    meta.put("native_lang", nativeLangCode);
+                    meta.put("file", dbFile.getName());
+                    meta.put("last_modified", lastModIso);
+                    meta.put("size_bytes", dbFile.length());
+                    meta.put("headwords", session.headwordCount);
+                    meta.put("glosses", session.glossCount);
+                    meta.put("examples", session.exampleCount);
+                    meta.put("pronunciations", session.pronunciationCount);
+                    dictionaryMetadataList.add(meta);
                 }
-                pStats.executeBatch();
-                statsConn.commit();
-
-                Duration elapsed = Duration.between(dumpStart, Instant.now()).truncatedTo(ChronoUnit.SECONDS);
-                System.out.println(String.format(Locale.US, "Dump %s processed in %s", dumpPath, elapsed));
             }
-            printSummaryTable(summaryTable);
-            System.out.println("Stats saved to: " + statsDbPath);
-        } catch (Exception e) {
-            e.printStackTrace();
+
+            Duration elapsed = Duration.between(dumpStart, Instant.now()).truncatedTo(ChronoUnit.SECONDS);
+            System.out.println(String.format(Locale.US, "Dump %s processed in %s", dumpPath, elapsed));
         }
+
+        writeMetadataJson(outDir, dictionaryMetadataList);
+        printSummaryTable(summaryTable);
 
         Duration totalElapsed = Duration.between(totalStart, Instant.now()).truncatedTo(ChronoUnit.SECONDS);
         System.out.println(String.format(Locale.US, "Entire process finished in %s", totalElapsed));
+    }
+
+    private static String formatTimestampToIso(String raw) {
+        try {
+            // Input format: yyyyMMdd-HHmmss
+            DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneOffset.UTC);
+            Instant instant = Instant.from(inputFormatter.parse(raw));
+            return DateTimeFormatter.ISO_INSTANT.format(instant);
+        } catch (Exception e) {
+            return raw;
+        }
+    }
+
+    private static void writeMetadataJson(String outDir, List<Map<String, Object>> dictionaries) {
+        Map<String, Object> root = new LinkedHashMap<>();
+        var now = Instant.now();
+        root.put("timestamp", DateTimeFormatter.ISO_INSTANT.format(now.truncatedTo(ChronoUnit.SECONDS)));
+        root.put("mirrors", Collections.emptyList());
+        root.put("folder", String.valueOf(now.getEpochSecond()));
+        root.put("dictionaries", dictionaries);
+
+        File metaFile = new File(outDir, "metadata.json");
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        try (FileWriter writer = new FileWriter(metaFile)) {
+            gson.toJson(root, writer);
+            System.out.println("\nMetadata saved to: " + metaFile.getAbsolutePath());
+        } catch (IOException e) {
+            System.err.println("Failed to write metadata.json: " + e.getMessage());
+        }
     }
 
     private Map<String, DatabaseSession> processDumpParallel(
@@ -433,8 +493,7 @@ public class KaikkiProcessor {
             String outDir,
             int dumpIndex,
             int totalDumps,
-            int numThreads)
-            throws Exception {
+            int numThreads) throws SQLException, IOException, InterruptedException {
         Map<String, DatabaseSession> sessions = new HashMap<>();
         for (String learning : learningLangs) {
             String learningLower = learning.toLowerCase().trim();
@@ -542,7 +601,7 @@ public class KaikkiProcessor {
         return sb.toString();
     }
 
-    private static void setupSchema(Connection conn) throws Exception {
+    private static void setupSchema(Connection conn) throws SQLException {
         Statement st = conn.createStatement();
         st.execute("DROP TABLE IF EXISTS relations");
         st.execute("DROP TABLE IF EXISTS bold_offsets");
@@ -576,7 +635,7 @@ public class KaikkiProcessor {
         st.execute("CREATE INDEX idx_sl_le ON sense_links(lexical_entry_id)");
     }
 
-    private static void setupStatsSchema(Connection conn) throws Exception {
+    private static void setupStatsSchema(Connection conn) throws SQLException {
         Statement st = conn.createStatement();
         st.execute("DROP TABLE IF EXISTS stats");
         st.execute(
