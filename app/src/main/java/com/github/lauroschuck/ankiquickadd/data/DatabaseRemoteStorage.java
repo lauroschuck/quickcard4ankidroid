@@ -59,22 +59,31 @@ public class DatabaseRemoteStorage {
                             entry.pronunciations,
                             parseIsoDate(entry.lastModified),
                             entry.file));
-                } catch (Exception e) {
-                    Timber.w(e, "Skipping invalid language pair: %s-%s", entry.learningLang, entry.nativeLang);
+                } catch (RuntimeException e) {
+                    Timber.w(
+                            e,
+                            "Skipping dictionary entry: %s-%s",
+                            entry.learningLang,
+                            entry.nativeLang);
                 }
             }
             callback.onSuccess(stats);
+        } catch (com.google.gson.JsonSyntaxException e) {
+            Timber.e(e, "Failed to parse dictionaries JSON: invalid syntax");
+            callback.onError("Metadata parsing error: invalid format");
         } catch (Exception e) {
-            Timber.e(e, "Failed to parse dictionaries JSON from remote config");
+            Timber.e(e, "Unexpected error parsing dictionaries metadata");
             callback.onError("Metadata parsing error");
         }
     }
 
     private Instant parseIsoDate(String iso) {
-        if (iso == null || iso.isEmpty()) return null;
+        if (iso == null || iso.isEmpty()) {
+            return null;
+        }
         try {
             return Instant.parse(iso);
-        } catch (Exception e) {
+        } catch (java.time.format.DateTimeParseException e) {
             Timber.w(e, "Failed to parse last_modified date: %s", iso);
             return null;
         }
@@ -131,7 +140,9 @@ public class DatabaseRemoteStorage {
                         callback.onError("Rename failed", null, SystemClock.uptimeMillis() - start);
                     }
                 } finally {
-                    if (tempFile.exists()) tempFile.delete();
+                    if (tempFile.exists()) {
+                        tempFile.delete();
+                    }
                 }
             }
         });

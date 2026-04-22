@@ -168,7 +168,7 @@ public class AnkiIntegration {
                 // Revoke permission after synchronous call is finished
                 context.revokeUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
             }
-        } catch (Exception e) {
+        } catch (IOException | RuntimeException e) {
             Timber.e(e, "Audio processing failed for URL %s", audioUrl);
         }
         return null;

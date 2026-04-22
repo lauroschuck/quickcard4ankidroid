@@ -113,7 +113,7 @@ public class MainViewModel extends AndroidViewModel {
                         if (f.exists()) {
                             list.add(new DownloadedDictionary(l, n, f));
                         }
-                    } catch (Exception e) {
+                } catch (RuntimeException e) {
                         Timber.w(e, "Failed to parse metadata entry: %s", entry);
                     }
                 }
@@ -151,7 +151,9 @@ public class MainViewModel extends AndroidViewModel {
 
     public List<Language> getAvailableNativeLanguages(Language learning) {
         List<DatabaseRemoteStorage.DictionaryStats> stats = allAvailableStats.getValue();
-        if (stats == null || learning == null) return new ArrayList<>();
+        if (stats == null || learning == null) {
+            return new ArrayList<>();
+        }
         return stats.stream()
                 .filter(s -> s.learning().equals(learning))
                 .map(DatabaseRemoteStorage.DictionaryStats::nativeLang)
@@ -161,7 +163,9 @@ public class MainViewModel extends AndroidViewModel {
 
     public DatabaseRemoteStorage.DictionaryStats getStatsFor(Language learning, Language nativeLang) {
         List<DatabaseRemoteStorage.DictionaryStats> stats = allAvailableStats.getValue();
-        if (stats == null || learning == null || nativeLang == null) return null;
+        if (stats == null || learning == null || nativeLang == null) {
+            return null;
+        }
         return stats.stream()
                 .filter(s -> s.learning().equals(learning) && s.nativeLang().equals(nativeLang))
                 .findFirst()

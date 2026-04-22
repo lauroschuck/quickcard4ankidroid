@@ -302,7 +302,9 @@ public class MainActivity extends AppCompatActivity {
 
     private Language getLanguageFromPref(SharedPreferences prefs, String key) {
         var iso = prefs.getString(key, null);
-        if (iso == null || iso.isEmpty()) return null;
+        if (iso == null || iso.isEmpty()) {
+            return null;
+        }
         return Language.ofIsoCode(iso);
     }
 

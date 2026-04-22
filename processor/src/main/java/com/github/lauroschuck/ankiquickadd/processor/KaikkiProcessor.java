@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -129,7 +130,9 @@ public class KaikkiProcessor {
             try {
                 while (true) {
                     JsonObject entry = queue.take();
-                    if (entry == POISON_PILL) break;
+                    if (entry == POISON_PILL) {
+                        break;
+                    }
                     processEntryInternal(entry);
                     if (++batchSize >= 1000) {
                         commitInternal();
@@ -242,7 +245,9 @@ public class KaikkiProcessor {
         private void processGlossesInternal(long entryId, JsonObject sense) throws SQLException {
             JsonArray glossArray =
                     sense.has("raw_glosses") ? sense.getAsJsonArray("raw_glosses") : sense.getAsJsonArray("glosses");
-            if (glossArray == null) return;
+            if (glossArray == null) {
+                return;
+            }
             for (int i = 0; i < glossArray.size(); i++) {
                 pGloss.setLong(1, entryId);
                 pGloss.setString(2, glossArray.get(i).getAsString());
@@ -253,7 +258,9 @@ public class KaikkiProcessor {
         }
 
         private void processLinksInternal(long entryId, JsonObject sense) throws SQLException {
-            if (!sense.has("links")) return;
+            if (!sense.has("links")) {
+                return;
+            }
             for (JsonElement linkElem : sense.getAsJsonArray("links")) {
                 JsonArray linkArr = linkElem.getAsJsonArray();
                 if (linkArr.size() == 2) {
@@ -271,11 +278,15 @@ public class KaikkiProcessor {
         }
 
         private void processExamplesInternal(long entryId, JsonObject sense) throws SQLException {
-            if (!sense.has("examples")) return;
+            if (!sense.has("examples")) {
+                return;
+            }
             for (JsonElement exElem : sense.getAsJsonArray("examples")) {
                 JsonObject ex = exElem.getAsJsonObject();
                 if (ex.has("type")
-                        && "quotation".equalsIgnoreCase(ex.get("type").getAsString())) continue;
+                        && "quotation".equalsIgnoreCase(ex.get("type").getAsString())) {
+                    continue;
+                }
                 String src = ex.has("text") ? ex.get("text").getAsString() : "";
                 String trg = ex.has("english")
                         ? ex.get("english").getAsString()
@@ -305,7 +316,9 @@ public class KaikkiProcessor {
         }
 
         private void saveRelationsBatchInternal(long entryId, String type, JsonArray array) throws SQLException {
-            if (array == null) return;
+            if (array == null) {
+                return;
+            }
             for (JsonElement e : array) {
                 pRelation.setLong(1, entryId);
                 pRelation.setString(2, type);
@@ -342,8 +355,11 @@ public class KaikkiProcessor {
                     try (PreparedStatement ps = conn.prepareStatement("SELECT id FROM headwords WHERE headword = ?")) {
                         ps.setString(1, word);
                         try (ResultSet r = ps.executeQuery()) {
-                            if (r.next()) id = r.getLong(1);
-                            else id = -1;
+                            if (r.next()) {
+                                id = r.getLong(1);
+                            } else {
+                                id = -1;
+                            }
                         }
                     }
                 }
@@ -367,7 +383,9 @@ public class KaikkiProcessor {
         public void close() throws SQLException, InterruptedException {
             queue.put(POISON_PILL);
             writerThread.join();
-            if (conn != null) conn.close();
+            if (conn != null) {
+                conn.close();
+            }
         }
     }
 
@@ -463,7 +481,7 @@ public class KaikkiProcessor {
             DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneOffset.UTC);
             Instant instant = Instant.from(inputFormatter.parse(raw));
             return DateTimeFormatter.ISO_INSTANT.format(instant);
-        } catch (Exception e) {
+        } catch (DateTimeParseException e) {
             return raw;
         }
     }
@@ -527,7 +545,8 @@ public class KaikkiProcessor {
                         } else {
                             irrelevantLinesCount.incrementAndGet();
                         }
-                    } catch (Exception ignored) {
+                    } catch (Exception e) {
+                        System.err.println("Error parsing line: " + e.getMessage());
                     } finally {
                         semaphore.release();
                     }

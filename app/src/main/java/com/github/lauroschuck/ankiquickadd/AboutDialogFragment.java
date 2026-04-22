@@ -15,6 +15,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatDialogFragment;
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity;
+import timber.log.Timber;
 
 public class AboutDialogFragment extends AppCompatDialogFragment {
 
@@ -35,6 +36,7 @@ public class AboutDialogFragment extends AppCompatDialogFragment {
                     .getPackageInfo(requireContext().getPackageName(), 0);
             versionText.setText(getString(R.string.about_version, pInfo.versionName));
         } catch (PackageManager.NameNotFoundException e) {
+            Timber.w(e, "Failed to get package info for version display");
             versionText.setVisibility(View.GONE);
         }
 
