@@ -18,6 +18,12 @@ public class EnqueueActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         CharSequence text = getIntent().getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT);
+        if (text == null
+                && Intent.ACTION_SEND.equals(getIntent().getAction())
+                && "text/plain".equals(getIntent().getType())) {
+            text = getIntent().getCharSequenceExtra(Intent.EXTRA_TEXT);
+        }
+
         if (text != null) {
             String word = text.toString().trim().toLowerCase();
             if (!word.isEmpty()) {

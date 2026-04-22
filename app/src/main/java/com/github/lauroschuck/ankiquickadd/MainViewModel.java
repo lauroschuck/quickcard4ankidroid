@@ -113,7 +113,7 @@ public class MainViewModel extends AndroidViewModel {
                         if (f.exists()) {
                             list.add(new DownloadedDictionary(l, n, f));
                         }
-                } catch (RuntimeException e) {
+                    } catch (RuntimeException e) {
                         Timber.w(e, "Failed to parse metadata entry: %s", entry);
                     }
                 }

@@ -60,11 +60,7 @@ public class DatabaseRemoteStorage {
                             parseIsoDate(entry.lastModified),
                             entry.file));
                 } catch (RuntimeException e) {
-                    Timber.w(
-                            e,
-                            "Skipping dictionary entry: %s-%s",
-                            entry.learningLang,
-                            entry.nativeLang);
+                    Timber.w(e, "Skipping dictionary entry: %s-%s", entry.learningLang, entry.nativeLang);
                 }
             }
             callback.onSuccess(stats);

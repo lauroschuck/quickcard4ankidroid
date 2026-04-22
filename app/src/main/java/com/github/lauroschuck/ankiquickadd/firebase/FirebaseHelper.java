@@ -244,6 +244,7 @@ public class FirebaseHelper {
     public enum SearchMethod {
         MANUAL,
         CONTEXT_MENU,
+        SHARE,
         ENQUEUED;
 
         public String value() {

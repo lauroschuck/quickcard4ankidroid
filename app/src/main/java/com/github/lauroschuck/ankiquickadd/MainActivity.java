@@ -80,6 +80,13 @@ public class MainActivity extends AppCompatActivity {
         handleIntent(getIntent());
     }
 
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIntent(intent);
+    }
+
     private void showAboutDialog() {
         new AboutDialogFragment().show(getSupportFragmentManager(), AboutDialogFragment.TAG);
     }
@@ -178,7 +185,15 @@ public class MainActivity extends AppCompatActivity {
         sourceSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                viewModel.getDictionaryRepository().selectSource(position);
+                var repo = viewModel.getDictionaryRepository();
+                var selectedSource = repo.getSources().get(position);
+                var currentSource = repo.getCurrentSource();
+
+                if (currentSource != null && currentSource.getName().equals(selectedSource.getName())) {
+                    return;
+                }
+
+                repo.selectSource(position);
                 Timber.d(
                         "Source selected: %s",
                         viewModel.getDictionaryRepository().getCurrentSource().getName());
@@ -195,20 +210,42 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleIntent(Intent intent) {
-        var selectedWord = intent.getStringExtra(Intent.EXTRA_PROCESS_TEXT);
-        if (selectedWord != null) {
-            Timber.d("Received word via PROCESS_TEXT: %s", selectedWord);
-            viewModel.getNavigationManager().setRootIsSearch(false);
-            String word = selectedWord.toLowerCase(Locale.ROOT);
-            fetchDefinition(word);
-            FirebaseHelper.logSearch(word, FirebaseHelper.SearchMethod.CONTEXT_MENU);
-        } else {
-            viewModel.getNavigationManager().setRootIsSearch(true);
-            showSearchFragment(null);
+        String action = intent.getAction();
+        String type = intent.getType();
+
+        CharSequence text = null;
+        FirebaseHelper.SearchMethod searchMethod = null;
+
+        if (Intent.ACTION_SEND.equals(action) && "text/plain".equals(type)) {
+            text = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
+            searchMethod = FirebaseHelper.SearchMethod.SHARE;
+        } else if (Intent.ACTION_PROCESS_TEXT.equals(action)) {
+            text = intent.getCharSequenceExtra(Intent.EXTRA_PROCESS_TEXT);
+            searchMethod = FirebaseHelper.SearchMethod.CONTEXT_MENU;
         }
+
+        if (text != null) {
+            String word = text.toString().trim().toLowerCase(Locale.ROOT);
+            if (!word.isEmpty()) {
+                Timber.d("Received word via %s: %s", action, word);
+                viewModel.getNavigationManager().setRootIsSearch(false);
+                fetchDefinition(word);
+                FirebaseHelper.logSearch(word, searchMethod);
+                return;
+            }
+        }
+
+        // If it's the main entry and we already have a fragment, don't reset to search screen.
+        if (Intent.ACTION_MAIN.equals(action) && getCurrentFragment() != null) {
+            return;
+        }
+
+        // Show search fragment by default.
+        showSearchFragment(null);
     }
 
     public void showSearchFragment(String warning) {
+        viewModel.getNavigationManager().setRootIsSearch(true);
         viewModel.getNavigationManager().setCurrentWord("");
         viewModel.getNavigationManager().getWordHistory().clear();
         viewModel.getNavigationManager().setSearchWarning(warning);
@@ -220,7 +257,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void closeDefinition() {
-        viewModel.getNavigationManager().setRootIsSearch(true);
         showSearchFragment(null);
     }
 

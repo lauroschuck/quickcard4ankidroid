@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">Anki Quick Add</string>
+    <string name="intent_add">Add</string>
+    <string name="intent_enqueue">Enqueue</string>
 
     <!-- Navigation Drawer -->
     <string name="menu_content_description">Menu</string>
