@@ -65,7 +65,7 @@ public class MainViewModel extends AndroidViewModel {
         }
 
         public String getMbText() {
-            return String.format(Locale.US, "%.1f / %.1f MB", downloaded / 1024.0 / 1024.0, total / 1024.0 / 1024.0);
+            return String.format(Locale.US, "%.1f / %.1f MB", downloaded / 1000.0 / 1000.0, total / 1000.0 / 1000.0);
         }
     }
 
