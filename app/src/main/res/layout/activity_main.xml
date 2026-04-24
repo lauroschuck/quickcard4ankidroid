@@ -11,55 +11,64 @@
         android:orientation="vertical"
         android:background="@android:color/white">
 
-        <!-- Compact Header -->
+        <!-- Top Bar Container (Blue for OS toolbar area) -->
         <LinearLayout
-            android:id="@+id/headerContainer"
+            android:id="@+id/topBarContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:padding="8dp"
-            android:background="@color/anki_note">
+            android:orientation="vertical"
+            android:background="@color/anki_blue">
 
-            <ImageButton
-                android:id="@+id/menuButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_menu_hamburger"
-                app:tint="@android:color/white"
-                android:contentDescription="@string/menu_content_description" />
-
-            <TextView
-                android:id="@+id/appTitle"
-                android:layout_width="wrap_content"
+            <!-- Compact Header (Gray app menu) -->
+            <LinearLayout
+                android:id="@+id/headerContainer"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/app_name"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="@android:color/white"
-                android:layout_marginEnd="12dp"/>
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="8dp"
+                android:background="@color/anki_note">
 
-            <!-- Spinner wrapped in a container to provide the dark background -->
-            <FrameLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@color/anki_dark_text"
-                android:paddingStart="4dp"
-                android:paddingEnd="4dp">
+                <ImageButton
+                    android:id="@+id/menuButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_menu_hamburger"
+                    app:tint="@android:color/white"
+                    android:contentDescription="@string/menu_content_description" />
 
-                <Spinner
-                    android:id="@+id/sourceSpinner"
-                    android:layout_width="match_parent"
+                <TextView
+                    android:id="@+id/appTitle"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:backgroundTint="@android:color/white" />
-            </FrameLayout>
+                    android:text="@string/app_name"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white"
+                    android:layout_marginEnd="12dp"/>
 
-            <!-- Spacer to maintain layout if needed -->
-            <View
-                android:layout_width="48dp"
-                android:layout_height="48dp" />
+                <!-- Spinner wrapped in a container to provide the dark background -->
+                <FrameLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@color/anki_dark_text"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp">
+
+                    <Spinner
+                        android:id="@+id/sourceSpinner"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:backgroundTint="@android:color/white" />
+                </FrameLayout>
+
+                <!-- Spacer to maintain layout if needed -->
+                <View
+                    android:layout_width="48dp"
+                    android:layout_height="48dp" />
+            </LinearLayout>
         </LinearLayout>
 
         <androidx.fragment.app.FragmentContainerView
