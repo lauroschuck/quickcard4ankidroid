@@ -199,7 +199,7 @@ public class MainActivity extends AppCompatActivity {
                         viewModel.getDictionaryRepository().getCurrentSource().getName());
                 viewModel.getNavigationManager().setSearchWarning(null);
                 var word = viewModel.getNavigationManager().getCurrentWord().getValue();
-                if (word != null && !word.isEmpty() && getCurrentFragment() instanceof DefinitionFragment) {
+                if (word != null && !word.isEmpty()) {
                     fetchDefinition(word, true);
                 }
             }
@@ -246,7 +246,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void showSearchFragment(String warning) {
         viewModel.getNavigationManager().setRootIsSearch(true);
-        viewModel.getNavigationManager().setCurrentWord("");
+        if (warning == null) {
+            viewModel.getNavigationManager().setCurrentWord("");
+        }
         viewModel.getNavigationManager().getWordHistory().clear();
         viewModel.getNavigationManager().setSearchWarning(warning);
 

@@ -56,6 +56,12 @@ public class SearchFragment extends Fragment {
         Button openSettingsButton = view.findViewById(R.id.openSettingsButton);
 
         searchButton.setOnClickListener(v -> performSearch());
+
+        String currentWord = viewModel.getNavigationManager().getCurrentWord().getValue();
+        if (currentWord != null && !currentWord.isEmpty()) {
+            searchEditText.setText(currentWord);
+        }
+
         searchEditText.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_SEARCH) {
                 performSearch();
