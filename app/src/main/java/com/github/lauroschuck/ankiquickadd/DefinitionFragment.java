@@ -142,6 +142,12 @@ public class DefinitionFragment extends Fragment {
         configureWebView();
         setupTabs();
 
+        viewModel.getNavigationManager().getCurrentHtml().observe(getViewLifecycleOwner(), html -> {
+            if (html != null && !html.isEmpty()) {
+                loadHtml(html);
+            }
+        });
+
         closeButton.setOnClickListener(v -> ((MainActivity) requireActivity()).closeDefinition());
         createCardsFab.setOnClickListener(v -> triggerJsExtraction());
 
@@ -198,6 +204,7 @@ public class DefinitionFragment extends Fragment {
     }
 
     private void configureWebView() {
+        webView.setBackgroundColor(android.graphics.Color.WHITE);
         webView.getSettings().setJavaScriptEnabled(true);
         webView.addJavascriptInterface(new WebAppInterface(), "Android");
         webView.setWebChromeClient(new WebChromeClient() {

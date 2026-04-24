@@ -8,6 +8,7 @@ import lombok.Setter;
 
 public class NavigationManager {
     private final MutableLiveData<String> currentWord = new MutableLiveData<>("");
+    private final MutableLiveData<String> currentHtml = new MutableLiveData<>("");
     private final MutableLiveData<String> searchWarning = new MutableLiveData<>(null);
     private final Stack<String> wordHistory = new Stack<>();
 
@@ -21,6 +22,14 @@ public class NavigationManager {
 
     public void setCurrentWord(String word) {
         currentWord.setValue(word);
+    }
+
+    public LiveData<String> getCurrentHtml() {
+        return currentHtml;
+    }
+
+    public void setCurrentHtml(String html) {
+        currentHtml.postValue(html);
     }
 
     public LiveData<String> getSearchWarning() {

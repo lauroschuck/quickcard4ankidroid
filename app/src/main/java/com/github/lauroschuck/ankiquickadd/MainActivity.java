@@ -199,7 +199,7 @@ public class MainActivity extends AppCompatActivity {
                         viewModel.getDictionaryRepository().getCurrentSource().getName());
                 viewModel.getNavigationManager().setSearchWarning(null);
                 var word = viewModel.getNavigationManager().getCurrentWord().getValue();
-                if (word != null && !word.isEmpty()) {
+                if (word != null && !word.isEmpty() && getCurrentFragment() instanceof DefinitionFragment) {
                     fetchDefinition(word, true);
                 }
             }
@@ -253,7 +253,7 @@ public class MainActivity extends AppCompatActivity {
         getSupportFragmentManager()
                 .beginTransaction()
                 .replace(R.id.fragmentContainer, new SearchFragment())
-                .commit();
+                .commitNow();
     }
 
     public void closeDefinition() {
@@ -274,6 +274,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         navManager.setCurrentWord(word);
+        navManager.setCurrentHtml("");
         navManager.setSearchWarning(null);
 
         // Ensure we are in DefinitionFragment
@@ -300,12 +301,7 @@ public class MainActivity extends AppCompatActivity {
                 public void onSuccess(String html, String headword) {
                     Timber.d("Successfully fetched definition for: %s", word);
                     FirebaseHelper.logFetchDefinition(word, true);
-                    runOnUiThread(() -> {
-                        Fragment current = getCurrentFragment();
-                        if (current instanceof DefinitionFragment) {
-                            ((DefinitionFragment) current).loadHtml(html);
-                        }
-                    });
+                    navManager.setCurrentHtml(html);
                 }
 
                 @Override
