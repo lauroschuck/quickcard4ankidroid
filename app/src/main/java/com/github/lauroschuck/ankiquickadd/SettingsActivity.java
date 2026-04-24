@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.text.format.Formatter;
 import android.view.View;
+import android.webkit.WebView;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -24,6 +25,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.github.lauroschuck.ankiquickadd.data.DatabaseRemoteStorage;
 import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.github.lauroschuck.ankiquickadd.model.Language;
+import java.io.File;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -32,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import timber.log.Timber;
 
 public class SettingsActivity extends AppCompatActivity {
 
@@ -47,6 +50,7 @@ public class SettingsActivity extends AppCompatActivity {
     private Spinner newNativeLanguageSpinner;
     private TextView dictionaryStatsText;
     private Button downloadButton;
+    private Button clearCacheButton;
 
     private SharedPreferences prefs;
     private MainViewModel viewModel;
@@ -93,10 +97,13 @@ public class SettingsActivity extends AppCompatActivity {
         newNativeLanguageSpinner = findViewById(R.id.newNativeLanguageSpinner);
         dictionaryStatsText = findViewById(R.id.dictionaryStatsText);
         downloadButton = findViewById(R.id.downloadButton);
+        clearCacheButton = findViewById(R.id.clearCacheButton);
 
         findViewById(R.id.addDictionaryButton).setOnClickListener(v -> {
             downloadSection.setVisibility(downloadSection.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
         });
+
+        clearCacheButton.setOnClickListener(v -> confirmClearCache());
 
         downloadButton.setOnClickListener(v -> {
             Language learning = (Language) newLearningLanguageSpinner.getSelectedItem();
@@ -256,6 +263,65 @@ public class SettingsActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private void confirmClearCache() {
+        new AlertDialog.Builder(this)
+                .setTitle("Clear App Cache")
+                .setMessage(
+                        "This will clear the WebView cache and temporary download files. Your downloaded dictionaries will NOT be deleted. Proceed?")
+                .setPositiveButton("Clear", (dialog, which) -> clearAppCache())
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void clearAppCache() {
+        try {
+            // 1. Clear WebView cache
+            new WebView(this).clearCache(true);
+
+            // 2. Clear internal cache directory
+            File cacheDir = getCacheDir();
+            if (cacheDir != null && cacheDir.isDirectory()) {
+                deleteDir(cacheDir);
+            }
+
+            // 3. Clear temporary files in databases directory
+            File dbDir = getDatabasePath("unused").getParentFile();
+            if (dbDir != null && dbDir.exists()) {
+                File[] files = dbDir.listFiles((dir, name) -> name.endsWith(".tmp"));
+                if (files != null) {
+                    for (File file : files) {
+                        file.delete();
+                    }
+                }
+            }
+
+            Toast.makeText(this, "Cache cleared successfully", Toast.LENGTH_SHORT)
+                    .show();
+        } catch (Exception e) {
+            Timber.e(e, "Failed to clear app cache");
+            Toast.makeText(this, "Failed to clear cache", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private boolean deleteDir(File dir) {
+        if (dir != null && dir.isDirectory()) {
+            String[] children = dir.list();
+            if (children != null) {
+                for (String child : children) {
+                    boolean success = deleteDir(new File(dir, child));
+                    if (!success) {
+                        return false;
+                    }
+                }
+            }
+            return dir.delete();
+        } else if (dir != null && dir.isFile()) {
+            return dir.delete();
+        } else {
+            return false;
+        }
     }
 
     @Override
