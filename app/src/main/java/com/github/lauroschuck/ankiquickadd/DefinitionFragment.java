@@ -288,6 +288,10 @@ public class DefinitionFragment extends Fragment {
     }
 
     private void triggerJsExtraction() {
+        if (!ankiIntegration.hasPermission()) {
+            ankiIntegration.requestPermissionWithRationale(requireActivity(), AnkiIntegration.AD_PERM_REQUEST);
+            return;
+        }
         var currentSource = viewModel.getDictionaryRepository().getCurrentSource();
         Timber.d("Triggering JS extraction for source: %s", currentSource.getName());
         webView.evaluateJavascript(currentSource.getExtractionJs(), null);

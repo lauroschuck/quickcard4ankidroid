@@ -2,6 +2,7 @@ package com.github.lauroschuck.ankiquickadd;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.view.View;
@@ -18,6 +19,7 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;
 import com.github.lauroschuck.ankiquickadd.anki.notes.CardAssets;
 import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
@@ -25,6 +27,7 @@ import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
 import com.google.android.material.navigation.NavigationView;
+import com.google.android.material.snackbar.Snackbar;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -360,6 +363,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void showSnackbar(String message, boolean isError) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        var rootView = findViewById(android.R.id.content);
+        if (rootView != null) {
+            var snackbar = Snackbar.make(rootView, message, Snackbar.LENGTH_LONG);
+            var bgColor = isError ? R.color.error_red : R.color.anki_blue;
+            snackbar.setBackgroundTint(androidx.core.content.ContextCompat.getColor(this, bgColor));
+            snackbar.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.white));
+            snackbar.show();
+        } else {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == AnkiIntegration.AD_PERM_REQUEST) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                showSnackbar(getString(R.string.permission_granted_message), false);
+            } else {
+                showSnackbar(getString(R.string.permission_denied_message), true);
+            }
+        }
     }
 }

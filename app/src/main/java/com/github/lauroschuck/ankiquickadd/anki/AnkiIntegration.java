@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.preference.PreferenceManager;
 import android.webkit.MimeTypeMap;
 import android.widget.Toast;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import com.github.lauroschuck.ankiquickadd.R;
@@ -37,7 +38,7 @@ import timber.log.Timber;
  */
 public class AnkiIntegration {
 
-    private static final int AD_PERM_REQUEST = 0;
+    public static final int AD_PERM_REQUEST = 0;
 
     private static final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -47,10 +48,47 @@ public class AnkiIntegration {
     public AnkiIntegration(@NonNull Activity context) {
         this.context = context;
         this.ankiDroidHelper = new AnkiDroidHelper(context);
-        if (ankiDroidHelper.shouldRequestPermission()) {
-            Timber.i("Requesting AnkiDroid permission");
-            ankiDroidHelper.requestPermission(context, AD_PERM_REQUEST);
+    }
+
+    public boolean hasPermission() {
+        return !ankiDroidHelper.shouldRequestPermission();
+    }
+
+    public void requestPermissionWithRationale(Activity activity, int requestCode) {
+        if (ankiDroidHelper.shouldShowRationale(activity)) {
+            new AlertDialog.Builder(activity)
+                    .setTitle(R.string.permission_rationale_title)
+                    .setMessage(R.string.permission_rationale_message)
+                    .setPositiveButton(R.string.permission_grant_button, (dialog, which) -> {
+                        ankiDroidHelper.requestPermission(activity, requestCode);
+                    })
+                    .setNegativeButton(R.string.permission_cancel_button, null)
+                    .show();
+        } else {
+            // Check if we have already asked and been denied (permanent denial)
+            // Note: This is a bit tricky to detect perfectly without tracking,
+            // but usually if rationale is false and we don't have permission,
+            // it means "Don't ask again" is active.
+            if (!hasPermission()) {
+                new AlertDialog.Builder(activity)
+                        .setTitle(R.string.permission_rationale_title)
+                        .setMessage(R.string.permission_denied_permanent_message)
+                        .setPositiveButton(R.string.permission_settings_button, (dialog, which) -> {
+                            openAppSettings(activity);
+                        })
+                        .setNegativeButton(R.string.permission_cancel_button, null)
+                        .show();
+            } else {
+                ankiDroidHelper.requestPermission(activity, requestCode);
+            }
         }
+    }
+
+    public void openAppSettings(Activity activity) {
+        var intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+        var uri = Uri.fromParts("package", activity.getPackageName(), null);
+        intent.setData(uri);
+        activity.startActivity(intent);
     }
 
     public <N extends AbstractAnkiNote<I>, I extends AbstractAnkiNote.Input> void addCards(

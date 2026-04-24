@@ -58,6 +58,13 @@ public class AnkiDroidHelper {
     }
 
     /**
+     * Whether or not we should show a rationale for the permission request
+     */
+    public boolean shouldShowRationale(Activity activity) {
+        return ActivityCompat.shouldShowRequestPermissionRationale(activity, READ_WRITE_PERMISSION);
+    }
+
+    /**
      * Request permission from the user to access the AnkiDroid API (for SDK 23+)
      * @param callbackActivity An Activity which implements onRequestPermissionsResult()
      * @param callbackCode The callback code to be used in onRequestPermissionsResult()
