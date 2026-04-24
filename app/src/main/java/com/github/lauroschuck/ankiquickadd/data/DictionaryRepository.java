@@ -55,4 +55,10 @@ public class DictionaryRepository {
             currentSource.setValue(null);
         }
     }
+
+    public void close() {
+        for (DictionarySource source : sources) {
+            source.close();
+        }
+    }
 }

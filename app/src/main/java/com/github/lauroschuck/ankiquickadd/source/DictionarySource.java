@@ -35,6 +35,13 @@ public interface DictionarySource {
     }
 
     /**
+     * Closes any open resources (like database connections).
+     */
+    default void close() {
+        // default no-op
+    }
+
+    /**
      * Fetches definition or translation for a word.
      * @param word the word to look up
      * @param learningLanguage the learning language selected in settings

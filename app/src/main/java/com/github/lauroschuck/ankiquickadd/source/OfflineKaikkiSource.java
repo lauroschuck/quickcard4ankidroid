@@ -35,6 +35,8 @@ public class OfflineKaikkiSource implements DictionarySource {
     private Template template;
     private Language lastLearningLanguage;
     private Language lastNativeLanguage;
+    private SQLiteDatabase currentDb;
+    private String currentDbName;
 
     public OfflineKaikkiSource() {
         try {
@@ -221,6 +223,45 @@ public class OfflineKaikkiSource implements DictionarySource {
     }
 
     @Override
+    public void close() {
+        if (currentDb != null) {
+            Timber.d("Closing offline database: %s", currentDbName);
+            currentDb.close();
+            currentDb = null;
+            currentDbName = null;
+        }
+    }
+
+    private SQLiteDatabase getDatabase(Language learningLanguage, Language nativeLanguage) {
+        var dbName = String.format(
+                "wiktionary_kaikki_%s-%s.db",
+                learningLanguage.getIsoCode().toLowerCase(),
+                nativeLanguage.getIsoCode().toLowerCase());
+
+        if (currentDb != null && dbName.equals(currentDbName)) {
+            return currentDb;
+        }
+
+        close();
+
+        copyDatabaseIfNeeded(dbName);
+        var dbFile = context.getDatabasePath(dbName);
+        if (!dbFile.exists()) {
+            return null;
+        }
+
+        try {
+            currentDb = SQLiteDatabase.openDatabase(dbFile.getPath(), null, SQLiteDatabase.OPEN_READONLY);
+            currentDbName = dbName;
+            Timber.d("Opened offline database: %s", dbName);
+            return currentDb;
+        } catch (Exception e) {
+            Timber.e(e, "Failed to open database: %s", dbName);
+            return null;
+        }
+    }
+
+    @Override
     public void fetch(
             @NonNull String word,
             @NonNull Language learningLanguage,
@@ -229,22 +270,13 @@ public class OfflineKaikkiSource implements DictionarySource {
         this.lastLearningLanguage = learningLanguage;
         this.lastNativeLanguage = nativeLanguage;
 
-        var dbName = String.format(
-                "wiktionary_kaikki_%s-%s.db",
-                learningLanguage.getIsoCode().toLowerCase(),
-                nativeLanguage.getIsoCode().toLowerCase());
-
-        Timber.d("Fetching word: %s from DB: %s", word, dbName);
-        copyDatabaseIfNeeded(dbName);
-
-        var dbFile = context.getDatabasePath(dbName);
-        if (!dbFile.exists()) {
-            Timber.e("Database file not found: %s", dbFile.getAbsolutePath());
-            listener.onError("Offline database not found: " + dbName);
+        var db = getDatabase(learningLanguage, nativeLanguage);
+        if (db == null) {
+            listener.onError("Offline database not found or could not be opened.");
             return;
         }
 
-        try (SQLiteDatabase db = SQLiteDatabase.openDatabase(dbFile.getPath(), null, SQLiteDatabase.OPEN_READONLY)) {
+        try {
             var data = new HashMap<String, Object>();
             data.put("word", word);
             data.put("maxSenses", DictionaryNote.DEFINITION_FIELDS);
@@ -498,48 +530,40 @@ public class OfflineKaikkiSource implements DictionarySource {
                         String.format("No language pair: %s-%s", lastLearningLanguage, lastNativeLanguage));
             }
 
-            var dbName = String.format(
-                    "wiktionary_kaikki_%s-%s.db",
-                    lastLearningLanguage.getIsoCode().toLowerCase(),
-                    lastNativeLanguage.getIsoCode().toLowerCase());
-
-            var dbFile = context.getDatabasePath(dbName);
-            if (!dbFile.exists()) {
-                throw new IllegalArgumentException("Offline database not found: " + dbName);
+            var db = getDatabase(lastLearningLanguage, lastNativeLanguage);
+            if (db == null) {
+                throw new IllegalArgumentException("Offline database not found or could not be opened.");
             }
 
-            try (var db = SQLiteDatabase.openDatabase(dbFile.getPath(), null, SQLiteDatabase.OPEN_READONLY)) {
-                if (mode.equals("examples")) {
-                    var exampleIds = obj.getAsJsonArray("examples");
-                    var cards = new ArrayList<TextNote.Input>();
-                    String headword = null;
-                    for (var idElem : exampleIds) {
-                        var card = fetchCardForExample(db, idElem.getAsLong());
-                        headword = card.headword();
-                        cards.add(card);
-                    }
-                    var sourceUrl = assembleWiktionaryLink(
-                            headword, lastNativeLanguage, getLanguageName(db, lastLearningLanguage));
-                    return new SelectedTextCards(
-                            lastLearningLanguage, lastNativeLanguage, selectedAudio, sourceUrl, cards);
-                } else {
-                    var entries = obj.getAsJsonArray("entries");
-                    var entryMap = new LinkedHashMap<Long, Long>();
-                    for (var entryElem : entries) {
-                        var entry = entryElem.getAsJsonObject();
-                        var entryId = entry.get("entryId").getAsLong();
-                        var exIdElem = entry.get("exampleId");
-                        var exampleId = (exIdElem == null || exIdElem.isJsonNull()) ? null : exIdElem.getAsLong();
-                        entryMap.put(entryId, exampleId);
-                    }
-                    var cards = fetchCardForDefinition(db, entryMap);
-                    var firstCard = cards.stream().findFirst().orElseThrow();
-                    var headword = firstCard.headword();
-                    var sourceUrl = assembleWiktionaryLink(
-                            headword, lastNativeLanguage, getLanguageName(db, lastLearningLanguage));
-                    return new SelectedDictionaryCards(
-                            lastLearningLanguage, lastNativeLanguage, selectedAudio, sourceUrl, cards);
+            if (mode.equals("examples")) {
+                var exampleIds = obj.getAsJsonArray("examples");
+                var cards = new ArrayList<TextNote.Input>();
+                String headword = null;
+                for (var idElem : exampleIds) {
+                    var card = fetchCardForExample(db, idElem.getAsLong());
+                    headword = card.headword();
+                    cards.add(card);
                 }
+                var sourceUrl =
+                        assembleWiktionaryLink(headword, lastNativeLanguage, getLanguageName(db, lastLearningLanguage));
+                return new SelectedTextCards(lastLearningLanguage, lastNativeLanguage, selectedAudio, sourceUrl, cards);
+            } else {
+                var entries = obj.getAsJsonArray("entries");
+                var entryMap = new LinkedHashMap<Long, Long>();
+                for (var entryElem : entries) {
+                    var entry = entryElem.getAsJsonObject();
+                    var entryId = entry.get("entryId").getAsLong();
+                    var exIdElem = entry.get("exampleId");
+                    var exampleId = (exIdElem == null || exIdElem.isJsonNull()) ? null : exIdElem.getAsLong();
+                    entryMap.put(entryId, exampleId);
+                }
+                var cards = fetchCardForDefinition(db, entryMap);
+                var firstCard = cards.stream().findFirst().orElseThrow();
+                var headword = firstCard.headword();
+                var sourceUrl =
+                        assembleWiktionaryLink(headword, lastNativeLanguage, getLanguageName(db, lastLearningLanguage));
+                return new SelectedDictionaryCards(
+                        lastLearningLanguage, lastNativeLanguage, selectedAudio, sourceUrl, cards);
             }
         } catch (RuntimeException e) {
             Timber.e(e, "Error generating cards from selection");

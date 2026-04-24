@@ -277,4 +277,10 @@ public class MainViewModel extends AndroidViewModel {
     public void markWordAsProcessed(String word) {
         wordRepository.markWordAsProcessed(word);
     }
+
+    @Override
+    protected void onCleared() {
+        super.onCleared();
+        dictionaryRepository.close();
+    }
 }
