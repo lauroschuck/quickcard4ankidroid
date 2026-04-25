@@ -1,6 +1,7 @@
 package com.github.lauroschuck.ankiquickadd;
 
 import android.app.Application;
+import android.content.Context;
 import android.preference.PreferenceManager;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
@@ -59,7 +60,7 @@ public class MainViewModel extends AndroidViewModel {
     @Getter
     private Language lastUsedNativeLanguage;
 
-    public record DownloadInfo(String fileName, long downloaded, long total) {
+    public record DownloadInfo(Language learning, Language nativeLang, String fileName, long downloaded, long total) {
         public int getProgress() {
             return total > 0 ? (int) (downloaded * 100 / total) : 0;
         }
@@ -172,6 +173,22 @@ public class MainViewModel extends AndroidViewModel {
                 .orElse(null);
     }
 
+    public static String getDbNameFromMetadata(Context context, Language learning, Language nativeLang) {
+        var prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        Set<String> metadataEntries = new HashSet<>(prefs.getStringSet(KEY_METADATA, new HashSet<>()));
+        String pairPrefix = learning.getIsoCode() + ":" + nativeLang.getIsoCode() + ":";
+
+        for (String entry : metadataEntries) {
+            if (entry.startsWith(pairPrefix)) {
+                String[] parts = entry.split(":");
+                if (parts.length == 3) {
+                    return parts[2];
+                }
+            }
+        }
+        return null;
+    }
+
     public void downloadDictionary(Language learning, Language nativeLang) {
         DatabaseRemoteStorage.DictionaryStats stats = getStatsFor(learning, nativeLang);
         if (stats == null) {
@@ -179,12 +196,12 @@ public class MainViewModel extends AndroidViewModel {
             return;
         }
 
-        activeDownload.postValue(new DownloadInfo(stats.fileName(), 0, 0));
+        activeDownload.postValue(new DownloadInfo(learning, nativeLang, stats.fileName(), 0, 0));
 
         databaseRemoteStorage.downloadDictionary(stats, new DatabaseRemoteStorage.DownloadCallback() {
             @Override
             public void onProgress(long downloaded, long total) {
-                activeDownload.postValue(new DownloadInfo(stats.fileName(), downloaded, total));
+                activeDownload.postValue(new DownloadInfo(learning, nativeLang, stats.fileName(), downloaded, total));
             }
 
             @Override

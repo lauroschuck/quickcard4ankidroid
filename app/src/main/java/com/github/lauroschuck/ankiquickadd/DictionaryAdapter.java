@@ -13,7 +13,6 @@ import com.github.lauroschuck.ankiquickadd.model.Language;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import timber.log.Timber;
 
 public class DictionaryAdapter extends RecyclerView.Adapter<DictionaryAdapter.ViewHolder> {
 
@@ -82,24 +81,12 @@ public class DictionaryAdapter extends RecyclerView.Adapter<DictionaryAdapter.Vi
     }
 
     private void bindDownloading(ViewHolder holder, MainViewModel.DownloadInfo info) {
-        String parts = info.fileName().replace("wiktionary_kaikki_", "").replace(".db", "");
-        String[] langs = parts.split("-");
+        Language learning = info.learning();
+        Language nativeLang = info.nativeLang();
+        holder.nameText.setText(
+                String.format(Locale.US, "Downloading %s-%s", learning.getDisplayName(), nativeLang.getDisplayName()));
 
-        if (langs.length == 2) {
-            try {
-                Language learning = Language.ofIsoCode(langs[0]);
-                Language nativeLang = Language.ofIsoCode(langs[1]);
-                holder.nameText.setText(String.format(
-                        Locale.US, "Downloading %s-%s", learning.getDisplayName(), nativeLang.getDisplayName()));
-            } catch (RuntimeException e) {
-                Timber.w(e, "Error parsing dictionary name");
-                holder.nameText.setText("Downloading...");
-            }
-        } else {
-            Timber.w("Bad dictionary name: %s", info.fileName());
-            holder.nameText.setText("Downloading...");
-        }
-
+        holder.progressBar.setProgress(info.getProgress());
         holder.radioButton.setVisibility(View.INVISIBLE);
         holder.deleteButton.setVisibility(View.GONE);
         holder.progressContainer.setVisibility(View.VISIBLE);

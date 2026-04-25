@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.text.TextUtils;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Template;
+import com.github.lauroschuck.ankiquickadd.MainViewModel;
 import com.github.lauroschuck.ankiquickadd.anki.notes.AbstractAnkiNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
@@ -233,10 +234,13 @@ public class OfflineKaikkiSource implements DictionarySource {
     }
 
     private SQLiteDatabase getDatabase(Language learningLanguage, Language nativeLanguage) {
-        var dbName = String.format(
-                "wiktionary_kaikki_%s-%s.db",
-                learningLanguage.getIsoCode().toLowerCase(),
-                nativeLanguage.getIsoCode().toLowerCase());
+        var dbName = MainViewModel.getDbNameFromMetadata(context, learningLanguage, nativeLanguage);
+        if (dbName == null) {
+            Timber.e(
+                    "No metadata found for dictionary: %s-%s",
+                    learningLanguage.getIsoCode(), nativeLanguage.getIsoCode());
+            return null;
+        }
 
         if (currentDb != null && dbName.equals(currentDbName)) {
             return currentDb;
@@ -247,6 +251,7 @@ public class OfflineKaikkiSource implements DictionarySource {
         copyDatabaseIfNeeded(dbName);
         var dbFile = context.getDatabasePath(dbName);
         if (!dbFile.exists()) {
+            Timber.e("Database file not found: %s", dbFile.getAbsolutePath());
             return null;
         }
 
