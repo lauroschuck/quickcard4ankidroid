@@ -231,30 +231,34 @@ public class SettingsActivity extends AppCompatActivity {
             dictionaryStatsText.setVisibility(View.VISIBLE);
             String sizeStr = Formatter.formatShortFileSize(this, stats.sizeBytes());
 
-            Instant lastMod = stats.lastModified();
-            String formattedDate;
-            if (lastMod != null) {
-                DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
-                        .withZone(ZoneId.systemDefault())
-                        .withLocale(Locale.US);
-                formattedDate = formatter.format(lastMod);
-            } else {
-                formattedDate = "Unknown";
-            }
-
             CompactDecimalFormat df =
                     CompactDecimalFormat.getInstance(Locale.US, CompactDecimalFormat.CompactStyle.SHORT);
             dictionaryStatsText.setText(String.format(
                     Locale.US,
                     "Size: %s\nLast modified: %s\n%s headwords\n%s definitions\n%s example phrases\n%s pronunciations",
                     sizeStr,
-                    formattedDate,
+                    formatInstant(stats.lastModified()),
                     df.format(stats.headwords()),
                     df.format(stats.glosses()),
                     df.format(stats.examples()),
                     df.format(stats.pronunciations())));
         } else {
             dictionaryStatsText.setVisibility(View.GONE);
+        }
+    }
+
+    private static String formatInstant(Instant lastMod) {
+        return formatInstant(lastMod, "Unknown");
+    }
+
+    private static String formatInstant(Instant lastMod, String fallback) {
+        if (lastMod != null) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
+                    .withZone(ZoneId.systemDefault())
+                    .withLocale(Locale.US);
+            return formatter.format(lastMod);
+        } else {
+            return fallback;
         }
     }
 
@@ -296,17 +300,20 @@ public class SettingsActivity extends AppCompatActivity {
 
         DatabaseRemoteStorage.DictionaryStats local = dict.localStats();
 
+        long sizeDiff = remote.sizeBytes() - local.sizeBytes();
         String message = String.format(
                 Locale.US,
-                "A newer version of the %s-%s dictionary is available.\n\n"
+                "A newer version of the %s-%s dictionary is available, data from %s.\n\n"
                         + "Comparison:\n"
                         + "- Headwords: %d → %d (%+d)\n"
                         + "- Definitions: %d → %d (%+d)\n"
                         + "- Examples: %d → %d (%+d)\n"
-                        + "- Size: %s → %s\n\n"
+                        + "- Pronunciations: %d → %d (%+d)\n"
+                        + "- Size: %s → %s (%s)\n\n"
                         + "Download and update now?",
                 dict.learning().getDisplayName(),
                 dict.nativeLang().getDisplayName(),
+                formatInstant(local.lastModified()),
                 local.headwords(),
                 remote.headwords(),
                 (remote.headwords() - local.headwords()),
@@ -316,8 +323,13 @@ public class SettingsActivity extends AppCompatActivity {
                 local.examples(),
                 remote.examples(),
                 (remote.examples() - local.examples()),
+                local.pronunciations(),
+                remote.pronunciations(),
+                (remote.pronunciations() - local.pronunciations()),
                 Formatter.formatShortFileSize(this, local.sizeBytes()),
-                Formatter.formatShortFileSize(this, remote.sizeBytes()));
+                Formatter.formatShortFileSize(this, remote.sizeBytes()),
+                (Math.signum(sizeDiff) >= 0 ? "+" : "-")
+                        + Formatter.formatShortFileSize(this, Math.abs(remote.sizeBytes() - local.sizeBytes())));
 
         new AlertDialog.Builder(this)
                 .setTitle("Update Dictionary")
