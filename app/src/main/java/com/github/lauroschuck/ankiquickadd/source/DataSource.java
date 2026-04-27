@@ -13,9 +13,9 @@ import java.util.stream.Collectors;
 import lombok.NonNull;
 
 /**
- * Interface for dictionary sources.
+ * Interface for data sources.
  */
-public interface DictionarySource {
+public interface DataSource {
     /**
      * Interface for listener to receive results.
      */

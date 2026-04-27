@@ -3,26 +3,26 @@ package com.github.lauroschuck.ankiquickadd.data;
 import android.content.Context;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
+import com.github.lauroschuck.ankiquickadd.source.DataSource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ServiceLoader;
 import timber.log.Timber;
 
-public class DictionaryRepository {
-    private final List<DictionarySource> sources = new ArrayList<>();
-    private final MutableLiveData<DictionarySource> currentSource = new MutableLiveData<>();
+public class DataSourceRepository {
+    private final List<DataSource> sources = new ArrayList<>();
+    private final MutableLiveData<DataSource> currentSource = new MutableLiveData<>();
     private final Context context;
 
-    public DictionaryRepository(Context context) {
+    public DataSourceRepository(Context context) {
         this.context = context;
         reloadSources();
     }
 
     public void reloadSources() {
         sources.clear();
-        ServiceLoader<DictionarySource> loader = ServiceLoader.load(DictionarySource.class);
-        for (DictionarySource source : loader) {
+        ServiceLoader<DataSource> loader = ServiceLoader.load(DataSource.class);
+        for (DataSource source : loader) {
             source.setContext(context);
             sources.add(source);
         }
@@ -36,15 +36,15 @@ public class DictionaryRepository {
         }
     }
 
-    public List<DictionarySource> getSources() {
+    public List<DataSource> getSources() {
         return sources;
     }
 
-    public LiveData<DictionarySource> getObservableCurrentSource() {
+    public LiveData<DataSource> getObservableCurrentSource() {
         return currentSource;
     }
 
-    public DictionarySource getCurrentSource() {
+    public DataSource getCurrentSource() {
         return currentSource.getValue();
     }
 
@@ -57,7 +57,7 @@ public class DictionaryRepository {
     }
 
     public void close() {
-        for (DictionarySource source : sources) {
+        for (DataSource source : sources) {
             source.close();
         }
     }

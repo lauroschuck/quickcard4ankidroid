@@ -8,7 +8,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import com.github.lauroschuck.ankiquickadd.data.DatabaseRemoteStorage;
-import com.github.lauroschuck.ankiquickadd.data.DictionaryRepository;
+import com.github.lauroschuck.ankiquickadd.data.DataSourceRepository;
 import com.github.lauroschuck.ankiquickadd.data.NavigationManager;
 import com.github.lauroschuck.ankiquickadd.data.WordRepository;
 import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
@@ -28,7 +28,7 @@ public class MainViewModel extends AndroidViewModel {
     private static final String KEY_METADATA = "downloaded_dictionary_metadata";
 
     @Getter
-    private final DictionaryRepository dictionaryRepository;
+    private final DataSourceRepository dataSourceRepository;
 
     @Getter
     private final WordRepository wordRepository;
@@ -48,11 +48,15 @@ public class MainViewModel extends AndroidViewModel {
     private final MutableLiveData<String> downloadError = new MutableLiveData<>(null);
 
     public record DownloadedDictionary(
-            Language learning,
-            Language nativeLang,
-            DatabaseRemoteStorage.DictionaryStats localStats,
-            boolean updateAvailable,
-            boolean isLegacy) {
+            DatabaseRemoteStorage.DictionaryStats localStats, boolean updateAvailable, boolean isLegacy) {
+
+        public Language learning() {
+            return localStats.learning();
+        }
+
+        public Language nativeLang() {
+            return localStats.nativeLang();
+        }
 
         public File file(Context context) {
             return context.getDatabasePath(localStats.fileName());
@@ -84,7 +88,7 @@ public class MainViewModel extends AndroidViewModel {
 
     public MainViewModel(@NonNull Application application) {
         super(application);
-        this.dictionaryRepository = new DictionaryRepository(application);
+        this.dataSourceRepository = new DataSourceRepository(application);
         this.wordRepository = new WordRepository(application);
         this.navigationManager = new NavigationManager();
         this.databaseRemoteStorage = new DatabaseRemoteStorage(application);
@@ -148,8 +152,7 @@ public class MainViewModel extends AndroidViewModel {
                         }
                     }
 
-                    list.add(new DownloadedDictionary(
-                            localStats.learning(), localStats.nativeLang(), localStats, updateAvailable, isLegacy));
+                    list.add(new DownloadedDictionary(localStats, updateAvailable, isLegacy));
                 }
             }
         }
@@ -189,11 +192,11 @@ public class MainViewModel extends AndroidViewModel {
                 }
 
                 // 2. Register new stats in metadata
-                registerInMetadata(dict.learning(), dict.nativeLang(), stats);
+                registerInMetadata(stats);
 
                 // 3. Refresh and reload
                 refreshDownloadedDictionaries();
-                dictionaryRepository.reloadSources();
+                dataSourceRepository.reloadSources();
             }
 
             @Override
@@ -288,9 +291,9 @@ public class MainViewModel extends AndroidViewModel {
             public void onSuccess(File file, long elapsedMs) {
                 activeDownload.postValue(null);
                 FirebaseHelper.logDownloadDictionary(learning, nativeLang, elapsedMs);
-                registerInMetadata(learning, nativeLang, stats);
+                registerInMetadata(stats);
                 refreshDownloadedDictionaries();
-                dictionaryRepository.reloadSources();
+                dataSourceRepository.reloadSources();
             }
 
             @Override
@@ -303,14 +306,13 @@ public class MainViewModel extends AndroidViewModel {
         });
     }
 
-    private void registerInMetadata(Language l, Language n, DatabaseRemoteStorage.DictionaryStats stats) {
+    private void registerInMetadata(DatabaseRemoteStorage.DictionaryStats stats) {
         var prefs = PreferenceManager.getDefaultSharedPreferences(getApplication());
         Set<String> metadata = new HashSet<>(prefs.getStringSet(KEY_METADATA, new HashSet<>()));
         metadata.removeIf(s -> {
             DatabaseRemoteStorage.DictionaryStats existing = DatabaseRemoteStorage.DictionaryStats.deserialize(s);
-            return existing != null
-                    && existing.learning().equals(l)
-                    && existing.nativeLang().equals(n);
+            return existing.learning().equals(stats.learning())
+                    && existing.nativeLang().equals(stats.nativeLang());
         });
         metadata.add(stats.serialize());
         prefs.edit().putStringSet(KEY_METADATA, metadata).apply();
@@ -321,7 +323,7 @@ public class MainViewModel extends AndroidViewModel {
             unregisterFromMetadata(dict.learning(), dict.nativeLang());
             clearPrefsIfMatches(dict.learning(), dict.nativeLang());
             refreshDownloadedDictionaries();
-            dictionaryRepository.reloadSources();
+            dataSourceRepository.reloadSources();
         }
     }
 
@@ -392,6 +394,6 @@ public class MainViewModel extends AndroidViewModel {
     @Override
     protected void onCleared() {
         super.onCleared();
-        dictionaryRepository.close();
+        dataSourceRepository.close();
     }
 }

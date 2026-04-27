@@ -25,7 +25,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import timber.log.Timber;
 
-public class ReversoSource implements DictionarySource {
+public class ReversoSource implements DataSource {
     private final OkHttpClient client = new OkHttpClient();
     private Language lastLearningLanguage;
     private Language lastNativeLanguage;

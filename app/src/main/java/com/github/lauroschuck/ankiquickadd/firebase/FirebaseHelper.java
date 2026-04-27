@@ -5,7 +5,7 @@ import android.os.Bundle;
 import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
-import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
+import com.github.lauroschuck.ankiquickadd.source.DataSource;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.analytics.FirebaseAnalytics;
@@ -110,7 +110,7 @@ public class FirebaseHelper {
     }
 
     public static void logExportDictionaryCards(
-            @NonNull String headword, @NonNull DictionarySource.SelectedDictionaryCards dictCards) {
+            @NonNull String headword, @NonNull DataSource.SelectedDictionaryCards dictCards) {
         var inputs = dictCards.inputs();
 
         // 1. Count of lexical categories (one Input record per category)
@@ -144,7 +144,7 @@ public class FirebaseHelper {
     }
 
     public static void logExportTextCards(
-            @NonNull String headword, @NonNull DictionarySource.SelectedTextCards textCards) {
+            @NonNull String headword, @NonNull DataSource.SelectedTextCards textCards) {
         var inputs = textCards.inputs();
 
         // 1. Count of example pairs

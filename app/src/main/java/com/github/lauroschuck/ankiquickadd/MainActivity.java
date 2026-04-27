@@ -25,7 +25,7 @@ import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.github.lauroschuck.ankiquickadd.model.Language;
-import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
+import com.github.lauroschuck.ankiquickadd.source.DataSource;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 import java.util.List;
@@ -196,14 +196,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupSourceSpinner() {
-        var availableSources = viewModel.getDictionaryRepository().getSources();
+        var availableSources = viewModel.getDataSourceRepository().getSources();
 
         if (availableSources.size() <= 1) {
             sourceSpinner.setVisibility(View.GONE);
         } else {
             sourceSpinner.setVisibility(View.VISIBLE);
             List<String> sourceNames =
-                    availableSources.stream().map(DictionarySource::getName).collect(Collectors.toList());
+                    availableSources.stream().map(DataSource::getName).collect(Collectors.toList());
             var adapter = new ArrayAdapter<>(this, R.layout.spinner_item, sourceNames);
             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             sourceSpinner.setAdapter(adapter);
@@ -212,7 +212,7 @@ public class MainActivity extends AppCompatActivity {
         sourceSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                var repo = viewModel.getDictionaryRepository();
+                var repo = viewModel.getDataSourceRepository();
                 var selectedSource = repo.getSources().get(position);
                 var currentSource = repo.getCurrentSource();
 
@@ -223,7 +223,7 @@ public class MainActivity extends AppCompatActivity {
                 repo.selectSource(position);
                 Timber.d(
                         "Source selected: %s",
-                        viewModel.getDictionaryRepository().getCurrentSource().getName());
+                        viewModel.getDataSourceRepository().getCurrentSource().getName());
                 viewModel.getNavigationManager().setSearchWarning(null);
                 var word = viewModel.getNavigationManager().getCurrentWord().getValue();
                 if (word != null && !word.isEmpty()) {
@@ -323,9 +323,9 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        var currentSource = viewModel.getDictionaryRepository().getCurrentSource();
+        var currentSource = viewModel.getDataSourceRepository().getCurrentSource();
         if (currentSource != null) {
-            currentSource.fetch(word, learningLanguage, nativeLanguage, new DictionarySource.OnResultListener() {
+            currentSource.fetch(word, learningLanguage, nativeLanguage, new DataSource.OnResultListener() {
                 @Override
                 public void onSuccess(String html, String headword) {
                     Timber.d("Successfully fetched definition for: %s", word);

@@ -24,7 +24,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import timber.log.Timber;
 
-public class WordReferenceSource implements DictionarySource {
+public class WordReferenceSource implements DataSource {
     private final OkHttpClient client = new OkHttpClient();
     private Language lastLearningLanguage;
     private Language lastNativeLanguage;

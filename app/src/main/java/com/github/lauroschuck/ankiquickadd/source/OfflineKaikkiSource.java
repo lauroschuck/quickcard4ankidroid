@@ -31,7 +31,7 @@ import java.util.stream.Stream;
 import lombok.NonNull;
 import timber.log.Timber;
 
-public class OfflineKaikkiSource implements DictionarySource {
+public class OfflineKaikkiSource implements DataSource {
     private Context context;
     private Template template;
     private Language lastLearningLanguage;

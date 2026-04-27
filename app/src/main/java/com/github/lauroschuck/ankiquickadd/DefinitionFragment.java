@@ -22,7 +22,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiDroidHelper;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;
 import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
-import com.github.lauroschuck.ankiquickadd.source.DictionarySource;
+import com.github.lauroschuck.ankiquickadd.source.DataSource;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import java.io.IOException;
@@ -45,7 +45,7 @@ public class DefinitionFragment extends Fragment {
         public void processSelectedCards(@NonNull String json) {
             requireActivity().runOnUiThread(() -> {
                 Timber.d("Selected cards JSON received from WebView");
-                var currentSource = viewModel.getDictionaryRepository().getCurrentSource();
+                var currentSource = viewModel.getDataSourceRepository().getCurrentSource();
                 if (currentSource == null) {
                     Timber.e("No current source selected");
                     return;
@@ -62,7 +62,7 @@ public class DefinitionFragment extends Fragment {
                         headword = selectedCards.inputs().get(0).headword();
                     }
 
-                    if (selectedCards instanceof DictionarySource.SelectedDictionaryCards dictCards) {
+                    if (selectedCards instanceof DataSource.SelectedDictionaryCards dictCards) {
                         noteType = FirebaseHelper.NoteType.DICTIONARY;
                         ankiIntegration.addCards(
                                 dictCards.learningLanguage(),
@@ -73,7 +73,7 @@ public class DefinitionFragment extends Fragment {
                                 dictCards.inputs(),
                                 activity::markWordAsProcessed);
                         FirebaseHelper.logExportDictionaryCards(headword, dictCards);
-                    } else if (selectedCards instanceof DictionarySource.SelectedTextCards textCards) {
+                    } else if (selectedCards instanceof DataSource.SelectedTextCards textCards) {
                         noteType = FirebaseHelper.NoteType.TEXT;
                         ankiIntegration.addCards(
                                 textCards.learningLanguage(),
@@ -231,7 +231,7 @@ public class DefinitionFragment extends Fragment {
                     playAudio(audioUrl);
                     return true;
                 } else if (url.startsWith("app://source/")) {
-                    viewModel.getDictionaryRepository().getCurrentSource().handleSourceAction(url, webView);
+                    viewModel.getDataSourceRepository().getCurrentSource().handleSourceAction(url, webView);
                     return true;
                 } else if (url.startsWith("http://") || url.startsWith("https://")) {
                     var intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
@@ -292,7 +292,7 @@ public class DefinitionFragment extends Fragment {
             ankiIntegration.requestPermissionWithRationale(requireActivity(), AnkiIntegration.AD_PERM_REQUEST);
             return;
         }
-        var currentSource = viewModel.getDictionaryRepository().getCurrentSource();
+        var currentSource = viewModel.getDataSourceRepository().getCurrentSource();
         Timber.d("Triggering JS extraction for source: %s", currentSource.getName());
         webView.evaluateJavascript(currentSource.getExtractionJs(), null);
     }
