@@ -7,14 +7,13 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-
-import com.github.lauroschuck.ankiquickadd.ui.settings.SettingsActivity;
-import com.github.lauroschuck.ankiquickadd.data.DatabaseRemoteStorage;
 import com.github.lauroschuck.ankiquickadd.data.DataSourceRepository;
+import com.github.lauroschuck.ankiquickadd.data.DatabaseRemoteStorage;
 import com.github.lauroschuck.ankiquickadd.data.NavigationManager;
 import com.github.lauroschuck.ankiquickadd.data.WordRepository;
 import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.github.lauroschuck.ankiquickadd.model.Language;
+import com.github.lauroschuck.ankiquickadd.ui.settings.SettingsActivity;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;

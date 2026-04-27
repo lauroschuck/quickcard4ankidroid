@@ -143,8 +143,7 @@ public class FirebaseHelper {
         logEvent("export_dictionary_cards", bundle);
     }
 
-    public static void logExportTextCards(
-            @NonNull String headword, @NonNull DataSource.SelectedTextCards textCards) {
+    public static void logExportTextCards(@NonNull String headword, @NonNull DataSource.SelectedTextCards textCards) {
         var inputs = textCards.inputs();
 
         // 1. Count of example pairs

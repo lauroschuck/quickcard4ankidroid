@@ -14,7 +14,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatDialogFragment;
-
 import com.github.lauroschuck.ankiquickadd.R;
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity;
 import timber.log.Timber;

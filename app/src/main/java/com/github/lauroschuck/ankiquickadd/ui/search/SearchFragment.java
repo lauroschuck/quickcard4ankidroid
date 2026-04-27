@@ -16,12 +16,10 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.github.lauroschuck.ankiquickadd.R;
 import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.github.lauroschuck.ankiquickadd.ui.main.MainActivity;
 import com.github.lauroschuck.ankiquickadd.ui.main.MainViewModel;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;

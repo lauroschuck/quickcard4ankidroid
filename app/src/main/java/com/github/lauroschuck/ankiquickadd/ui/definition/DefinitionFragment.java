@@ -19,7 +19,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-
 import com.github.lauroschuck.ankiquickadd.R;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiDroidHelper;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;

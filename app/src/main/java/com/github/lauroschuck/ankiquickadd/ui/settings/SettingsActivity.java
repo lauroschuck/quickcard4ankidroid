@@ -22,13 +22,11 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.github.lauroschuck.ankiquickadd.R;
 import com.github.lauroschuck.ankiquickadd.data.DatabaseRemoteStorage;
 import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.ui.main.MainViewModel;
-
 import java.io.File;
 import java.time.Instant;
 import java.time.ZoneId;
