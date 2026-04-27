@@ -1,4 +1,4 @@
-package com.github.lauroschuck.ankiquickadd;
+package com.github.lauroschuck.ankiquickadd.ui.settings;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,7 +10,11 @@ import android.widget.RadioButton;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.github.lauroschuck.ankiquickadd.R;
 import com.github.lauroschuck.ankiquickadd.model.Language;
+import com.github.lauroschuck.ankiquickadd.ui.main.MainViewModel;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;

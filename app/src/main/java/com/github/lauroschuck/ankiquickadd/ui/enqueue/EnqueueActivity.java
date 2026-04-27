@@ -1,4 +1,4 @@
-package com.github.lauroschuck.ankiquickadd;
+package com.github.lauroschuck.ankiquickadd.ui.enqueue;
 
 import android.app.Activity;
 import android.content.Intent;

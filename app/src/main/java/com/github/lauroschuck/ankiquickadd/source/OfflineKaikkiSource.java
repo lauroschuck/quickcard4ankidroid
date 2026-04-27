@@ -7,7 +7,7 @@ import android.net.Uri;
 import android.text.TextUtils;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.jknack.handlebars.Template;
-import com.github.lauroschuck.ankiquickadd.MainViewModel;
+import com.github.lauroschuck.ankiquickadd.ui.main.MainViewModel;
 import com.github.lauroschuck.ankiquickadd.anki.notes.AbstractAnkiNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
 import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;

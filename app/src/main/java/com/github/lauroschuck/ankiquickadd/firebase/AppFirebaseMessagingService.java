@@ -7,7 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
-import com.github.lauroschuck.ankiquickadd.MainActivity;
+import com.github.lauroschuck.ankiquickadd.ui.main.MainActivity;
 import com.github.lauroschuck.ankiquickadd.R;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;

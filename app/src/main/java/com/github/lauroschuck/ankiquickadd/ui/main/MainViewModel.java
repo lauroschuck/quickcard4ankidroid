@@ -1,4 +1,4 @@
-package com.github.lauroschuck.ankiquickadd;
+package com.github.lauroschuck.ankiquickadd.ui.main;
 
 import android.app.Application;
 import android.content.Context;
@@ -7,6 +7,8 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+
+import com.github.lauroschuck.ankiquickadd.ui.settings.SettingsActivity;
 import com.github.lauroschuck.ankiquickadd.data.DatabaseRemoteStorage;
 import com.github.lauroschuck.ankiquickadd.data.DataSourceRepository;
 import com.github.lauroschuck.ankiquickadd.data.NavigationManager;

@@ -1,4 +1,4 @@
-package com.github.lauroschuck.ankiquickadd;
+package com.github.lauroschuck.ankiquickadd.ui.definition;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -19,10 +19,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+
+import com.github.lauroschuck.ankiquickadd.R;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiDroidHelper;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;
 import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.github.lauroschuck.ankiquickadd.source.DataSource;
+import com.github.lauroschuck.ankiquickadd.ui.main.MainActivity;
+import com.github.lauroschuck.ankiquickadd.ui.main.MainViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import java.io.IOException;

@@ -5,7 +5,7 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import com.github.lauroschuck.ankiquickadd.EnqueueActivity;
+import com.github.lauroschuck.ankiquickadd.ui.enqueue.EnqueueActivity;
 import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import java.util.ArrayList;
 import java.util.HashSet;

@@ -1,4 +1,4 @@
-package com.github.lauroschuck.ankiquickadd;
+package com.github.lauroschuck.ankiquickadd.ui.main;
 
 import android.app.Dialog;
 import android.os.Bundle;
@@ -12,6 +12,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatDialogFragment;
+
+import com.github.lauroschuck.ankiquickadd.R;
 import com.github.lauroschuck.ankiquickadd.firebase.FirebaseHelper;
 import com.google.android.material.textfield.TextInputLayout;
 import timber.log.Timber;

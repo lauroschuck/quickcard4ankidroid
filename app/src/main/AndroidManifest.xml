@@ -16,7 +16,7 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name="com.github.lauroschuck.ankiquickadd.MainActivity"
+            android:name="com.github.lauroschuck.ankiquickadd.ui.main.MainActivity"
             android:launchMode="singleTop"
             android:exported="true">
             <intent-filter>
@@ -42,7 +42,7 @@
         </activity>
 
         <activity
-            android:name="com.github.lauroschuck.ankiquickadd.EnqueueActivity"
+            android:name="com.github.lauroschuck.ankiquickadd.ui.enqueue.EnqueueActivity"
             android:label="Anki Quick Enqueue"
             android:exported="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar">
@@ -61,7 +61,7 @@
                 android:value="true"/>
         </activity>
 
-        <activity android:name="com.github.lauroschuck.ankiquickadd.SettingsActivity"
+        <activity android:name="com.github.lauroschuck.ankiquickadd.ui.settings.SettingsActivity"
             android:label="Settings"
             android:theme="@style/SettingsTheme" />
 

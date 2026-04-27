@@ -1,4 +1,4 @@
-package com.github.lauroschuck.ankiquickadd;
+package com.github.lauroschuck.ankiquickadd.ui.main;
 
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -19,6 +19,11 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+
+import com.github.lauroschuck.ankiquickadd.ui.definition.DefinitionFragment;
+import com.github.lauroschuck.ankiquickadd.R;
+import com.github.lauroschuck.ankiquickadd.ui.search.SearchFragment;
+import com.github.lauroschuck.ankiquickadd.ui.settings.SettingsActivity;
 import com.github.lauroschuck.ankiquickadd.anki.AnkiIntegration;
 import com.github.lauroschuck.ankiquickadd.anki.notes.CardAssets;
 import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;

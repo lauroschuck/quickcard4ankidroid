@@ -10,7 +10,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import com.github.lauroschuck.ankiquickadd.R;
-import com.github.lauroschuck.ankiquickadd.SettingsActivity;
+import com.github.lauroschuck.ankiquickadd.ui.settings.SettingsActivity;
 import com.github.lauroschuck.ankiquickadd.anki.notes.AbstractAnkiNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.google.android.material.snackbar.Snackbar;
