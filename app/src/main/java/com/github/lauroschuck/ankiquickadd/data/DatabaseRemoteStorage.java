@@ -57,7 +57,7 @@ public class DatabaseRemoteStorage {
                             entry.sizeBytes,
                             entry.glosses,
                             entry.pronunciations,
-                            parseIsoDate(entry.lastModified),
+                            Instant.ofEpochSecond(entry.lastModified),
                             entry.file));
                 } catch (RuntimeException e) {
                     Timber.w(e, "Skipping dictionary entry: %s-%s", entry.learningLang, entry.nativeLang);
@@ -159,7 +159,7 @@ public class DatabaseRemoteStorage {
         String file;
 
         @SerializedName("last_modified")
-        String lastModified;
+        long lastModified;
 
         @SerializedName("size_bytes")
         long sizeBytes;

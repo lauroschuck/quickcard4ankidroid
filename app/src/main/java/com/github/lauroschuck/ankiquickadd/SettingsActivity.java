@@ -146,6 +146,11 @@ public class SettingsActivity extends AppCompatActivity {
             public void onDelete(MainViewModel.DownloadedDictionary dict) {
                 confirmDelete(dict);
             }
+
+            @Override
+            public void onUpdate(MainViewModel.DownloadedDictionary dict) {
+                confirmUpdate(dict);
+            }
         });
         dictionariesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         dictionariesRecyclerView.setAdapter(adapter);
@@ -163,6 +168,22 @@ public class SettingsActivity extends AppCompatActivity {
 
         viewModel.getObservableStats().observe(this, stats -> {
             updateLearningSpinner();
+        });
+
+        viewModel.getDownloadError().observe(this, errorMessage -> {
+            if (errorMessage != null) {
+                var rootView = findViewById(android.R.id.content);
+                if (rootView != null) {
+                    var snackbar = com.google.android.material.snackbar.Snackbar.make(
+                            rootView, errorMessage, com.google.android.material.snackbar.Snackbar.LENGTH_LONG);
+                    snackbar.setBackgroundTint(androidx.core.content.ContextCompat.getColor(this, R.color.error_red));
+                    snackbar.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.white));
+                    snackbar.show();
+                } else {
+                    Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show();
+                }
+                viewModel.clearDownloadError();
+            }
         });
     }
 
@@ -260,6 +281,19 @@ public class SettingsActivity extends AppCompatActivity {
                 .setPositiveButton("Delete", (dialog, which) -> {
                     viewModel.deleteDictionary(dict);
                     FirebaseHelper.logDeleteDictionary(dict.learning(), dict.nativeLang());
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void confirmUpdate(MainViewModel.DownloadedDictionary dict) {
+        new AlertDialog.Builder(this)
+                .setTitle("Update Dictionary")
+                .setMessage(String.format(
+                        "A newer version of the %s-%s dictionary is available. Download and update now?",
+                        dict.learning().getDisplayName(), dict.nativeLang().getDisplayName()))
+                .setPositiveButton("Update", (dialog, which) -> {
+                    viewModel.updateDictionary(dict);
                 })
                 .setNegativeButton("Cancel", null)
                 .show();

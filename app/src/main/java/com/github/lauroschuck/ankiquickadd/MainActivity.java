@@ -75,6 +75,13 @@ public class MainActivity extends AppCompatActivity {
 
         menuButton.setOnClickListener(v -> drawerLayout.openDrawer(GravityCompat.START));
 
+        viewModel.getDownloadError().observe(this, errorMessage -> {
+            if (errorMessage != null) {
+                showSnackbar(errorMessage, true);
+                viewModel.clearDownloadError();
+            }
+        });
+
         navigationView.setNavigationItemSelectedListener(item -> {
             int id = item.getItemId();
             if (id == R.id.nav_settings) {

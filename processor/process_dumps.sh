@@ -1,6 +1,34 @@
 #!/bin/bash
 set -e
 
+# Support --force flag
+FORCE=false
+if [[ "$1" == "--force" || "$1" == "-f" ]]; then
+    FORCE=true
+    shift
+fi
+
+# Require version, threads and mirrors as arguments
+if [ "$#" -lt 3 ]; then
+    echo "Usage: $0 [--force] <version> <threads> <mirror_url_1> [mirror_url_2 ...]"
+    exit 1
+fi
+
+VERSION=$1
+THREADS=$2
+shift 2
+
+# Support mirrors as subsequent arguments
+MIRRORS=""
+while (( "$#" )); do
+    if [ -n "$MIRRORS" ]; then
+        MIRRORS="$MIRRORS,$1"
+    else
+        MIRRORS="$1"
+    fi
+    shift
+done
+
 # Configuration: Map of language code to dump URL
 declare -A DUMPS
 DUMPS=(
@@ -27,11 +55,16 @@ DUMPS=(
 )
 
 LEARNING_LANGS="af,am,ar,az,be,bg,bn,bs,ca,cs,cy,da,de,el,en,es,et,eu,fa,fi,fr,fy,ga,gd,gl,gn,gu,ha,he,hi,hr,hu,hy,id,ig,is,it,iw,ja,ka,km,kn,ko,ky,lb,ln,lo,lt,lv,mk,ml,mn,mr,ms,mt,my,nb,ne,nl,no,or,pa,pl,pt,ro,ru,sk,sl,so,sq,sr,sv,sw,ta,te,tg,th,tl,tr,uk,ur,uz,vi,zh,zu"
-THREADS=4
-BASE_DOWNLOAD_DIR="$(pwd)/processor/downloads"
+
+# Ensure we know where the project root is
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+BASE_DOWNLOAD_DIR="$PROJECT_ROOT/processor/downloads"
 
 # Ensure base download directory exists
 mkdir -p "$BASE_DOWNLOAD_DIR"
+
+NEW_DUMPS_COUNT=0
 
 echo "Step 1: Downloading and decompressing new dumps..."
 for LANG_CODE in "${!DUMPS[@]}"; do
@@ -44,13 +77,13 @@ for LANG_CODE in "${!DUMPS[@]}"; do
     LAST_MOD=$(curl -sIL "$URL" | grep -i '^last-modified:' | tail -n 1 | cut -d' ' -f2- | tr -d '\r')
 
     if [ -z "$LAST_MOD" ]; then
-        echo "Warning: Could not get Last-Modified for $LANG_CODE. Using current date for directory."
-        TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+        echo "Warning: Could not get Last-Modified for $LANG_CODE."
+        exit 1
     else
         TIMESTAMP=$(date -d "$LAST_MOD" +"%Y%m%d-%H%M%S" 2>/dev/null || date -jf "%a, %d %b %Y %T %Z" "$LAST_MOD" +"%Y%m%d-%H%M%S" 2>/dev/null)
         if [ -z "$TIMESTAMP" ]; then
-             echo "Warning: Failed to parse date '$LAST_MOD'. Using current date."
-             TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+             echo "Warning: Failed to parse date '$LAST_MOD'."
+             exit 1
         fi
     fi
 
@@ -65,6 +98,8 @@ for LANG_CODE in "${!DUMPS[@]}"; do
         echo "$LANG_CODE dump ($TIMESTAMP) already exists and is decompressed. Skipping."
         continue
     fi
+
+    NEW_DUMPS_COUNT=$((NEW_DUMPS_COUNT + 1))
 
     # Attempt download/resume. curl -C - will automatically handle existing partial files.
     echo "Downloading/Resuming $LANG_CODE dump..."
@@ -83,9 +118,15 @@ for LANG_CODE in "${!DUMPS[@]}"; do
     trap - EXIT
 done
 
+if [ "$FORCE" = false ] && [ "$NEW_DUMPS_COUNT" -eq 0 ]; then
+    echo ""
+    echo "No new dumps found. All latest versions are already processed. Aborting."
+    exit 0
+fi
+
 echo ""
 echo "Step 2: Finding latest dumps..."
-PROCESSOR_ARGS="$LEARNING_LANGS $THREADS"
+PROCESSOR_ARGS="$VERSION $LEARNING_LANGS $THREADS \"$MIRRORS\""
 
 for LANG_CODE in "${!DUMPS[@]}"; do
     # The directory name is our timestamp: YYYYMMDD-HHMMSS
@@ -99,14 +140,17 @@ for LANG_CODE in "${!DUMPS[@]}"; do
             PROCESSOR_ARGS="$PROCESSOR_ARGS $LANG_CODE:$TIMESTAMP:$DUMP_FILE"
         else
             echo "Warning: No .jsonl file found in $LATEST_DIR_PATH"
+            exit 1
         fi
     else
         echo "Error: No dump directory found for $LANG_CODE"
+        exit 1
     fi
 done
 
 echo ""
 echo "Step 3: Running KaikkiProcessor..."
+cd "$PROJECT_ROOT"
 ./gradlew :processor:run --args="$PROCESSOR_ARGS"
 
 echo ""

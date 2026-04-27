@@ -390,29 +390,32 @@ public class KaikkiProcessor {
     }
 
     public static void main(String[] args) throws SQLException, IOException, InterruptedException {
-        if (args.length < 3) {
+        if (args.length < 5) {
             System.out.println(
-                    "Usage: java KaikkiProcessor <learning_langs_csv> <num_threads> <nativeLang1:last_mod:dumpPath1> ...");
+                    "Usage: java KaikkiProcessor <version> <learning_langs_csv> <num_threads> <mirrors_csv> <nativeLang1:last_mod:dumpPath1> ...");
             return;
         }
 
         Instant totalStart = Instant.now();
-        String[] learningLangs = args[0].split(",");
-        int numThreads = Integer.parseInt(args[1]);
-        String timestamp = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date());
-        
+        long epochSeconds = totalStart.getEpochSecond();
+        String version = args[0];
+        String[] learningLangs = args[1].split(",");
+        int numThreads = Integer.parseInt(args[2]);
+        String[] mirrorBases = args[3].isEmpty() ? new String[0] : args[3].split(",");
+        String timestampDir = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date());
+
         // Find the absolute root of the project to ensure output goes to project-root/processor/out/
         String currentDir = System.getProperty("user.dir");
         String outBase = currentDir.endsWith("processor") ? "out" : "processor/out";
-        String outDir = outBase + File.separator + timestamp;
+        String outDir = outBase + File.separator + timestampDir;
         new File(outDir).mkdirs();
 
         KaikkiProcessor converter = new KaikkiProcessor();
         Map<String, Map<String, Boolean>> summaryTable = new TreeMap<>();
         List<Map<String, Object>> dictionaryMetadataList = new ArrayList<>();
 
-        int totalDumps = args.length - 2;
-        for (int i = 2; i < args.length; i++) {
+        int totalDumps = args.length - 4;
+        for (int i = 4; i < args.length; i++) {
             String[] parts = args[i].split(":", 3);
             if (parts.length < 3) {
                 System.err.println("Invalid argument format: " + args[i]);
@@ -423,7 +426,8 @@ public class KaikkiProcessor {
             String lastModRaw = parts[1];
             String dumpPath = parts[2];
 
-            String lastModIso = formatTimestampToIso(lastModRaw);
+            var lastModEpoch = parseTimestampToEpoch(lastModRaw);
+            var lastModInstant = Instant.ofEpochSecond(lastModEpoch);
 
             Locale nativeLocale = new Locale(nativeLangCode);
             String nativeLangName = nativeLocale.getDisplayLanguage(Locale.ENGLISH);
@@ -433,12 +437,20 @@ public class KaikkiProcessor {
                     dumpPath,
                     nativeLangCode,
                     nativeLangName,
-                    lastModIso,
+                    lastModInstant,
                     numThreads));
 
             Instant dumpStart = Instant.now();
             Map<String, DatabaseSession> sessions = converter.processDumpParallel(
-                        dumpPath, nativeLangCode, learningLangs, outDir, i - 1, totalDumps, numThreads);
+                    dumpPath,
+                    nativeLangCode,
+                    learningLangs,
+                    outDir,
+                    i - 3,
+                    totalDumps,
+                    numThreads,
+                    version,
+                    lastModEpoch);
 
             for (Map.Entry<String, DatabaseSession> entry : sessions.entrySet()) {
                 String learningCode = entry.getKey();
@@ -454,7 +466,8 @@ public class KaikkiProcessor {
                     meta.put("learning_lang", learningCode);
                     meta.put("native_lang", nativeLangCode);
                     meta.put("file", dbFile.getName());
-                    meta.put("last_modified", lastModIso);
+                    meta.put("last_modified", lastModEpoch);
+                    meta.put("last_modified_iso", lastModInstant.toString());
                     meta.put("size_bytes", dbFile.length());
                     meta.put("headwords", session.headwordCount);
                     meta.put("glosses", session.glossCount);
@@ -468,30 +481,40 @@ public class KaikkiProcessor {
             System.out.println(String.format(Locale.US, "Dump %s processed in %s", dumpPath, elapsed));
         }
 
-        writeMetadataJson(outDir, dictionaryMetadataList);
+        writeMetadataJson(outDir, dictionaryMetadataList, epochSeconds, version, mirrorBases);
         printSummaryTable(summaryTable);
 
         Duration totalElapsed = Duration.between(totalStart, Instant.now()).truncatedTo(ChronoUnit.SECONDS);
         System.out.println(String.format(Locale.US, "Entire process finished in %s", totalElapsed));
     }
 
-    private static String formatTimestampToIso(String raw) {
-        try {
-            // Input format: yyyyMMdd-HHmmss
-            DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneOffset.UTC);
-            Instant instant = Instant.from(inputFormatter.parse(raw));
-            return DateTimeFormatter.ISO_INSTANT.format(instant);
-        } catch (DateTimeParseException e) {
-            return raw;
-        }
+    private static long parseTimestampToEpoch(String raw) {
+        // Input format: yyyyMMdd-HHmmss
+        DateTimeFormatter inputFormatter = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").withZone(ZoneOffset.UTC);
+        return Instant.from(inputFormatter.parse(raw)).getEpochSecond();
     }
 
-    private static void writeMetadataJson(String outDir, List<Map<String, Object>> dictionaries) {
+    private static void writeMetadataJson(
+            String outDir,
+            List<Map<String, Object>> dictionaries,
+            long epochSeconds,
+            String version,
+            String[] mirrorBases) {
         Map<String, Object> root = new LinkedHashMap<>();
-        var now = Instant.now();
-        root.put("timestamp", DateTimeFormatter.ISO_INSTANT.format(now.truncatedTo(ChronoUnit.SECONDS)));
-        root.put("mirrors", Collections.emptyList());
-        root.put("folder", String.valueOf(now.getEpochSecond()));
+        root.put("timestamp", epochSeconds);
+        root.put("timestamp_iso", Instant.ofEpochSecond(epochSeconds).toString());
+
+        List<String> fullMirrors = new ArrayList<>();
+        for (String base : mirrorBases) {
+            // Format: <base_url>/<version>/<timestamp>
+            String fullUrl = base;
+            if (!fullUrl.endsWith("/")) {
+                fullUrl += "/";
+            }
+            fullUrl += version + "/" + epochSeconds;
+            fullMirrors.add(fullUrl);
+        }
+        root.put("mirrors", fullMirrors);
         root.put("dictionaries", dictionaries);
 
         File metaFile = new File(outDir, "metadata.json");
@@ -500,7 +523,7 @@ public class KaikkiProcessor {
             gson.toJson(root, writer);
             System.out.println("\nMetadata saved to: " + metaFile.getAbsolutePath());
         } catch (IOException e) {
-            System.err.println("Failed to write metadata.json: " + e.getMessage());
+            throw new RuntimeException("Failed to write metadata.json", e);
         }
     }
 
@@ -511,17 +534,18 @@ public class KaikkiProcessor {
             String outDir,
             int dumpIndex,
             int totalDumps,
-            int numThreads) throws SQLException, IOException, InterruptedException {
+            int numThreads,
+            String version,
+            long lastModEpoch) throws SQLException, IOException, InterruptedException {
         Map<String, DatabaseSession> sessions = new HashMap<>();
         for (String learning : learningLangs) {
             String learningLower = learning.toLowerCase().trim();
             if (learningLower.equals(nativeLangCode)) continue;
+            String dbFileName = String.format(
+                    "wiktionary_kaikki_%s-%s_%s_%d.db", learningLower, nativeLangCode, version, lastModEpoch);
             sessions.put(
                     learningLower,
-                    new DatabaseSession(
-                            outDir + File.separator + "wiktionary_kaikki_" + learningLower + "-" + nativeLangCode
-                                    + ".db",
-                            learningLower));
+                    new DatabaseSession(outDir + File.separator + dbFileName, learningLower));
         }
 
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);

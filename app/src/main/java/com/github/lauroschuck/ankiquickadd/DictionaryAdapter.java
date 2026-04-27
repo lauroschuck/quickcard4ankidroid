@@ -4,6 +4,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.RadioButton;
 import android.widget.TextView;
@@ -26,6 +27,8 @@ public class DictionaryAdapter extends RecyclerView.Adapter<DictionaryAdapter.Vi
         void onSelect(Language learning, Language nativeLang);
 
         void onDelete(MainViewModel.DownloadedDictionary dict);
+
+        void onUpdate(MainViewModel.DownloadedDictionary dict);
     }
 
     public DictionaryAdapter(OnDictionaryActionListener listener) {
@@ -66,6 +69,9 @@ public class DictionaryAdapter extends RecyclerView.Adapter<DictionaryAdapter.Vi
         holder.progressContainer.setVisibility(View.GONE);
         holder.deleteButton.setVisibility(View.VISIBLE);
 
+        holder.updateButton.setVisibility(dict.updateAvailable() ? View.VISIBLE : View.GONE);
+        holder.legacyIcon.setVisibility(dict.isLegacy() ? View.VISIBLE : View.GONE);
+
         Language learning = dict.learning();
         Language nativeLang = dict.nativeLang();
         holder.nameText.setText(
@@ -78,6 +84,7 @@ public class DictionaryAdapter extends RecyclerView.Adapter<DictionaryAdapter.Vi
 
         holder.itemView.setOnClickListener(v -> listener.onSelect(learning, nativeLang));
         holder.deleteButton.setOnClickListener(v -> listener.onDelete(dict));
+        holder.updateButton.setOnClickListener(v -> listener.onUpdate(dict));
     }
 
     private void bindDownloading(ViewHolder holder, MainViewModel.DownloadInfo info) {
@@ -89,6 +96,8 @@ public class DictionaryAdapter extends RecyclerView.Adapter<DictionaryAdapter.Vi
         holder.progressBar.setProgress(info.getProgress());
         holder.radioButton.setVisibility(View.INVISIBLE);
         holder.deleteButton.setVisibility(View.GONE);
+        holder.updateButton.setVisibility(View.GONE);
+        holder.legacyIcon.setVisibility(View.GONE);
         holder.progressContainer.setVisibility(View.VISIBLE);
         holder.progressBar.setProgress(info.getProgress());
         holder.progressText.setText(info.getMbText());
@@ -104,6 +113,8 @@ public class DictionaryAdapter extends RecyclerView.Adapter<DictionaryAdapter.Vi
         RadioButton radioButton;
         TextView nameText;
         ImageButton deleteButton;
+        ImageButton updateButton;
+        ImageView legacyIcon;
         View progressContainer;
         ProgressBar progressBar;
         TextView progressText;
@@ -113,6 +124,8 @@ public class DictionaryAdapter extends RecyclerView.Adapter<DictionaryAdapter.Vi
             radioButton = itemView.findViewById(R.id.activeRadioButton);
             nameText = itemView.findViewById(R.id.dictionaryNameText);
             deleteButton = itemView.findViewById(R.id.deleteButton);
+            updateButton = itemView.findViewById(R.id.updateButton);
+            legacyIcon = itemView.findViewById(R.id.legacyIcon);
             progressContainer = itemView.findViewById(R.id.downloadProgressContainer);
             progressBar = itemView.findViewById(R.id.downloadProgressBar);
             progressText = itemView.findViewById(R.id.progressText);

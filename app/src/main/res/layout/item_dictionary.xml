@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -27,6 +28,27 @@
             android:textSize="16sp"
             android:textColor="@color/anki_dark_text"
             android:layout_marginStart="8dp" />
+
+        <ImageView
+            android:id="@+id/legacyIcon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_legacy"
+            android:visibility="gone"
+            android:layout_marginEnd="8dp"
+            app:tint="@color/error_red"
+            android:contentDescription="Unsupported dictionary" />
+
+        <ImageButton
+            android:id="@+id/updateButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_update"
+            android:visibility="gone"
+            android:layout_marginEnd="4dp"
+            app:tint="@color/anki_blue"
+            android:contentDescription="Update available" />
 
         <ImageButton
             android:id="@+id/deleteButton"
