@@ -179,7 +179,39 @@ public class DatabaseRemoteStorage {
             int glosses,
             int pronunciations,
             Instant lastModified,
-            String fileName) {}
+            String fileName) {
+
+        public String serialize() {
+            return String.join(
+                    ":",
+                    learning.getIsoCode(),
+                    nativeLang.getIsoCode(),
+                    String.valueOf(headwords),
+                    String.valueOf(pronunciations),
+                    String.valueOf(glosses),
+                    String.valueOf(examples),
+                    fileName,
+                    String.valueOf(lastModified.getEpochSecond()),
+                    String.valueOf(sizeBytes));
+        }
+
+        public static DictionaryStats deserialize(String data) {
+            String[] p = data.split(":");
+            if (p.length != 9) {
+                throw new IllegalArgumentException("Illegal data for deserialization: " + data);
+            }
+            return new DictionaryStats(
+                    Language.ofIsoCode(p[0]),
+                    Language.ofIsoCode(p[1]),
+                    Integer.parseInt(p[2]),
+                    Integer.parseInt(p[5]),
+                    Long.parseLong(p[8]),
+                    Integer.parseInt(p[4]),
+                    Integer.parseInt(p[3]),
+                    Instant.ofEpochSecond(Long.parseLong(p[7])),
+                    p[6]);
+        }
+    }
 
     public interface DiscoveryCallback {
         void onSuccess(List<DictionaryStats> stats);

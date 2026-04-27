@@ -45,14 +45,24 @@ public class MainViewModel extends AndroidViewModel {
     private final MutableLiveData<List<DatabaseRemoteStorage.DictionaryStats>> allAvailableStats =
             new MutableLiveData<>(new ArrayList<>());
 
+    private final MutableLiveData<String> downloadError = new MutableLiveData<>(null);
+
     public record DownloadedDictionary(
-            Language learning, Language nativeLang, File file, boolean updateAvailable, boolean isLegacy) {}
+            Language learning,
+            Language nativeLang,
+            DatabaseRemoteStorage.DictionaryStats localStats,
+            boolean updateAvailable,
+            boolean isLegacy) {
+
+        public File file(Context context) {
+            return context.getDatabasePath(localStats.fileName());
+        }
+    }
 
     private static final MutableLiveData<List<DownloadedDictionary>> downloadedDictionaries =
             new MutableLiveData<>(new ArrayList<>());
 
     private static final MutableLiveData<DownloadInfo> activeDownload = new MutableLiveData<>(null);
-    private final MutableLiveData<String> downloadError = new MutableLiveData<>(null);
 
     @Setter
     @Getter
@@ -99,6 +109,10 @@ public class MainViewModel extends AndroidViewModel {
     }
 
     public void refreshDownloadedDictionaries() {
+        refreshDownloadedDictionaries(null);
+    }
+
+    public void refreshDownloadedDictionaries(List<DatabaseRemoteStorage.DictionaryStats> freshStats) {
         var prefs = PreferenceManager.getDefaultSharedPreferences(getApplication());
         Set<String> metadataEntries = new HashSet<>(prefs.getStringSet(KEY_METADATA, new HashSet<>()));
         Timber.d("Found %d metadata entries", metadataEntries.size());
@@ -108,45 +122,36 @@ public class MainViewModel extends AndroidViewModel {
 
         if (dbDir != null && dbDir.exists()) {
             for (String entry : metadataEntries) {
-                Timber.d("Processing metadata entry '%s'", entry);
-                String[] parts = entry.split(":");
-                if (parts.length == 3) {
-                    Language l = Language.ofIsoCode(parts[0]);
-                    Language n = Language.ofIsoCode(parts[1]);
-                    String localFileName = parts[2];
-                    File f = new File(dbDir, localFileName);
-                    if (f.exists()) {
-                        DatabaseRemoteStorage.DictionaryStats remoteStats = getStatsFor(l, n);
-                        boolean updateAvailable = false;
-                        boolean isLegacy = false;
+                DatabaseRemoteStorage.DictionaryStats localStats =
+                        DatabaseRemoteStorage.DictionaryStats.deserialize(entry);
+                if (localStats == null) {
+                    Timber.w("Failed to deserialize metadata entry: %s", entry);
+                    continue;
+                }
 
-                        if (remoteStats != null) {
-                            if (!remoteStats.fileName().equals(localFileName)) {
-                                updateAvailable = true;
-                            }
-                        } else {
-                            // If remoteStats are available but this pair is missing, it's legacy.
-                            // If remoteStats are NOT available (e.g. offline), we don't know, so assume not legacy.
-                            List<DatabaseRemoteStorage.DictionaryStats> allStats = allAvailableStats.getValue();
-                            if (allStats != null && !allStats.isEmpty()) {
-                                isLegacy = true;
-                            }
+                File f = new File(dbDir, localStats.fileName());
+                if (f.exists()) {
+                    DatabaseRemoteStorage.DictionaryStats remoteStats =
+                            getStatsFor(localStats.learning(), localStats.nativeLang(), freshStats);
+                    boolean updateAvailable = false;
+                    boolean isLegacy = false;
+
+                    if (remoteStats != null) {
+                        if (!remoteStats.fileName().equals(localStats.fileName())) {
+                            updateAvailable = true;
                         }
-
-                        list.add(new DownloadedDictionary(l, n, f, updateAvailable, isLegacy));
-                        Timber.d(
-                                "Found downloaded %s-%s dictionary, updateable=%b, legacy=%b",
-                                l.getIsoCode(), n.getIsoCode(), updateAvailable, isLegacy);
                     } else {
-                        throw new IllegalStateException(
-                                String.format("Metadata entry '%s' is missing local file", entry));
+                        List<DatabaseRemoteStorage.DictionaryStats> allStats =
+                                freshStats != null ? freshStats : allAvailableStats.getValue();
+                        if (allStats != null && !allStats.isEmpty()) {
+                            isLegacy = true;
+                        }
                     }
-                } else {
-                    throw new IllegalStateException("invalid metadata entry: " + entry);
+
+                    list.add(new DownloadedDictionary(
+                            localStats.learning(), localStats.nativeLang(), localStats, updateAvailable, isLegacy));
                 }
             }
-        } else {
-            throw new IllegalStateException("DB folder does not exist: " + dbDir);
         }
 
         downloadedDictionaries.postValue(list);
@@ -178,12 +183,13 @@ public class MainViewModel extends AndroidViewModel {
                 FirebaseHelper.logDownloadDictionary(dict.learning(), dict.nativeLang(), elapsedMs);
 
                 // 1. Delete old file
-                if (dict.file().exists()) {
-                    dict.file().delete();
+                File oldFile = dict.file(getApplication());
+                if (oldFile.exists()) {
+                    oldFile.delete();
                 }
 
-                // 2. Register new file in metadata
-                registerInMetadata(dict.learning(), dict.nativeLang(), newFile.getName());
+                // 2. Register new stats in metadata
+                registerInMetadata(dict.learning(), dict.nativeLang(), stats);
 
                 // 3. Refresh and reload
                 refreshDownloadedDictionaries();
@@ -209,9 +215,6 @@ public class MainViewModel extends AndroidViewModel {
                 .putString(
                         SettingsActivity.KEY_NATIVE_LANGUAGE, dict.nativeLang().getIsoCode())
                 .apply();
-        Timber.d(
-                "Auto-selected dictionary: %s-%s",
-                dict.learning().getIsoCode(), dict.nativeLang().getIsoCode());
     }
 
     public List<Language> getAvailableLearningLanguages() {
@@ -236,7 +239,13 @@ public class MainViewModel extends AndroidViewModel {
     }
 
     public DatabaseRemoteStorage.DictionaryStats getStatsFor(Language learning, Language nativeLang) {
-        List<DatabaseRemoteStorage.DictionaryStats> stats = allAvailableStats.getValue();
+        return getStatsFor(learning, nativeLang, null);
+    }
+
+    public DatabaseRemoteStorage.DictionaryStats getStatsFor(
+            Language learning, Language nativeLang, List<DatabaseRemoteStorage.DictionaryStats> freshStats) {
+        List<DatabaseRemoteStorage.DictionaryStats> stats =
+                freshStats != null ? freshStats : allAvailableStats.getValue();
         if (stats == null || learning == null || nativeLang == null) {
             return null;
         }
@@ -249,14 +258,12 @@ public class MainViewModel extends AndroidViewModel {
     public static String getDbNameFromMetadata(Context context, Language learning, Language nativeLang) {
         var prefs = PreferenceManager.getDefaultSharedPreferences(context);
         Set<String> metadataEntries = new HashSet<>(prefs.getStringSet(KEY_METADATA, new HashSet<>()));
-        String pairPrefix = learning.getIsoCode() + ":" + nativeLang.getIsoCode() + ":";
-
         for (String entry : metadataEntries) {
-            if (entry.startsWith(pairPrefix)) {
-                String[] parts = entry.split(":");
-                if (parts.length == 3) {
-                    return parts[2];
-                }
+            DatabaseRemoteStorage.DictionaryStats stats = DatabaseRemoteStorage.DictionaryStats.deserialize(entry);
+            if (stats != null
+                    && stats.learning().equals(learning)
+                    && stats.nativeLang().equals(nativeLang)) {
+                return stats.fileName();
             }
         }
         return null;
@@ -281,7 +288,7 @@ public class MainViewModel extends AndroidViewModel {
             public void onSuccess(File file, long elapsedMs) {
                 activeDownload.postValue(null);
                 FirebaseHelper.logDownloadDictionary(learning, nativeLang, elapsedMs);
-                registerInMetadata(learning, nativeLang, file.getName());
+                registerInMetadata(learning, nativeLang, stats);
                 refreshDownloadedDictionaries();
                 dictionaryRepository.reloadSources();
             }
@@ -296,17 +303,21 @@ public class MainViewModel extends AndroidViewModel {
         });
     }
 
-    private void registerInMetadata(Language l, Language n, String fileName) {
+    private void registerInMetadata(Language l, Language n, DatabaseRemoteStorage.DictionaryStats stats) {
         var prefs = PreferenceManager.getDefaultSharedPreferences(getApplication());
         Set<String> metadata = new HashSet<>(prefs.getStringSet(KEY_METADATA, new HashSet<>()));
-        String pairPrefix = l.getIsoCode() + ":" + n.getIsoCode() + ":";
-        metadata.removeIf(s -> s.startsWith(pairPrefix));
-        metadata.add(pairPrefix + fileName);
+        metadata.removeIf(s -> {
+            DatabaseRemoteStorage.DictionaryStats existing = DatabaseRemoteStorage.DictionaryStats.deserialize(s);
+            return existing != null
+                    && existing.learning().equals(l)
+                    && existing.nativeLang().equals(n);
+        });
+        metadata.add(stats.serialize());
         prefs.edit().putStringSet(KEY_METADATA, metadata).apply();
     }
 
     public void deleteDictionary(DownloadedDictionary dict) {
-        if (dict.file().delete()) {
+        if (dict.file(getApplication()).delete()) {
             unregisterFromMetadata(dict.learning(), dict.nativeLang());
             clearPrefsIfMatches(dict.learning(), dict.nativeLang());
             refreshDownloadedDictionaries();
@@ -317,8 +328,12 @@ public class MainViewModel extends AndroidViewModel {
     private void unregisterFromMetadata(Language l, Language n) {
         var prefs = PreferenceManager.getDefaultSharedPreferences(getApplication());
         Set<String> metadata = new HashSet<>(prefs.getStringSet(KEY_METADATA, new HashSet<>()));
-        String pairPrefix = l.getIsoCode() + ":" + n.getIsoCode() + ":";
-        metadata.removeIf(s -> s.startsWith(pairPrefix));
+        metadata.removeIf(s -> {
+            DatabaseRemoteStorage.DictionaryStats existing = DatabaseRemoteStorage.DictionaryStats.deserialize(s);
+            return existing != null
+                    && existing.learning().equals(l)
+                    && existing.nativeLang().equals(n);
+        });
         prefs.edit().putStringSet(KEY_METADATA, metadata).apply();
     }
 
@@ -331,9 +346,6 @@ public class MainViewModel extends AndroidViewModel {
                     .remove(SettingsActivity.KEY_LEARNING_LANGUAGE)
                     .remove(SettingsActivity.KEY_NATIVE_LANGUAGE)
                     .apply();
-            Timber.d(
-                    "Cleared selected dictionary as it was deleted: %s-%s",
-                    learning.getIsoCode(), nativeLang.getIsoCode());
         }
     }
 

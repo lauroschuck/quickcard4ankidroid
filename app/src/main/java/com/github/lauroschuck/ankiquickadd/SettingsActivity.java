@@ -287,11 +287,39 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void confirmUpdate(MainViewModel.DownloadedDictionary dict) {
+        DatabaseRemoteStorage.DictionaryStats remote = viewModel.getStatsFor(dict.learning(), dict.nativeLang());
+        if (remote == null) {
+            return;
+        }
+
+        DatabaseRemoteStorage.DictionaryStats local = dict.localStats();
+
+        String message = String.format(
+                Locale.US,
+                "A newer version of the %s-%s dictionary is available.\n\n"
+                        + "Comparison:\n"
+                        + "- Headwords: %d → %d (%+d)\n"
+                        + "- Definitions: %d → %d (%+d)\n"
+                        + "- Examples: %d → %d (%+d)\n"
+                        + "- Size: %s → %s\n\n"
+                        + "Download and update now?",
+                dict.learning().getDisplayName(),
+                dict.nativeLang().getDisplayName(),
+                local.headwords(),
+                remote.headwords(),
+                (remote.headwords() - local.headwords()),
+                local.glosses(),
+                remote.glosses(),
+                (remote.glosses() - local.glosses()),
+                local.examples(),
+                remote.examples(),
+                (remote.examples() - local.examples()),
+                Formatter.formatShortFileSize(this, local.sizeBytes()),
+                Formatter.formatShortFileSize(this, remote.sizeBytes()));
+
         new AlertDialog.Builder(this)
                 .setTitle("Update Dictionary")
-                .setMessage(String.format(
-                        "A newer version of the %s-%s dictionary is available. Download and update now?",
-                        dict.learning().getDisplayName(), dict.nativeLang().getDisplayName()))
+                .setMessage(message)
                 .setPositiveButton("Update", (dialog, which) -> {
                     viewModel.updateDictionary(dict);
                 })
