@@ -99,8 +99,12 @@ public class MainActivity extends AppCompatActivity {
             return true;
         });
 
+        navigationView.setItemIconTintList(null);
+        setupNavigationIcons(navigationView);
         setupSourceSpinner();
         setupBackPressed();
+
+        viewModel.getDownloadedDictionaries().observe(this, this::updateBadges);
 
         var prefs = PreferenceManager.getDefaultSharedPreferences(this);
         viewModel.setLastUsedLearningLanguage(getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE));
@@ -116,6 +120,60 @@ public class MainActivity extends AppCompatActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         handleIntent(intent);
+    }
+
+    private void updateBadges(List<MainViewModel.DownloadedDictionary> dicts) {
+        boolean hasUpdate =
+                dicts != null && dicts.stream().anyMatch(MainViewModel.DownloadedDictionary::updateAvailable);
+
+        // Header badge
+        View menuBadge = findViewById(R.id.menuBadge);
+        if (menuBadge != null) {
+            menuBadge.setVisibility(hasUpdate ? View.VISIBLE : View.GONE);
+        }
+
+        // Drawer badge
+        NavigationView navigationView = findViewById(R.id.navigationView);
+        if (navigationView != null) {
+            var settingsItem = navigationView.getMenu().findItem(R.id.nav_settings);
+            if (settingsItem != null) {
+                var baseIcon =
+                        androidx.core.content.ContextCompat.getDrawable(this, android.R.drawable.ic_menu_preferences);
+                if (baseIcon != null) {
+                    baseIcon = baseIcon.mutate();
+                    baseIcon.setTint(getColor(android.R.color.white));
+                }
+
+                if (hasUpdate && baseIcon != null) {
+                    var badgeDrawable =
+                            androidx.core.content.ContextCompat.getDrawable(this, R.drawable.ic_badge_exclamation);
+                    if (badgeDrawable != null) {
+                        var layerDrawable = new android.graphics.drawable.LayerDrawable(
+                                new android.graphics.drawable.Drawable[] {baseIcon, badgeDrawable});
+                        // Position the badge at top-right of the icon
+                        int badgeSize = (int) (16 * getResources().getDisplayMetrics().density);
+                        layerDrawable.setLayerSize(1, badgeSize, badgeSize);
+                        layerDrawable.setLayerGravity(1, android.view.Gravity.TOP | android.view.Gravity.END);
+                        settingsItem.setIcon(layerDrawable);
+                    } else {
+                        settingsItem.setIcon(baseIcon);
+                    }
+                } else if (baseIcon != null) {
+                    settingsItem.setIcon(baseIcon);
+                }
+            }
+        }
+    }
+
+    private void setupNavigationIcons(NavigationView navigationView) {
+        var menu = navigationView.getMenu();
+        for (int i = 0; i < menu.size(); i++) {
+            var item = menu.getItem(i);
+            var icon = item.getIcon();
+            if (icon != null) {
+                icon.mutate().setTint(getColor(android.R.color.white));
+            }
+        }
     }
 
     private void showAboutDialog() {
