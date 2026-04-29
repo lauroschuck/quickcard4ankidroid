@@ -15,7 +15,6 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.TextView;
 import android.widget.Toast;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -37,7 +36,6 @@ public class DefinitionFragment extends Fragment {
     private MainViewModel viewModel;
     private WebView webView;
     private View createCardsFabContainer;
-    private TextView badgeText;
     private TabLayout noteTypeTabLayout;
     private MediaPlayer mediaPlayer;
     private AnkiIntegration ankiIntegration;
@@ -102,14 +100,10 @@ public class DefinitionFragment extends Fragment {
 
         @JavascriptInterface
         @SuppressWarnings("unused")
-        public void updateSelectedCount(int count) {
+        public void updateSelectedCounts(int defCount, int exCount) {
             requireActivity().runOnUiThread(() -> {
-                Timber.v("Update selected count: %d", count);
-                if (noteTypeTabLayout.getSelectedTabPosition() == 0) {
-                    viewModel.setDefinitionSelectedCount(count);
-                } else {
-                    viewModel.setExampleSelectedCount(count);
-                }
+                Timber.v("Update selected counts: def=%d, ex=%d", defCount, exCount);
+                viewModel.setSelectedCount(defCount, exCount);
             });
         }
 
@@ -138,7 +132,6 @@ public class DefinitionFragment extends Fragment {
         webView = view.findViewById(R.id.webView);
         createCardsFabContainer = view.findViewById(R.id.createCardsFabContainer);
         FloatingActionButton createCardsFab = view.findViewById(R.id.createCardsFab);
-        badgeText = view.findViewById(R.id.badgeText);
         FloatingActionButton closeButton = view.findViewById(R.id.closeButton);
         noteTypeTabLayout = view.findViewById(R.id.noteTypeTabLayout);
 
@@ -147,6 +140,7 @@ public class DefinitionFragment extends Fragment {
 
         viewModel.getNavigationManager().getCurrentHtml().observe(getViewLifecycleOwner(), html -> {
             if (html != null && !html.isEmpty()) {
+                viewModel.setSelectedCount(0, 0);
                 loadHtml(html);
             }
         });
@@ -156,25 +150,22 @@ public class DefinitionFragment extends Fragment {
 
         viewModel.getDefinitionSelectedCount().observe(getViewLifecycleOwner(), count -> {
             if (noteTypeTabLayout.getSelectedTabPosition() == 0) {
-                updateBadge(count);
+                updateFabVisibility(count);
             }
         });
 
         viewModel.getExampleSelectedCount().observe(getViewLifecycleOwner(), count -> {
             if (noteTypeTabLayout.getSelectedTabPosition() == 1) {
-                updateBadge(count);
+                updateFabVisibility(count);
             }
         });
     }
 
-    private void updateBadge(int count) {
+    private void updateFabVisibility(int count) {
         if (count > 0) {
             createCardsFabContainer.setVisibility(View.VISIBLE);
-            badgeText.setVisibility(View.VISIBLE);
-            badgeText.setText(String.valueOf(count));
         } else {
             createCardsFabContainer.setVisibility(View.GONE);
-            badgeText.setVisibility(View.GONE);
         }
     }
 
@@ -195,7 +186,7 @@ public class DefinitionFragment extends Fragment {
                         : (viewModel.getExampleSelectedCount().getValue() != null
                                 ? viewModel.getExampleSelectedCount().getValue()
                                 : 0);
-                updateBadge(count);
+                updateFabVisibility(count);
             }
 
             @Override
@@ -283,8 +274,9 @@ public class DefinitionFragment extends Fragment {
     private void injectCheckboxListener() {
         var js = "document.addEventListener('change', function(e) {"
                 + "  if (e.target.classList.contains('example-checkbox') || e.target.classList.contains('sense-checkbox')) {"
-                + "    var count = document.querySelectorAll('input.example-checkbox:checked, input.sense-checkbox:checked').length;"
-                + "    Android.updateSelectedCount(count);"
+                + "    var defCount = document.querySelectorAll('input.sense-checkbox:checked').length;"
+                + "    var exCount = document.querySelectorAll('input.example-checkbox:checked').length;"
+                + "    Android.updateSelectedCounts(defCount, exCount);"
                 + "  }"
                 + "});";
         webView.evaluateJavascript(js, null);

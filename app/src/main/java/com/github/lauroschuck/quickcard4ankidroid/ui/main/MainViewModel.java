@@ -372,20 +372,17 @@ public class MainViewModel extends AndroidViewModel {
         downloadError.setValue(null);
     }
 
+    public void setSelectedCount(int defCount, int exCount) {
+        definitionSelectedCount.setValue(defCount);
+        exampleSelectedCount.setValue(exCount);
+    }
+
     public LiveData<Integer> getDefinitionSelectedCount() {
         return definitionSelectedCount;
     }
 
-    public void setDefinitionSelectedCount(int count) {
-        definitionSelectedCount.setValue(count);
-    }
-
     public LiveData<Integer> getExampleSelectedCount() {
         return exampleSelectedCount;
-    }
-
-    public void setExampleSelectedCount(int count) {
-        exampleSelectedCount.setValue(count);
     }
 
     public void markWordAsProcessed(String word) {

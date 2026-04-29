@@ -71,7 +71,7 @@
         app:useCompatPadding="true"
         app:fabSize="mini" />
 
-    <!-- Floating Create Cards Button with Badge (Bottom Right) -->
+    <!-- Floating Create Cards Button (Bottom Right) -->
     <FrameLayout
         android:id="@+id/createCardsFabContainer"
         android:layout_width="wrap_content"
@@ -97,23 +97,6 @@
             app:fabSize="normal"
             app:elevation="4dp"
             app:useCompatPadding="true" />
-
-        <TextView
-            android:id="@+id/badgeText"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:layout_gravity="top|end"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="8dp"
-            android:background="@android:drawable/presence_online"
-            android:backgroundTint="#FF4081"
-            android:gravity="center"
-            android:text="0"
-            android:textColor="#FFFFFF"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:elevation="12dp"
-            android:visibility="gone" />
     </FrameLayout>
 
 </RelativeLayout>
