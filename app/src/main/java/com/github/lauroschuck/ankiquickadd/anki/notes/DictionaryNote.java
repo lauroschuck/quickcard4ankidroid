@@ -145,10 +145,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
     }
 
     enum NonIndexedField implements CardField<Input> {
-        ID(
-                "Id",
-                (l, n, s, i) ->
-                        String.format("%s-%s-%s-%s", i.headword(), l.getIsoCode(), n.getIsoCode(), s.getHost())),
+        ID("Id", (l, n, s, i) -> computeId(l, n, i)),
         LEARNING_WORD("LearningWord", (l, n, s, i) -> i.headword),
         IPA("IPA", (l, n, s, i) -> i.ipa()),
         LEARNING_LANG("LearningLang", (l, n, s, i) -> l.getDisplayName(n)),
@@ -180,6 +177,15 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
         @Override
         public boolean isAudio() {
             return this == AUDIO;
+        }
+
+        public static String computeId(Language learningLanguage, Language nativeLanguage, Input input) {
+            return String.format(
+                    "%s-%s-%s-%s",
+                    input.headword(),
+                    input.lexicalCategory(),
+                    learningLanguage.getIsoCode(),
+                    nativeLanguage.getIsoCode());
         }
     }
 

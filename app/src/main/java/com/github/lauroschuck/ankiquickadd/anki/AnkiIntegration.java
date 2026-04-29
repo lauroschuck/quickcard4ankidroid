@@ -11,6 +11,8 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import com.github.lauroschuck.ankiquickadd.R;
 import com.github.lauroschuck.ankiquickadd.anki.notes.AbstractAnkiNote;
+import com.github.lauroschuck.ankiquickadd.anki.notes.DictionaryNote;
+import com.github.lauroschuck.ankiquickadd.anki.notes.TextNote;
 import com.github.lauroschuck.ankiquickadd.model.Language;
 import com.github.lauroschuck.ankiquickadd.ui.settings.SettingsActivity;
 import com.google.android.material.snackbar.Snackbar;
@@ -151,7 +153,31 @@ public class AnkiIntegration {
                     tagsList.add(note.getTags());
                 }
 
-                ankiDroidHelper.removeDuplicates(fieldsList, tagsList, modelId);
+                if (note instanceof DictionaryNote dn) {
+                    // Conflicting dictionary notes might have different fields,
+                    // but the selected definitions/examples probably don't match,
+                    // so remove them do not allow it to go forward
+                    var duplicates = ankiDroidHelper.findDuplicateIndexes(fieldsList, tagsList, modelId);
+                    if (!duplicates.isEmpty()) {
+                        var firstDuplicate = cards.get(duplicates.get(0));
+                        var id = fieldsList.get(duplicates.get(0))[0];
+                        Timber.w("Found duplicate note '%s', aborting", id);
+                        showSnackbar(
+                                context,
+                                String.format(
+                                        "Note for '%s' (%s) already exists on Anki",
+                                        firstDuplicate.headword(), firstDuplicate.lexicalCategory()),
+                                true);
+                        return;
+                    }
+                } else if (note instanceof TextNote tn) {
+                    // Example cards should be the same if it's a duplicate,
+                    // so just remove the duplicates
+                    ankiDroidHelper.removeDuplicates(fieldsList, tagsList, modelId);
+                } else {
+                    throw new AssertionError(
+                            "Unexpected note type: " + note.getClass().getSimpleName());
+                }
 
                 if (fieldsList.isEmpty()) {
                     Timber.i("No new notes to add (all were duplicates)");

@@ -12,6 +12,7 @@ import com.google.gson.reflect.TypeToken;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.NonNull;
@@ -175,7 +176,8 @@ public class ReversoSource implements DataSource {
                                 e.get("definition"), e.get("learningText"), e.get("nativeText")))
                         .collect(Collectors.toList());
 
-                inputs.add(new DictionaryNote.Input(headword != null ? headword : "", null, lexicalCat, definitions));
+                inputs.add(new DictionaryNote.Input(
+                        headword != null ? headword : "", null, lexicalCat.toLowerCase(Locale.ROOT), definitions));
             }
             return new SelectedDictionaryCards(lastLearningLanguage, lastNativeLanguage, null, sourceUrl, inputs);
         } else {

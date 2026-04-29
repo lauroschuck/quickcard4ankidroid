@@ -13,11 +13,13 @@ import androidx.core.content.ContextCompat;
 import com.ichi2.anki.api.AddContentApi;
 import com.ichi2.anki.api.NoteInfo;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Copied from https://github.com/ankidroid/apisample
@@ -96,6 +98,15 @@ public class AnkiDroidHelper {
      * @param modelId ID of model to search for duplicates on
      */
     public void removeDuplicates(List<String[]> fields, LinkedList<Set<String>> tags, long modelId) {
+        findDuplicateIndexes(fields, tags, modelId).stream()
+                .sorted(Collections.reverseOrder())
+                .forEach(index -> {
+                    fields.remove(index.intValue());
+                    tags.remove(index.intValue());
+                });
+    }
+
+    public List<Integer> findDuplicateIndexes(List<String[]> fields, LinkedList<Set<String>> tags, long modelId) {
         // Build a list of the duplicate keys (first fields) and find all notes that have a match with each key
         List<String> keys = new ArrayList<>(fields.size());
         for (String[] f : fields) {
@@ -107,25 +118,14 @@ public class AnkiDroidHelper {
             throw new IllegalStateException("List of tags must be the same length as the list of fields");
         }
         if (duplicateNotes == null || duplicateNotes.size() == 0 || fields.isEmpty() || tags.isEmpty()) {
-            return;
+            return List.of();
         }
         if (duplicateNotes.keyAt(duplicateNotes.size() - 1) >= fields.size()) {
             throw new IllegalStateException("The array of duplicates goes outside the bounds of the original lists");
         }
-        // Iterate through the fields and tags LinkedLists, removing those that had a duplicate
-        ListIterator<String[]> fieldIterator = fields.listIterator();
-        ListIterator<Set<String>> tagIterator = tags.listIterator();
-        int listIndex = -1;
-        for (int i = 0; i < duplicateNotes.size(); i++) {
-            int duplicateIndex = duplicateNotes.keyAt(i);
-            while (listIndex < duplicateIndex) {
-                fieldIterator.next();
-                tagIterator.next();
-                listIndex++;
-            }
-            fieldIterator.remove();
-            tagIterator.remove();
-        }
+        return IntStream.range(0, duplicateNotes.size())
+                .mapToObj(duplicateNotes::keyAt)
+                .collect(Collectors.toList());
     }
 
     /**
