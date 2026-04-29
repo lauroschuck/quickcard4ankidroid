@@ -1,6 +1,6 @@
-# Anki Quick Add
+# QuickCard for AnkiDroid
 
-Anki Quick Add is an Android utility application designed to streamline the process of creating high-quality language flashcards for AnkiDroid. By providing offline Wiktionary data, it helps language learners build their own cards with minimal friction.
+QuickCard for AnkiDroid is an Android utility application designed to streamline the process of creating high-quality language flashcards for AnkiDroid. By providing offline Wiktionary data, it helps language learners build their own cards with minimal friction.
 
 ## 🚀 Features
 
@@ -37,7 +37,7 @@ This app uses Firebase for several features:
 
 To build the app yourself:
 1. Create a Firebase project.
-2. Register an Android app with the package name `com.github.lauroschuck.ankiquickadd`.
+2. Register an Android app with the package name `com.github.lauroschuck.quickcard4ankidroid`.
 3. Download the `google-services.json` and place it in the `app/` directory.
 
 ### Dictionary Hosting

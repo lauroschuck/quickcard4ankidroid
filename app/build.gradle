@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace 'com.github.lauroschuck.ankiquickadd'
+    namespace 'com.github.lauroschuck.quickcard4ankidroid'
     compileSdk 36
 
     defaultConfig {
-        applicationId "com.github.lauroschuck.ankiquickadd"
+        applicationId "com.github.lauroschuck.quickcard4ankidroid"
         minSdk 26
         targetSdk 36
         versionCode 1

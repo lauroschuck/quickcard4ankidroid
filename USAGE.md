@@ -1,6 +1,6 @@
 # Usage Guide
 
-Anki Quick Add is designed to be part of your reading and learning workflow. Here is how to make the most of it.
+QuickCard for AnkiDroid is designed to be part of your reading and learning workflow. Here is how to make the most of it.
 
 ## 1. Initial Setup
 
@@ -21,7 +21,7 @@ Before using the app, ensure you have configured your dictionary:
 ### System-wide (Process Text)
 You can search for words without leaving the app you are currently reading in (like a browser or ebook reader):
 1.  **Highlight/Select** a word in any app.
-2.  In the context menu that appears (Copy, Paste, etc.), tap the three dots or find **Anki Quick Add** (it might be listed as "Process Text").
+2.  In the context menu that appears (Copy, Paste, etc.), tap the three dots or find **QuickCard Add** (it might be listed as "Process Text").
 3.  The app will open directly with the definition of that word.
 
 ## 3. Creating Flashcards
@@ -36,9 +36,9 @@ Once you have a definition open:
 ## 4. The Enqueue System
 
 If you are reading a long text and don't want to stop to create cards for every new word:
-1.  Use the **Process Text** menu (as described in section 2) and choose **Anki Quick Enqueue**.
+1.  Use the **Process Text** menu (as described in section 2) and choose **QuickCard Enqueue**.
 2.  The word will be added to your **Enqueued Words** list.
-3.  Later, open Anki Quick Add, and you will see your enqueued words on the main screen.
+3.  Later, open QuickCard for AnkiDroid, and you will see your enqueued words on the main screen.
 4.  Tap any word in the list to process it and create your cards.
 5.  Words that have been processed will show a checkmark. You can remove them by tapping the "X" button.
 

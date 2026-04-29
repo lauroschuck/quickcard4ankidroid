@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Anki Quick Add</string>
+    <string name="app_name">QuickCard for AnkiDroid</string>
     <string name="intent_add">Add</string>
     <string name="intent_enqueue">Enqueue</string>
 
@@ -52,4 +52,7 @@
     <string name="permission_grant_button">Allow</string>
     <string name="permission_cancel_button">Not Now</string>
     <string name="permission_settings_button">Settings</string>
+    <string name="error_anki_not_installed_title">AnkiDroid Not Found</string>
+    <string name="error_anki_not_installed_message">AnkiDroid is not installed. Please install it to add cards.</string>
+    <string name="install_button">Install</string>
 </resources>

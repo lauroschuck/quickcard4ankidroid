@@ -9,7 +9,7 @@ java {
 }
 
 application {
-    mainClass = 'com.github.lauroschuck.ankiquickadd.processor.KaikkiProcessor'
+    mainClass = 'com.github.lauroschuck.quickcard4ankidroid.processor.KaikkiProcessor'
 }
 
 dependencies {

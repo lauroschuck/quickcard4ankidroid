@@ -8,7 +8,7 @@
     </queries>
 
     <application
-        android:name="com.github.lauroschuck.ankiquickadd.AnkiQuickAddApplication"
+        android:name="com.github.lauroschuck.quickcard4ankidroid.QuickCard4AnkiDroidApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -16,7 +16,7 @@
         android:theme="@style/AppTheme">
 
         <activity
-            android:name="com.github.lauroschuck.ankiquickadd.ui.main.MainActivity"
+            android:name="com.github.lauroschuck.quickcard4ankidroid.ui.main.MainActivity"
             android:launchMode="singleTop"
             android:exported="true">
             <intent-filter>
@@ -42,8 +42,8 @@
         </activity>
 
         <activity
-            android:name="com.github.lauroschuck.ankiquickadd.ui.enqueue.EnqueueActivity"
-            android:label="Anki Quick Enqueue"
+            android:name="com.github.lauroschuck.quickcard4ankidroid.ui.enqueue.EnqueueActivity"
+            android:label="QuickCard Enqueue"
             android:exported="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar">
             <intent-filter>
@@ -61,7 +61,7 @@
                 android:value="true"/>
         </activity>
 
-        <activity android:name="com.github.lauroschuck.ankiquickadd.ui.settings.SettingsActivity"
+        <activity android:name="com.github.lauroschuck.quickcard4ankidroid.ui.settings.SettingsActivity"
             android:label="Settings"
             android:theme="@style/SettingsTheme" />
 
@@ -73,7 +73,7 @@
             android:theme="@style/LicensesTheme" />
 
         <service
-            android:name="com.github.lauroschuck.ankiquickadd.firebase.AppFirebaseMessagingService"
+            android:name="com.github.lauroschuck.quickcard4ankidroid.firebase.AppFirebaseMessagingService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
