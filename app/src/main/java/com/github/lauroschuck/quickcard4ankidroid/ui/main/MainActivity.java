@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
@@ -112,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
 
         FirebaseHelper.setUserLanguages(viewModel.getLastUsedLearningLanguage(), viewModel.getLastUsedNativeLanguage());
 
+        updateDictionaryTitle();
         handleIntent(getIntent());
     }
 
@@ -252,9 +254,25 @@ public class MainActivity extends AppCompatActivity {
             viewModel.setLastUsedLearningLanguage(currentLearning);
             viewModel.setLastUsedNativeLanguage(currentNative);
             FirebaseHelper.setUserLanguages(currentLearning, currentNative);
+            updateDictionaryTitle();
         }
 
         viewModel.getWordRepository().reload();
+    }
+
+    private void updateDictionaryTitle() {
+        var prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        var learningLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE);
+        var nativeLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE);
+
+        TextView dictionaryTitle = findViewById(R.id.dictionaryTitle);
+        if (learningLanguage != null && nativeLanguage != null) {
+            String title = String.format("%s-%s", learningLanguage.getDisplayName(), nativeLanguage.getDisplayName());
+            dictionaryTitle.setText(title);
+            dictionaryTitle.setVisibility(View.VISIBLE);
+        } else {
+            dictionaryTitle.setVisibility(View.GONE);
+        }
     }
 
     private void setupSourceSpinner() {
