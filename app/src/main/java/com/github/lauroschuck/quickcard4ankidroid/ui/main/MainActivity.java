@@ -376,29 +376,18 @@ public class MainActivity extends AppCompatActivity {
     public void fetchDefinition(@NonNull String word, boolean isFromHistory) {
         Timber.d("Fetching definition for: %s (isFromHistory=%b)", word, isFromHistory);
         var navManager = viewModel.getNavigationManager();
-        if (!isFromHistory
-                && (navManager.getWordHistory().isEmpty()
-                        || !navManager.getWordHistory().peek().equals(word))) {
-            navManager.getWordHistory().push(word);
-        }
 
+        navManager.setIsSearching(true);
         navManager.setCurrentWord(word);
         navManager.setCurrentHtml("");
         navManager.setSearchWarning(null);
-
-        // Ensure we are in DefinitionFragment
-        if (!(getCurrentFragment() instanceof DefinitionFragment)) {
-            getSupportFragmentManager()
-                    .beginTransaction()
-                    .replace(R.id.fragmentContainer, new DefinitionFragment())
-                    .commitNow();
-        }
 
         var prefs = PreferenceManager.getDefaultSharedPreferences(this);
         var learningLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE);
         var nativeLanguage = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE);
 
         if (learningLanguage == null || nativeLanguage == null) {
+            navManager.setIsSearching(false);
             showSearchFragment(getString(R.string.error_select_dictionary));
             return;
         }
@@ -410,7 +399,21 @@ public class MainActivity extends AppCompatActivity {
                 public void onSuccess(String html, String headword) {
                     Timber.d("Successfully fetched definition for: %s", word);
                     FirebaseHelper.logFetchDefinition(word, true);
-                    navManager.setCurrentHtml(html);
+                    runOnUiThread(() -> {
+                        navManager.setIsSearching(false);
+                        if (!isFromHistory) {
+                            navManager.pushHistory(word);
+                        }
+                        navManager.setCurrentHtml(html);
+
+                        // Only now switch to DefinitionFragment if we are not already there
+                        if (!(getCurrentFragment() instanceof DefinitionFragment)) {
+                            getSupportFragmentManager()
+                                    .beginTransaction()
+                                    .replace(R.id.fragmentContainer, new DefinitionFragment())
+                                    .commitNow();
+                        }
+                    });
                 }
 
                 @Override
@@ -423,6 +426,7 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         FirebaseHelper.logFetchDefinition(word, false);
                         runOnUiThread(() -> {
+                            navManager.setIsSearching(false);
                             if (!navManager.getWordHistory().isEmpty()
                                     && navManager.getWordHistory().peek().equals(word)) {
                                 navManager.getWordHistory().pop();
@@ -435,10 +439,14 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onError(String userMessage, Exception exception) {
                     Timber.e(exception, "Serious error fetching definition for '%s': %s", word, userMessage);
-                    showSnackbar(userMessage == null ? "Unknown failure" : userMessage, true);
+                    runOnUiThread(() -> {
+                        navManager.setIsSearching(false);
+                        showSnackbar(userMessage == null ? "Unknown failure" : userMessage, true);
+                    });
                 }
             });
         } else {
+            navManager.setIsSearching(false);
             Timber.e("No current source selected when fetching definition for: %s", word);
         }
     }

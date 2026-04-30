@@ -57,8 +57,20 @@ public class SearchFragment extends Fragment {
         enqueueHeader = view.findViewById(R.id.enqueueHeader);
         enqueueChevron = view.findViewById(R.id.enqueueChevron);
         Button openSettingsButton = view.findViewById(R.id.openSettingsButton);
+        var searchProgressBar = view.findViewById(R.id.searchProgressBar);
 
         searchButton.setOnClickListener(v -> performSearch());
+
+        viewModel.getNavigationManager().isSearching().observe(getViewLifecycleOwner(), searching -> {
+            searchProgressBar.setVisibility(searching ? View.VISIBLE : View.GONE);
+            searchButton.setEnabled(!searching);
+            searchEditText.setEnabled(!searching);
+            if (searching) {
+                searchButton.setText("");
+            } else {
+                searchButton.setText("Search");
+            }
+        });
 
         String currentWord = viewModel.getNavigationManager().getCurrentWord().getValue();
         if (currentWord != null && !currentWord.isEmpty()) {

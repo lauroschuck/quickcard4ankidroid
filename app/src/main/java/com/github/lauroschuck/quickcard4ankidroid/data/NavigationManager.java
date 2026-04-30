@@ -10,6 +10,7 @@ public class NavigationManager {
     private final MutableLiveData<String> currentWord = new MutableLiveData<>("");
     private final MutableLiveData<String> currentHtml = new MutableLiveData<>("");
     private final MutableLiveData<String> searchWarning = new MutableLiveData<>(null);
+    private final MutableLiveData<Boolean> isSearching = new MutableLiveData<>(false);
     private final Stack<String> wordHistory = new Stack<>();
 
     @Setter
@@ -38,6 +39,14 @@ public class NavigationManager {
 
     public void setSearchWarning(String warning) {
         searchWarning.setValue(warning);
+    }
+
+    public LiveData<Boolean> isSearching() {
+        return isSearching;
+    }
+
+    public void setIsSearching(boolean searching) {
+        isSearching.postValue(searching);
     }
 
     public Stack<String> getWordHistory() {
