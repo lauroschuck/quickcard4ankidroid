@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -142,11 +143,12 @@ public class AnkiIntegration {
                 var prefs = PreferenceManager.getDefaultSharedPreferences(context);
                 var parentDeckName = prefs.getString(
                         SettingsActivity.KEY_PARENT_DECK_NAME, SettingsActivity.DEFAULT_PARENT_DECK_NAME);
-                var deckName = String.format(
-                        "%s::%s-%s",
-                        parentDeckName,
-                        learningLanguage.getDisplayName(learningLanguage),
-                        nativeLanguage.getDisplayName(learningLanguage));
+                var subDeckName = prefs.getString(SettingsActivity.KEY_DECK_NAME, null);
+                if (subDeckName == null || subDeckName.isEmpty()) {
+                    throw new RuntimeException("Deck name missing");
+                }
+
+                var deckName = String.format("%s::%s", parentDeckName, subDeckName);
 
                 Timber.d("Target deck: %s", deckName);
                 var deckId = getDeckId(deckName);

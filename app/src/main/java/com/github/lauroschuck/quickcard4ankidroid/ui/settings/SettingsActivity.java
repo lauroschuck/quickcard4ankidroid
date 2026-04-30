@@ -10,6 +10,7 @@ import android.webkit.WebView;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -43,9 +44,13 @@ public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_LEARNING_LANGUAGE = "learning_language";
     public static final String KEY_NATIVE_LANGUAGE = "native_language";
     public static final String KEY_PARENT_DECK_NAME = "parent_deck_name";
+    public static final String KEY_DECK_NAME = "deck_name";
+    public static final String KEY_USE_DEFAULT_DECK_NAME = "use_default_deck_name";
     public static final String DEFAULT_PARENT_DECK_NAME = "QuickCard for AnkiDroid";
 
     private EditText parentDeckNameEditText;
+    private EditText deckNameEditText;
+    private CheckBox useDefaultDeckNameCheckbox;
     private RecyclerView dictionariesRecyclerView;
     private View downloadSection;
     private Spinner newLearningLanguageSpinner;
@@ -89,11 +94,28 @@ public class SettingsActivity extends AppCompatActivity {
 
         // Load initial data
         parentDeckNameEditText.setText(prefs.getString(KEY_PARENT_DECK_NAME, DEFAULT_PARENT_DECK_NAME));
+        useDefaultDeckNameCheckbox.setChecked(prefs.getBoolean(KEY_USE_DEFAULT_DECK_NAME, true));
+        deckNameEditText.setText(prefs.getString(KEY_DECK_NAME, ""));
+        deckNameEditText.setEnabled(!useDefaultDeckNameCheckbox.isChecked());
+
+        if (useDefaultDeckNameCheckbox.isChecked()) {
+            updateDefaultDeckName();
+        }
     }
 
     private void initViews() {
         parentDeckNameEditText = findViewById(R.id.parentDeckNameEditText);
+        deckNameEditText = findViewById(R.id.deckNameEditText);
+        useDefaultDeckNameCheckbox = findViewById(R.id.useDefaultDeckNameCheckbox);
         dictionariesRecyclerView = findViewById(R.id.dictionariesRecyclerView);
+
+        useDefaultDeckNameCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            deckNameEditText.setEnabled(!isChecked);
+            if (isChecked) {
+                updateDefaultDeckName();
+            }
+        });
+
         downloadSection = findViewById(R.id.downloadSection);
         newLearningLanguageSpinner = findViewById(R.id.newLearningLanguageSpinner);
         newNativeLanguageSpinner = findViewById(R.id.newNativeLanguageSpinner);
@@ -189,6 +211,24 @@ public class SettingsActivity extends AppCompatActivity {
         });
     }
 
+    private void updateDefaultDeckName() {
+        if (!useDefaultDeckNameCheckbox.isChecked()) {
+            return;
+        }
+
+        String lIso = prefs.getString(KEY_LEARNING_LANGUAGE, "");
+        String nIso = prefs.getString(KEY_NATIVE_LANGUAGE, "");
+
+        if (!lIso.isEmpty() && !nIso.isEmpty()) {
+            Language learning = Language.ofIsoCode(lIso);
+            Language nativeLang = Language.ofIsoCode(nIso);
+            String defaultName = String.format(
+                            "%s-%s", learning.getDisplayName(learning), nativeLang.getDisplayName(learning))
+                    .toLowerCase(Locale.ROOT);
+            deckNameEditText.setText(defaultName);
+        }
+    }
+
     private void updateAdapterData() {
         String lIso = prefs.getString(KEY_LEARNING_LANGUAGE, "");
         String nIso = prefs.getString(KEY_NATIVE_LANGUAGE, "");
@@ -267,6 +307,7 @@ public class SettingsActivity extends AppCompatActivity {
                 .putString(KEY_LEARNING_LANGUAGE, learning.getIsoCode())
                 .putString(KEY_NATIVE_LANGUAGE, nativeLang.getIsoCode())
                 .apply();
+        updateDefaultDeckName();
         updateAdapterData();
         FirebaseHelper.setUserLanguages(learning, nativeLang);
         Toast.makeText(
@@ -407,6 +448,22 @@ public class SettingsActivity extends AppCompatActivity {
         if (parentDeckName.isEmpty()) {
             parentDeckName = DEFAULT_PARENT_DECK_NAME;
         }
-        prefs.edit().putString(KEY_PARENT_DECK_NAME, parentDeckName).apply();
+
+        String deckName = deckNameEditText.getText().toString().trim();
+        boolean useDefault = useDefaultDeckNameCheckbox.isChecked();
+
+        // If custom name is empty, we must revert to default or prevent saving empty
+        if (!useDefault && deckName.isEmpty()) {
+            // Re-trigger default update if custom was left empty
+            useDefault = true;
+            updateDefaultDeckName();
+            deckName = deckNameEditText.getText().toString().trim();
+        }
+
+        prefs.edit()
+                .putString(KEY_PARENT_DECK_NAME, parentDeckName)
+                .putString(KEY_DECK_NAME, deckName)
+                .putBoolean(KEY_USE_DEFAULT_DECK_NAME, useDefault)
+                .apply();
     }
 }
