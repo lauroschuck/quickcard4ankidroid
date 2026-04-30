@@ -50,7 +50,11 @@ public class WordReferenceSource implements DataSource {
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 if (!response.isSuccessful()) {
-                    listener.onError("WordReference returned code " + response.code());
+                    if (response.code() == 404) {
+                        listener.onNotFound();
+                    } else {
+                        listener.onError("HTTP " + response.code(), null);
+                    }
                     return;
                 }
                 processResponse(response.body().string(), word, listener);
@@ -58,7 +62,7 @@ public class WordReferenceSource implements DataSource {
 
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                listener.onError("Network error: " + e.getMessage());
+                listener.onError("I/O: " + e.getMessage(), e);
             }
         });
     }
@@ -263,7 +267,7 @@ public class WordReferenceSource implements DataSource {
             Document doc = Jsoup.parse(html);
             Element article = doc.getElementById("articleWRD");
             if (article == null) {
-                listener.onError("Translation not found on WordReference.");
+                listener.onNotFound();
                 return;
             }
 
@@ -332,9 +336,9 @@ public class WordReferenceSource implements DataSource {
             String finalHtml = buildHtmlPage(virtualDictionaryWarning + headerHtml + article.html(), word);
             listener.onSuccess(finalHtml, word);
 
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             Timber.e(e, "Parsing error for %s", word);
-            listener.onError("Error parsing WordReference: " + e.getMessage());
+            listener.onError("Parsing/processing error: " + e, e);
         }
     }
 

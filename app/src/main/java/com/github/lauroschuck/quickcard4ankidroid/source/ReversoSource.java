@@ -58,7 +58,7 @@ public class ReversoSource implements DataSource {
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 if (!response.isSuccessful()) {
-                    listener.onError("Reverso returned code " + response.code());
+                    listener.onError("HTTP " + response.code(), null);
                     return;
                 }
                 processResponse(response.body().string(), word, listener);
@@ -66,7 +66,7 @@ public class ReversoSource implements DataSource {
 
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                listener.onError("Network error: " + e.getMessage());
+                listener.onError("I/O: " + e.getMessage(), e);
             }
         });
     }
@@ -297,7 +297,8 @@ public class ReversoSource implements DataSource {
             Element mainContent = doc.selectFirst(".main-container app-context-list .main-content");
 
             if (mainContent == null) {
-                mainContent = doc.body();
+                listener.onNotFound();
+                return;
             }
 
             // Clean POS chips before potentially removing their parents
@@ -363,9 +364,9 @@ public class ReversoSource implements DataSource {
             String finalHtml = buildHtmlPage(headerHtml + mainContent.html(), word);
             listener.onSuccess(finalHtml, word);
 
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             Timber.e(e, "Parsing error from Reverso response for %s", word);
-            listener.onError("Error parsing Reverso Dictionary: " + e.getMessage());
+            listener.onError("Parsing/processing error: " + e, e);
         }
     }
 

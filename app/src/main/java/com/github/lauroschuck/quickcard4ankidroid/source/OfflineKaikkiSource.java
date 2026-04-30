@@ -277,7 +277,7 @@ public class OfflineKaikkiSource implements DataSource {
 
         var db = getDatabase(learningLanguage, nativeLanguage);
         if (db == null) {
-            listener.onError("Offline database not found or could not be opened.");
+            listener.onError("Error opening database", null);
             return;
         }
 
@@ -415,7 +415,7 @@ public class OfflineKaikkiSource implements DataSource {
                     var html = template.apply(data);
                     listener.onSuccess(html, word);
                 } else {
-                    listener.onError("Word not found in offline database: " + word);
+                    listener.onNotFound();
                 }
                 return;
             }
@@ -426,7 +426,7 @@ public class OfflineKaikkiSource implements DataSource {
 
         } catch (IOException e) {
             Timber.e(e, "Template processing failed");
-            listener.onError("Offline DB error: " + e.getMessage());
+            listener.onError("Database error", e);
         }
     }
 

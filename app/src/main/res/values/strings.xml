@@ -23,7 +23,7 @@
     <string name="feedback_error_generic">Error sending feedback. Please try again.</string>
 
     <!-- Main Activity / General -->
-    <string name="error_word_not_found">Word not found: %1$s</string>
+    <string name="error_word_not_found">Word not found on %1$s: %2$s</string>
     <string name="error_select_dictionary">Please select a dictionary in Settings.</string>
     <string name="source_spinner_prompt">Select Source</string>
 

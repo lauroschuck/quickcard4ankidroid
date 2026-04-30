@@ -22,7 +22,9 @@ public interface DataSource {
     interface OnResultListener {
         void onSuccess(String html, String headword);
 
-        void onError(String message);
+        void onNotFound();
+
+        void onError(String userMessage, Exception exception);
     }
 
     /**

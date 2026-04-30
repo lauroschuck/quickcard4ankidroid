@@ -414,11 +414,11 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 @Override
-                public void onError(String message) {
-                    Timber.w("Error fetching definition for %s: %s", word, message);
+                public void onNotFound() {
+                    Timber.i("Could not find definition for '%s'", word);
                     var lowercaseWord = word.toLowerCase(Locale.ROOT);
                     if (!word.equals(lowercaseWord)) {
-                        Timber.d("Retrying with lowercase word: %s", lowercaseWord);
+                        Timber.d("Retrying with lowercase word: '%s'", lowercaseWord);
                         fetchDefinition(lowercaseWord, true);
                     } else {
                         FirebaseHelper.logFetchDefinition(word, false);
@@ -427,9 +427,15 @@ public class MainActivity extends AppCompatActivity {
                                     && navManager.getWordHistory().peek().equals(word)) {
                                 navManager.getWordHistory().pop();
                             }
-                            showSearchFragment(getString(R.string.error_word_not_found, word));
+                            showSearchFragment(getString(R.string.error_word_not_found, currentSource.getName(), word));
                         });
                     }
+                }
+
+                @Override
+                public void onError(String userMessage, Exception exception) {
+                    Timber.e(exception, "Serious error fetching definition for '%s': %s", word, userMessage);
+                    showSnackbar(userMessage == null ? "Unknown failure" : userMessage, true);
                 }
             });
         } else {
