@@ -273,9 +273,8 @@ public class SettingsActivity extends AppCompatActivity {
 
             CompactDecimalFormat df =
                     CompactDecimalFormat.getInstance(Locale.US, CompactDecimalFormat.CompactStyle.SHORT);
-            dictionaryStatsText.setText(String.format(
-                    Locale.US,
-                    "Size: %s\nLast modified: %s\n%s headwords\n%s definitions\n%s example phrases\n%s pronunciations",
+            dictionaryStatsText.setText(getString(
+                    R.string.settings_dictionary_stats_format,
                     sizeStr,
                     formatInstant(stats.lastModified()),
                     df.format(stats.headwords()),
@@ -312,24 +311,26 @@ public class SettingsActivity extends AppCompatActivity {
         FirebaseHelper.setUserLanguages(learning, nativeLang);
         Toast.makeText(
                         this,
-                        String.format(
-                                "Active dictionary set to %s-%s",
-                                learning.getDisplayName(), nativeLang.getDisplayName()),
+                        getString(
+                                R.string.settings_active_dict_changed,
+                                learning.getDisplayName(),
+                                nativeLang.getDisplayName()),
                         Toast.LENGTH_SHORT)
                 .show();
     }
 
     private void confirmDelete(MainViewModel.DownloadedDictionary dict) {
         new AlertDialog.Builder(this)
-                .setTitle("Delete Dictionary")
-                .setMessage(String.format(
-                        "Are you sure you want to delete the %s-%s dictionary?",
-                        dict.learning().getDisplayName(), dict.nativeLang().getDisplayName()))
-                .setPositiveButton("Delete", (dialog, which) -> {
+                .setTitle(R.string.settings_delete_dict_title)
+                .setMessage(getString(
+                        R.string.settings_delete_dict_message,
+                        dict.learning().getDisplayName(),
+                        dict.nativeLang().getDisplayName()))
+                .setPositiveButton(R.string.settings_delete_confirm, (dialog, which) -> {
                     viewModel.deleteDictionary(dict);
                     FirebaseHelper.logDeleteDictionary(dict.learning(), dict.nativeLang());
                 })
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton(R.string.settings_cancel, null)
                 .show();
     }
 
@@ -342,53 +343,64 @@ public class SettingsActivity extends AppCompatActivity {
         DatabaseRemoteStorage.DictionaryStats local = dict.localStats();
 
         long sizeDiff = remote.sizeBytes() - local.sizeBytes();
-        String message = String.format(
-                Locale.US,
-                "A newer version of the %s-%s dictionary is available, data from %s.\n\n"
-                        + "Comparison:\n"
-                        + "- Headwords: %d → %d (%+d)\n"
-                        + "- Definitions: %d → %d (%+d)\n"
-                        + "- Examples: %d → %d (%+d)\n"
-                        + "- Pronunciations: %d → %d (%+d)\n"
-                        + "- Size: %s → %s (%s)\n\n"
-                        + "Download and update now?",
-                dict.learning().getDisplayName(),
-                dict.nativeLang().getDisplayName(),
-                formatInstant(local.lastModified()),
-                local.headwords(),
-                remote.headwords(),
-                (remote.headwords() - local.headwords()),
-                local.glosses(),
-                remote.glosses(),
-                (remote.glosses() - local.glosses()),
-                local.examples(),
-                remote.examples(),
-                (remote.examples() - local.examples()),
-                local.pronunciations(),
-                remote.pronunciations(),
-                (remote.pronunciations() - local.pronunciations()),
-                Formatter.formatShortFileSize(this, local.sizeBytes()),
-                Formatter.formatShortFileSize(this, remote.sizeBytes()),
-                (Math.signum(sizeDiff) >= 0 ? "+" : "-")
-                        + Formatter.formatShortFileSize(this, Math.abs(remote.sizeBytes() - local.sizeBytes())));
+        String comparison = getString(
+                        R.string.settings_update_comparison_line,
+                        getString(R.string.settings_stats_headwords),
+                        local.headwords(),
+                        remote.headwords(),
+                        (remote.headwords() - local.headwords()))
+                + "\n"
+                + getString(
+                        R.string.settings_update_comparison_line,
+                        getString(R.string.settings_stats_definitions),
+                        local.glosses(),
+                        remote.glosses(),
+                        (remote.glosses() - local.glosses()))
+                + "\n"
+                + getString(
+                        R.string.settings_update_comparison_line,
+                        getString(R.string.settings_stats_examples),
+                        local.examples(),
+                        remote.examples(),
+                        (remote.examples() - local.examples()))
+                + "\n"
+                + getString(
+                        R.string.settings_update_comparison_line,
+                        getString(R.string.settings_stats_pronunciations),
+                        local.pronunciations(),
+                        remote.pronunciations(),
+                        (remote.pronunciations() - local.pronunciations()))
+                + "\n"
+                + getString(
+                        R.string.settings_update_comparison_line_size,
+                        getString(R.string.settings_stats_size),
+                        Formatter.formatShortFileSize(this, local.sizeBytes()),
+                        Formatter.formatShortFileSize(this, remote.sizeBytes()),
+                        (Math.signum(sizeDiff) >= 0 ? "+" : "-")
+                                + Formatter.formatShortFileSize(
+                                        this, Math.abs(remote.sizeBytes() - local.sizeBytes())));
 
         new AlertDialog.Builder(this)
-                .setTitle("Update Dictionary")
-                .setMessage(message)
-                .setPositiveButton("Update", (dialog, which) -> {
+                .setTitle(R.string.settings_update_dict_title)
+                .setMessage(getString(
+                        R.string.settings_update_dict_message,
+                        dict.learning().getDisplayName(),
+                        dict.nativeLang().getDisplayName(),
+                        formatInstant(local.lastModified()),
+                        comparison))
+                .setPositiveButton(R.string.settings_update_confirm, (dialog, which) -> {
                     viewModel.updateDictionary(dict);
                 })
-                .setNegativeButton("Cancel", null)
+                .setNegativeButton(R.string.settings_cancel, null)
                 .show();
     }
 
     private void confirmClearCache() {
         new AlertDialog.Builder(this)
-                .setTitle("Clear App Cache")
-                .setMessage(
-                        "This will clear the WebView cache and temporary download files. Your downloaded dictionaries will NOT be deleted. Proceed?")
-                .setPositiveButton("Clear", (dialog, which) -> clearAppCache())
-                .setNegativeButton("Cancel", null)
+                .setTitle(R.string.settings_clear_cache_title)
+                .setMessage(R.string.settings_clear_cache_message)
+                .setPositiveButton(R.string.settings_clear_confirm, (dialog, which) -> clearAppCache())
+                .setNegativeButton(R.string.settings_cancel, null)
                 .show();
     }
 
@@ -414,11 +426,12 @@ public class SettingsActivity extends AppCompatActivity {
                 }
             }
 
-            Toast.makeText(this, "Cache cleared successfully", Toast.LENGTH_SHORT)
+            Toast.makeText(this, R.string.settings_cache_cleared, Toast.LENGTH_SHORT)
                     .show();
         } catch (Exception e) {
             Timber.e(e, "Failed to clear app cache");
-            Toast.makeText(this, "Failed to clear cache", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.settings_cache_clear_failed, Toast.LENGTH_SHORT)
+                    .show();
         }
     }
 

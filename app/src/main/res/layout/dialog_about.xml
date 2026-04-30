@@ -77,7 +77,7 @@
             android:id="@+id/aboutCloseButton"
             android:layout_width="match_parent"
             android:layout_height="60dp"
-            android:text="Close"
+            android:text="@string/common_close"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:textSize="16sp"
             android:textColor="#666666"/>

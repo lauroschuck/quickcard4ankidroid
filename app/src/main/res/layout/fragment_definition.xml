@@ -18,7 +18,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Note type:"
+            android:text="@string/definition_note_type_label"
             android:textStyle="bold"
             android:textColor="@color/anki_dark_text"
             android:layout_marginEnd="8dp"/>
@@ -38,12 +38,12 @@
             <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Dictionary definitions" />
+                android:text="@string/definition_tab_dictionary" />
 
             <com.google.android.material.tabs.TabItem
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Example phrases" />
+                android:text="@string/definition_tab_examples" />
         </com.google.android.material.tabs.TabLayout>
     </LinearLayout>
 
@@ -93,7 +93,7 @@
             app:borderWidth="3dp"
             app:strokeColor="@android:color/white"
             app:maxImageSize="48dp"
-            android:contentDescription="Create Cards"
+            android:contentDescription="@string/definition_create_cards_description"
             app:fabSize="normal"
             app:elevation="4dp"
             app:useCompatPadding="true" />

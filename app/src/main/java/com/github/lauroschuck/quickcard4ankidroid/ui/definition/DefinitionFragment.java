@@ -262,12 +262,12 @@ public class DefinitionFragment extends Fragment {
             mediaPlayer.setOnPreparedListener(MediaPlayer::start);
             mediaPlayer.setOnErrorListener((mp, what, extra) -> {
                 Timber.e("MediaPlayer error: what=%d, extra=%d", what, extra);
-                ((MainActivity) requireActivity()).showSnackbar("Audio playback failed", true);
+                ((MainActivity) requireActivity()).showSnackbar(getString(R.string.definition_audio_failed), true);
                 return true;
             });
         } catch (IOException e) {
             Timber.e(e, "Error setting data source for audio");
-            ((MainActivity) requireActivity()).showSnackbar("Audio playback failed", true);
+            ((MainActivity) requireActivity()).showSnackbar(getString(R.string.definition_audio_failed), true);
         }
     }
 

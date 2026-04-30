@@ -23,7 +23,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="Search word..."
+                android:hint="@string/search_hint"
                 android:inputType="text"
                 android:textColor="@color/anki_dark_text"
                 android:textColorHint="@color/anki_light_text"
@@ -38,7 +38,7 @@
                     android:id="@+id/searchButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Search"
+                    android:text="@string/search_button"
                     android:backgroundTint="@color/anki_blue"
                     android:textColor="@android:color/white" />
 
@@ -78,7 +78,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Enqueued Words"
+                android:text="@string/search_enqueued_words_header"
                 android:textStyle="bold"
                 android:textColor="@color/anki_dark_text"/>
 
@@ -110,7 +110,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="No dictionary active"
+            android:text="@string/search_no_dictionary_title"
             android:textSize="20sp"
             android:textStyle="bold"
             android:textColor="@color/anki_dark_text"
@@ -119,7 +119,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Please download and select a dictionary in Settings to start adding cards."
+            android:text="@string/search_no_dictionary_message"
             android:gravity="center"
             android:textColor="@color/anki_light_text"
             android:layout_marginBottom="24dp"/>
@@ -128,7 +128,7 @@
             android:id="@+id/openSettingsButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Go to Settings"
+            android:text="@string/search_go_to_settings"
             android:backgroundTint="@color/anki_blue"
             android:textColor="@android:color/white"/>
     </LinearLayout>

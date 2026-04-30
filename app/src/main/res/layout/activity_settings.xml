@@ -25,7 +25,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Settings"
+                android:text="@string/settings_title"
                 android:textColor="@android:color/white"
                 android:textSize="18sp"
                 android:textStyle="bold"
@@ -42,7 +42,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Anki Deck"
+            android:text="@string/settings_section_anki_deck"
             android:textSize="20sp"
             android:textStyle="bold"
             android:layout_marginBottom="16dp" />
@@ -50,7 +50,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Parent deck name"
+            android:text="@string/settings_parent_deck_label"
             android:textStyle="bold" />
 
         <EditText
@@ -59,13 +59,13 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:layout_marginBottom="12dp"
-            android:hint="QuickCard for AnkiDroid"
+            android:hint="@string/settings_parent_deck_hint"
             android:inputType="text" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Deck name"
+            android:text="@string/settings_deck_name_label"
             android:textStyle="bold" />
 
         <EditText
@@ -74,14 +74,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
             android:layout_marginBottom="4dp"
-            android:hint="Custom deck name"
+            android:hint="@string/settings_deck_name_hint"
             android:inputType="text" />
 
         <CheckBox
             android:id="@+id/useDefaultDeckNameCheckbox"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Use default name"
+            android:text="@string/settings_use_default_name"
             android:layout_marginBottom="16dp" />
 
         <View
@@ -93,7 +93,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="General Settings"
+            android:text="@string/settings_section_general"
             android:textSize="20sp"
             android:textStyle="bold"
             android:layout_marginBottom="16dp" />
@@ -102,7 +102,7 @@
             android:id="@+id/clearCacheButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Clear App Cache"
+            android:text="@string/settings_clear_cache_button"
             style="?android:attr/borderlessButtonStyle"
             android:textColor="@color/error_red"
             android:layout_gravity="end"
@@ -125,7 +125,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Downloaded Dictionaries"
+                android:text="@string/settings_downloaded_dictionaries_label"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
@@ -133,7 +133,7 @@
                 android:id="@+id/addDictionaryButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Add"
+                android:text="@string/settings_add_dictionary_button"
                 style="?android:attr/borderlessButtonStyle"
                 android:textColor="@color/anki_blue" />
         </LinearLayout>
@@ -157,14 +157,14 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Download New Dictionary"
+                android:text="@string/settings_download_section_title"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Learning Language"
+                android:text="@string/settings_learning_language_label"
                 android:textSize="12sp" />
 
             <Spinner
@@ -176,7 +176,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Native Language"
+                android:text="@string/settings_native_language_label"
                 android:textSize="12sp" />
 
             <Spinner
@@ -198,7 +198,7 @@
                 android:id="@+id/downloadButton"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Download"
+                android:text="@string/settings_download_button"
                 android:backgroundTint="@color/anki_blue"
                 android:textColor="@android:color/white" />
         </LinearLayout>

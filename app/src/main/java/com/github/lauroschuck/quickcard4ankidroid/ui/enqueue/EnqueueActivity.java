@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.widget.Toast;
+import com.github.lauroschuck.quickcard4ankidroid.R;
 import com.github.lauroschuck.quickcard4ankidroid.firebase.FirebaseHelper;
 import java.util.HashSet;
 import java.util.Set;
@@ -28,7 +29,8 @@ public class EnqueueActivity extends Activity {
             String word = text.toString().trim().toLowerCase();
             if (!word.isEmpty()) {
                 enqueueWord(word);
-                Toast.makeText(this, "Enqueued: " + word, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, getString(R.string.enqueue_success, word), Toast.LENGTH_SHORT)
+                        .show();
             }
         }
         finish();

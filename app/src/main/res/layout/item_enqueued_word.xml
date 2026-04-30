@@ -14,7 +14,7 @@
         android:src="@drawable/ic_check"
         android:visibility="invisible"
         android:layout_marginEnd="4dp"
-        android:contentDescription="Added to Anki" />
+        android:contentDescription="@string/common_added_to_anki" />
 
     <TextView
         android:id="@+id/wordText"
@@ -30,5 +30,5 @@
         android:layout_height="32dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@android:drawable/ic_menu_delete"
-        android:contentDescription="Remove" />
+        android:contentDescription="@string/common_remove" />
 </LinearLayout>

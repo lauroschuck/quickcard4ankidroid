@@ -37,7 +37,7 @@
             android:visibility="gone"
             android:layout_marginEnd="8dp"
             app:tint="@color/error_red"
-            android:contentDescription="Unsupported dictionary" />
+            android:contentDescription="@string/dict_unsupported_description" />
 
         <ImageButton
             android:id="@+id/updateButton"
@@ -48,7 +48,7 @@
             android:visibility="gone"
             android:layout_marginEnd="4dp"
             app:tint="@color/anki_blue"
-            android:contentDescription="Update available" />
+            android:contentDescription="@string/dict_update_available_description" />
 
         <ImageButton
             android:id="@+id/deleteButton"
@@ -56,7 +56,7 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_delete"
-            android:contentDescription="Delete" />
+            android:contentDescription="@string/dict_delete_description" />
     </LinearLayout>
 
     <LinearLayout

@@ -55,4 +55,87 @@
     <string name="error_anki_not_installed_title">AnkiDroid Not Found</string>
     <string name="error_anki_not_installed_message">AnkiDroid is not installed. Please install it to add cards.</string>
     <string name="install_button">Install</string>
+
+    <!-- Menu -->
+    <string name="menu_settings">Settings</string>
+
+    <!-- Search Fragment -->
+    <string name="search_hint">Search word...</string>
+    <string name="search_button">Search</string>
+    <string name="search_enqueued_words_header">Enqueued Words</string>
+    <string name="search_no_dictionary_title">No dictionary active</string>
+    <string name="search_no_dictionary_message">Please download and select a dictionary in Settings to start adding cards.</string>
+    <string name="search_go_to_settings">Go to Settings</string>
+
+    <!-- Definition Fragment -->
+    <string name="definition_note_type_label">Note type:</string>
+    <string name="definition_tab_dictionary">Dictionary definitions</string>
+    <string name="definition_tab_examples">Example phrases</string>
+    <string name="definition_create_cards_description">Create Cards</string>
+    <string name="definition_audio_failed">Audio playback failed</string>
+
+    <!-- Settings Activity -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_anki_deck">Anki Deck</string>
+    <string name="settings_parent_deck_label">Parent deck name</string>
+    <string name="settings_parent_deck_hint">QuickCard for AnkiDroid</string>
+    <string name="settings_deck_name_label">Deck name</string>
+    <string name="settings_deck_name_hint">Custom deck name</string>
+    <string name="settings_use_default_name">Use default name</string>
+    <string name="settings_section_general">General Settings</string>
+    <string name="settings_clear_cache_button">Clear App Cache</string>
+    <string name="settings_downloaded_dictionaries_label">Downloaded Dictionaries</string>
+    <string name="settings_add_dictionary_button">Add</string>
+    <string name="settings_download_section_title">Download New Dictionary</string>
+    <string name="settings_learning_language_label">Learning Language</string>
+    <string name="settings_native_language_label">Native Language</string>
+    <string name="settings_download_button">Download</string>
+
+    <!-- Settings Activity Dialogs/Toasts -->
+    <string name="settings_cache_cleared">Cache cleared successfully</string>
+    <string name="settings_cache_clear_failed">Failed to clear cache</string>
+    <string name="settings_dictionary_stats_format">Size: %1$s\nLast modified: %2$s\n%3$s headwords\n%4$s definitions\n%5$s example phrases\n%6$s pronunciations</string>
+    <string name="settings_active_dict_changed">Active dictionary set to %1$s-%2$s</string>
+    <string name="settings_stats_headwords">Headwords</string>
+    <string name="settings_stats_definitions">Definitions</string>
+    <string name="settings_stats_examples">Examples</string>
+    <string name="settings_stats_pronunciations">Pronunciations</string>
+    <string name="settings_stats_size">Size</string>
+    <string name="settings_update_comparison_line">- %1$s: %2$d → %3$d (%4$+d)</string>
+    <string name="settings_update_comparison_line_size">- %1$s: %2$s → %3$s (%4$s)</string>
+    <string name="settings_delete_dict_title">Delete Dictionary</string>
+    <string name="settings_delete_dict_message">Are you sure you want to delete the %1$s-%2$s dictionary?</string>
+    <string name="settings_delete_confirm">Delete</string>
+    <string name="settings_update_dict_title">Update Dictionary</string>
+    <string name="settings_update_dict_message">A newer version of the %1$s-%2$s dictionary is available, data from %3$s.\n\nComparison:\n%4$s\n\nDownload and update now?</string>
+    <string name="settings_update_confirm">Update</string>
+    <string name="settings_clear_cache_title">Clear App Cache</string>
+    <string name="settings_clear_cache_message">This will clear the WebView cache and temporary download files. Your downloaded dictionaries will NOT be deleted. Proceed?</string>
+    <string name="settings_clear_confirm">Clear</string>
+    <string name="settings_cancel">Cancel</string>
+
+    <!-- Dictionary Adapter -->
+    <string name="dict_unsupported_description">Unsupported dictionary</string>
+    <string name="dict_update_available_description">Update available</string>
+    <string name="dict_delete_description">Delete</string>
+
+    <!-- Enqueue Activity -->
+    <string name="enqueue_success">Enqueued: %1$s</string>
+
+    <!-- Anki Integration -->
+    <string name="anki_no_cards_selected">No cards selected.</string>
+    <string name="anki_add_failed_model">Card add failed: Model Error</string>
+    <string name="anki_notes_exist">Notes already exist in Anki</string>
+    <plurals name="anki_add_success">
+        <item quantity="one">Successfully sent %1$d note to Anki</item>
+        <item quantity="other">Successfully sent %1$d notes to Anki</item>
+    </plurals>
+    <string name="anki_add_failed_none">Card add failed: No notes added</string>
+    <string name="anki_add_failed_error">Error adding cards: %1$s</string>
+    <string name="anki_duplicate_note">Note for \'%1$s\' (%2$s) already exists on Anki</string>
+
+    <!-- General -->
+    <string name="common_close">Close</string>
+    <string name="common_added_to_anki">Added to Anki</string>
+    <string name="common_remove">Remove</string>
 </resources>

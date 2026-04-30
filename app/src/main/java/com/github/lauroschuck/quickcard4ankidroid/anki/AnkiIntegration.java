@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -130,7 +129,7 @@ public class AnkiIntegration {
             Consumer<String> onSuccess) {
         if (cards.isEmpty()) {
             Timber.w("No cards selected to add");
-            showSnackbar(context, "No cards selected.", true);
+            showSnackbar(context, context.getString(R.string.anki_no_cards_selected), true);
             return;
         }
 
@@ -157,7 +156,7 @@ public class AnkiIntegration {
                 var actualFieldNames = ankiDroidHelper.getApi().getFieldList(modelId);
                 if (actualFieldNames == null) {
                     Timber.e("Could not get field list for modelId: %d", modelId);
-                    showSnackbar(context, "Card add failed: Model Error", true);
+                    showSnackbar(context, context.getString(R.string.anki_add_failed_model), true);
                     return;
                 }
 
@@ -182,9 +181,10 @@ public class AnkiIntegration {
                         Timber.w("Found duplicate note '%s', aborting", id);
                         showSnackbar(
                                 context,
-                                String.format(
-                                        "Note for '%s' (%s) already exists on Anki",
-                                        firstDuplicate.headword(), firstDuplicate.lexicalCategory()),
+                                context.getString(
+                                        R.string.anki_duplicate_note,
+                                        firstDuplicate.headword(),
+                                        firstDuplicate.lexicalCategory()),
                                 true);
                         return;
                     }
@@ -199,7 +199,7 @@ public class AnkiIntegration {
 
                 if (fieldsList.isEmpty()) {
                     Timber.i("No new notes to add (all were duplicates)");
-                    showSnackbar(context, "Notes already exist in Anki", false);
+                    showSnackbar(context, context.getString(R.string.anki_notes_exist), false);
                     return;
                 }
 
@@ -207,7 +207,10 @@ public class AnkiIntegration {
                 Timber.i("Successfully added %d/%d notes to Anki", added, fieldsList.size());
 
                 if (added > 0) {
-                    showSnackbar(context, "Successfully sent " + added + " cards to Anki", false);
+                    showSnackbar(
+                            context,
+                            context.getResources().getQuantityString(R.plurals.anki_add_success, added, added),
+                            false);
                     if (onSuccess != null) {
                         for (int i = 0; i < added; i++) {
                             // This is a bit of a simplification as we don't know exactly which ones were added if some
@@ -218,11 +221,11 @@ public class AnkiIntegration {
                     }
                 } else {
                     Timber.w("No notes were added to Anki");
-                    showSnackbar(context, "Card add failed: No notes added", true);
+                    showSnackbar(context, context.getString(R.string.anki_add_failed_none), true);
                 }
             } catch (Exception e) {
                 Timber.e(e, "Error adding cards to Anki");
-                showSnackbar(context, "Error adding cards: " + e.getMessage(), true);
+                showSnackbar(context, context.getString(R.string.anki_add_failed_error, e.getMessage()), true);
             }
         });
     }
