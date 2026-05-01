@@ -15,10 +15,7 @@ import com.github.lauroschuck.quickcard4ankidroid.model.Language;
 import com.github.lauroschuck.quickcard4ankidroid.ui.main.MainViewModel;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -251,16 +248,14 @@ public class OfflineKaikkiSource implements DataSource {
 
         close();
 
-        try {
-            copyDatabaseIfNeeded(dbName);
-            var dbFile = context.getDatabasePath(dbName);
-            if (!dbFile.exists()) {
-                Timber.e("Database file not found: %s", dbFile.getAbsolutePath());
-                throw new DataSourceException(String.format(
-                        "File not found for %s-%s database",
-                        learningLanguage.getIsoCode(), nativeLanguage.getIsoCode()));
-            }
+        var dbFile = context.getDatabasePath(dbName);
+        if (!dbFile.exists()) {
+            Timber.e("Database file not found: %s", dbFile.getAbsolutePath());
+            throw new DataSourceException(String.format(
+                    "File not found for %s-%s database", learningLanguage.getIsoCode(), nativeLanguage.getIsoCode()));
+        }
 
+        try {
             currentDb = SQLiteDatabase.openDatabase(dbFile.getPath(), null, SQLiteDatabase.OPEN_READONLY);
             currentDbName = dbName;
             Timber.d("Opened offline database: %s", dbName);
@@ -270,13 +265,6 @@ public class OfflineKaikkiSource implements DataSource {
             throw new DataSourceException(
                     String.format(
                             "Failed to open %s-%s database",
-                            learningLanguage.getIsoCode(), nativeLanguage.getIsoCode()),
-                    e);
-        } catch (IOException e) {
-            Timber.e(e, "I/O error during database preparation: %s", dbName);
-            throw new DataSourceException(
-                    String.format(
-                            "I/O error during %s-%s database preparation",
                             learningLanguage.getIsoCode(), nativeLanguage.getIsoCode()),
                     e);
         }
@@ -693,20 +681,5 @@ public class OfflineKaikkiSource implements DataSource {
             }
         }
         return glosses.toString();
-    }
-
-    private void copyDatabaseIfNeeded(String dbName) throws IOException {
-        var dbFile = context.getDatabasePath(dbName);
-        if (!dbFile.exists()) {
-            dbFile.getParentFile().mkdirs();
-            try (InputStream is = context.getAssets().open(dbName);
-                    OutputStream os = new FileOutputStream(dbFile)) {
-                var buffer = new byte[1024];
-                int length;
-                while ((length = is.read(buffer)) > 0) {
-                    os.write(buffer, 0, length);
-                }
-            }
-        }
     }
 }
