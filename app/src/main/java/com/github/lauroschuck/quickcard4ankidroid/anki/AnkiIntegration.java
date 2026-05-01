@@ -25,11 +25,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import lombok.Getter;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -158,7 +162,10 @@ public class AnkiIntegration {
                     throw new AnkiException(context.getString(R.string.anki_add_failed_model));
                 }
 
-                var audio = processAudio(audioUrl);
+                var audio = processAudio(audioUrl, cards.get(0).headword());
+                if (audio == null) {
+                    return;
+                }
 
                 var fieldsList = note.generateFields(
                         learningLanguage, nativeLanguage, audio, sourceUrl, actualFieldNames, cards);
@@ -228,10 +235,69 @@ public class AnkiIntegration {
         });
     }
 
-    private String processAudio(Uri audioUrl) {
+    /**
+     * @return the media String if successful, empty if no audio or failed download where
+     * the user accepted the lack of audio, or null if the user declined the lack of audio.
+     */
+    private String processAudio(Uri audioUrl, String headword) {
+        if (audioUrl == null) {
+            return "";
+        }
+        try {
+            return addAudioMedia(audioUrl);
+        } catch (AudioProcessingException e) {
+            Timber.e(e, "Audio processing failed for %s", audioUrl);
+            var latch = new CountDownLatch(1);
+            var shouldProceed = new AtomicBoolean(false);
+
+            var downloadException = findCause(e, DownloadException.class);
+            var message = downloadException != null
+                    ? context.getString(
+                            R.string.anki_audio_failed_message_http, headword, downloadException.getHttpCode())
+                    : context.getString(R.string.anki_audio_failed_message, headword);
+
+            context.runOnUiThread(() -> {
+                new AlertDialog.Builder(context)
+                        .setTitle(R.string.anki_audio_failed_title)
+                        .setMessage(message)
+                        .setPositiveButton(R.string.anki_audio_failed_proceed, (dialog, which) -> {
+                            shouldProceed.set(true);
+                            latch.countDown();
+                        })
+                        .setNegativeButton(R.string.anki_audio_failed_cancel, (dialog, which) -> {
+                            shouldProceed.set(false);
+                            latch.countDown();
+                        })
+                        .setCancelable(false)
+                        .show();
+            });
+
+            try {
+                latch.await();
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                return null;
+            }
+
+            return shouldProceed.get() ? "" : null;
+        }
+    }
+
+    private <T extends Throwable> T findCause(Throwable throwable, Class<T> clazz) {
+        var current = throwable;
+        while (current != null) {
+            if (clazz.isInstance(current)) {
+                return clazz.cast(current);
+            }
+            current = current.getCause();
+        }
+        return null;
+    }
+
+    private String addAudioMedia(Uri audioUrl) {
         var ankiPkg = AddContentApi.getAnkiDroidPackageName(context);
-        if (audioUrl == null || ankiPkg == null) {
-            return null;
+        if (ankiPkg == null) {
+            throw new AudioProcessingException("AnkiDroid package not found");
         }
 
         Timber.d("Processing audio: %s", audioUrl);
@@ -247,18 +313,16 @@ public class AnkiIntegration {
                 if (internalName != null) {
                     return internalName;
                 }
+                throw new AudioProcessingException("AnkiDroid failed to add media");
             } finally {
                 // Revoke permission after synchronous call is finished
                 context.revokeUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
             }
         } catch (IOException e) {
-            Timber.e(e, "Audio I/O failed for URL %s", audioUrl);
-            showSnackbar(context, context.getString(R.string.anki_audio_download_failed), true);
+            throw new AudioProcessingException("Audio I/O failed", e);
         } catch (RuntimeException e) {
-            Timber.e(e, "Audio processing failed for URL %s", audioUrl);
-            showSnackbar(context, context.getString(R.string.anki_audio_processing_failed), true);
+            throw new AudioProcessingException("Audio processing failed", e);
         }
-        return null;
     }
 
     private File downloadFile(Uri urlString, String fileName) throws IOException {
@@ -274,7 +338,7 @@ public class AnkiIntegration {
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful() || response.body() == null) {
-                throw new IOException("Failed to download file: " + response);
+                throw new IOException(new DownloadException(response.code()));
             }
 
             var file = new File(context.getCacheDir(), fileName);
@@ -342,5 +406,21 @@ public class AnkiIntegration {
                 Toast.makeText(activity, message, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private static class AudioProcessingException extends RuntimeException {
+        public AudioProcessingException(String message) {
+            super(message);
+        }
+
+        public AudioProcessingException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
+    @RequiredArgsConstructor
+    @Getter
+    private static class DownloadException extends RuntimeException {
+        private final int httpCode;
     }
 }

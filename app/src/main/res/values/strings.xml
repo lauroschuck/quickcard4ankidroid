@@ -134,6 +134,11 @@
     <string name="anki_add_failed_error">Error adding cards: %1$s</string>
     <string name="anki_audio_download_failed">Audio download failed</string>
     <string name="anki_audio_processing_failed">Audio processing failed</string>
+    <string name="anki_audio_failed_title">Audio Download Failed</string>
+    <string name="anki_audio_failed_message">Could not download audio for \'%1$s\'. Do you want to add the card without audio?</string>
+    <string name="anki_audio_failed_message_http">Could not download audio for \'%1$s\' (HTTP %2$d). Do you want to add the card without audio?</string>
+    <string name="anki_audio_failed_proceed">Add without audio</string>
+    <string name="anki_audio_failed_cancel">Cancel</string>
     <string name="anki_duplicate_note">Note for \'%1$s\' (%2$s) already exists on Anki</string>
 
     <!-- General -->
