@@ -132,6 +132,8 @@
     </plurals>
     <string name="anki_add_failed_none">Card add failed: No notes added</string>
     <string name="anki_add_failed_error">Error adding cards: %1$s</string>
+    <string name="anki_audio_download_failed">Audio download failed</string>
+    <string name="anki_audio_processing_failed">Audio processing failed</string>
     <string name="anki_duplicate_note">Note for \'%1$s\' (%2$s) already exists on Anki</string>
 
     <!-- General -->

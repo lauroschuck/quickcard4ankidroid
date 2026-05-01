@@ -162,7 +162,9 @@ public class ReversoSource implements DataSource {
             List<Map<String, String>> entries =
                     gson.fromJson(entriesArr, new TypeToken<List<Map<String, String>>>() {}.getType());
 
-            if (entries.isEmpty()) return null;
+            if (entries.isEmpty()) {
+                return null;
+            }
 
             // Group by lexical category to create DictionaryNote.Input objects
             Map<String, List<Map<String, String>>> grouped =
@@ -278,7 +280,7 @@ public class ReversoSource implements DataSource {
                     ctxId, escapedHtml);
 
             webView.evaluateJavascript(js, null);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             Timber.e(e, "Error injecting examples from Reverso");
         }
     }
@@ -366,7 +368,7 @@ public class ReversoSource implements DataSource {
 
         } catch (RuntimeException e) {
             Timber.e(e, "Parsing error from Reverso response for %s", word);
-            listener.onError("Parsing/processing error: " + e, e);
+            listener.onError("Parsing/processing error: " + e.getMessage(), e);
         }
     }
 

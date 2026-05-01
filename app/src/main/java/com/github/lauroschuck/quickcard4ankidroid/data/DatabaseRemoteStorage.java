@@ -5,6 +5,7 @@ import android.os.SystemClock;
 import com.github.lauroschuck.quickcard4ankidroid.firebase.FirebaseHelper;
 import com.github.lauroschuck.quickcard4ankidroid.model.Language;
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.annotations.SerializedName;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -64,24 +65,12 @@ public class DatabaseRemoteStorage {
                 }
             }
             callback.onSuccess(stats);
-        } catch (com.google.gson.JsonSyntaxException e) {
+        } catch (JsonSyntaxException e) {
             Timber.e(e, "Failed to parse dictionaries JSON: invalid syntax");
             callback.onError("Metadata parsing error: invalid format");
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             Timber.e(e, "Unexpected error parsing dictionaries metadata");
             callback.onError("Metadata parsing error");
-        }
-    }
-
-    private Instant parseIsoDate(String iso) {
-        if (iso == null || iso.isEmpty()) {
-            return null;
-        }
-        try {
-            return Instant.parse(iso);
-        } catch (java.time.format.DateTimeParseException e) {
-            Timber.w(e, "Failed to parse last_modified date: %s", iso);
-            return null;
         }
     }
 
@@ -135,6 +124,8 @@ public class DatabaseRemoteStorage {
                     } else {
                         callback.onError("Rename failed", null, SystemClock.uptimeMillis() - start);
                     }
+                } catch (IOException e) {
+                    callback.onError("Write failure: " + e.getMessage(), e, SystemClock.uptimeMillis() - start);
                 } finally {
                     if (tempFile.exists()) {
                         tempFile.delete();

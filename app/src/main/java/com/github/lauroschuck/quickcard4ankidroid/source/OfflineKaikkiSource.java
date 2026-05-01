@@ -3,6 +3,7 @@ package com.github.lauroschuck.quickcard4ankidroid.source;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.net.Uri;
 import android.text.TextUtils;
 import com.github.jknack.handlebars.Handlebars;
@@ -18,6 +19,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -236,10 +238,11 @@ public class OfflineKaikkiSource implements DataSource {
     private SQLiteDatabase getDatabase(Language learningLanguage, Language nativeLanguage) {
         var dbName = MainViewModel.getDbNameFromMetadata(context, learningLanguage, nativeLanguage);
         if (dbName == null) {
-            Timber.e(
-                    "No metadata found for dictionary: %s-%s",
+            var msg = String.format(
+                    "No metadata found for %s-%s dictionary",
                     learningLanguage.getIsoCode(), nativeLanguage.getIsoCode());
-            return null;
+            Timber.e(msg);
+            throw new DataSourceException(msg);
         }
 
         if (currentDb != null && dbName.equals(currentDbName)) {
@@ -248,21 +251,34 @@ public class OfflineKaikkiSource implements DataSource {
 
         close();
 
-        copyDatabaseIfNeeded(dbName);
-        var dbFile = context.getDatabasePath(dbName);
-        if (!dbFile.exists()) {
-            Timber.e("Database file not found: %s", dbFile.getAbsolutePath());
-            return null;
-        }
-
         try {
+            copyDatabaseIfNeeded(dbName);
+            var dbFile = context.getDatabasePath(dbName);
+            if (!dbFile.exists()) {
+                Timber.e("Database file not found: %s", dbFile.getAbsolutePath());
+                throw new DataSourceException(String.format(
+                        "File not found for %s-%s database",
+                        learningLanguage.getIsoCode(), nativeLanguage.getIsoCode()));
+            }
+
             currentDb = SQLiteDatabase.openDatabase(dbFile.getPath(), null, SQLiteDatabase.OPEN_READONLY);
             currentDbName = dbName;
             Timber.d("Opened offline database: %s", dbName);
             return currentDb;
-        } catch (Exception e) {
+        } catch (SQLiteException e) {
             Timber.e(e, "Failed to open database: %s", dbName);
-            return null;
+            throw new DataSourceException(
+                    String.format(
+                            "Failed to open %s-%s database",
+                            learningLanguage.getIsoCode(), nativeLanguage.getIsoCode()),
+                    e);
+        } catch (IOException e) {
+            Timber.e(e, "I/O error during database preparation: %s", dbName);
+            throw new DataSourceException(
+                    String.format(
+                            "I/O error during %s-%s database preparation",
+                            learningLanguage.getIsoCode(), nativeLanguage.getIsoCode()),
+                    e);
         }
     }
 
@@ -275,13 +291,9 @@ public class OfflineKaikkiSource implements DataSource {
         this.lastLearningLanguage = learningLanguage;
         this.lastNativeLanguage = nativeLanguage;
 
-        var db = getDatabase(learningLanguage, nativeLanguage);
-        if (db == null) {
-            listener.onError("Error opening database", null);
-            return;
-        }
-
         try {
+            var db = getDatabase(learningLanguage, nativeLanguage);
+
             var data = new HashMap<String, Object>();
             data.put("word", word);
             data.put("maxSenses", DictionaryNote.DEFINITION_FIELDS);
@@ -424,9 +436,11 @@ public class OfflineKaikkiSource implements DataSource {
             Timber.d("Generated HTML length: %d", html.length());
             listener.onSuccess(html, word);
 
+        } catch (DataSourceException e) {
+            listener.onError("Database error: " + e.getMessage(), e);
         } catch (IOException e) {
             Timber.e(e, "Template processing failed");
-            listener.onError("Database error", e);
+            listener.onError("Page construction error", e);
         }
     }
 
@@ -448,7 +462,7 @@ public class OfflineKaikkiSource implements DataSource {
             return Uri.parse(String.format(
                     "https://%s.wiktionary.org/wiki/%s#%s",
                     nativeLanguage.getIsoCode().toLowerCase(), encodedWord, encodedAnchor));
-        } catch (Exception e) {
+        } catch (UnsupportedEncodingException | RuntimeException e) {
             throw new RuntimeException(
                     String.format("Failed to construct link for %s in %s-%s", headword, anchor, nativeLanguage), e);
         }
@@ -536,9 +550,6 @@ public class OfflineKaikkiSource implements DataSource {
             }
 
             var db = getDatabase(lastLearningLanguage, lastNativeLanguage);
-            if (db == null) {
-                throw new IllegalArgumentException("Offline database not found or could not be opened.");
-            }
 
             if (mode.equals("examples")) {
                 var exampleIds = obj.getAsJsonArray("examples");
@@ -684,21 +695,17 @@ public class OfflineKaikkiSource implements DataSource {
         return glosses.toString();
     }
 
-    private void copyDatabaseIfNeeded(String dbName) {
+    private void copyDatabaseIfNeeded(String dbName) throws IOException {
         var dbFile = context.getDatabasePath(dbName);
         if (!dbFile.exists()) {
-            try {
-                dbFile.getParentFile().mkdirs();
-                try (InputStream is = context.getAssets().open(dbName);
-                        OutputStream os = new FileOutputStream(dbFile)) {
-                    var buffer = new byte[1024];
-                    int length;
-                    while ((length = is.read(buffer)) > 0) {
-                        os.write(buffer, 0, length);
-                    }
+            dbFile.getParentFile().mkdirs();
+            try (InputStream is = context.getAssets().open(dbName);
+                    OutputStream os = new FileOutputStream(dbFile)) {
+                var buffer = new byte[1024];
+                int length;
+                while ((length = is.read(buffer)) > 0) {
+                    os.write(buffer, 0, length);
                 }
-            } catch (IOException e) {
-                Timber.e(e, "Database copy failed");
             }
         }
     }

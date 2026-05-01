@@ -168,8 +168,10 @@ public class MainViewModel extends AndroidViewModel {
     public void updateDictionary(DownloadedDictionary dict) {
         DatabaseRemoteStorage.DictionaryStats stats = getStatsFor(dict.learning(), dict.nativeLang());
         if (stats == null) {
-            Timber.e("Cannot update dictionary: remote stats not found");
-            return;
+            var msg =
+                    "Cannot update dictionary: remote stats not found for " + dict.learning() + "-" + dict.nativeLang();
+            Timber.e(msg);
+            throw new RuntimeException(msg);
         }
 
         activeDownload.postValue(new DownloadInfo(dict.learning(), dict.nativeLang(), stats.fileName(), 0, 0));
@@ -276,8 +278,9 @@ public class MainViewModel extends AndroidViewModel {
     public void downloadDictionary(Language learning, Language nativeLang) {
         DatabaseRemoteStorage.DictionaryStats stats = getStatsFor(learning, nativeLang);
         if (stats == null) {
-            Timber.e("Cannot download dictionary: stats not found for %s-%s", learning, nativeLang);
-            return;
+            var msg = String.format("Cannot download dictionary: stats not found for %s-%s", learning, nativeLang);
+            Timber.e(msg);
+            throw new RuntimeException(msg);
         }
 
         activeDownload.postValue(new DownloadInfo(learning, nativeLang, stats.fileName(), 0, 0));

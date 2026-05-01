@@ -150,14 +150,15 @@ public class AnkiDroidHelper {
             return prefsModelId;
         }
         Map<Long, String> modelList = mApi.getModelList(numFields);
-        if (modelList != null) {
-            for (Map.Entry<Long, String> entry : modelList.entrySet()) {
-                if (entry.getValue().equals(modelName)) {
-                    return entry.getKey(); // first model wins
-                }
+        if (modelList == null) {
+            throw new AnkiException("Failed to get model list");
+        }
+        for (Map.Entry<Long, String> entry : modelList.entrySet()) {
+            if (entry.getValue().equals(modelName)) {
+                return entry.getKey(); // first model wins
             }
         }
-        // model no longer exists (by name nor old id), the number of fields was reduced, or API error
+        // model no longer exists (by name nor old id), the number of fields was reduced
         return null;
     }
 
@@ -196,11 +197,12 @@ public class AnkiDroidHelper {
      */
     private Long getDeckId(String deckName) {
         Map<Long, String> deckList = mApi.getDeckList();
-        if (deckList != null) {
-            for (Map.Entry<Long, String> entry : deckList.entrySet()) {
-                if (entry.getValue().equalsIgnoreCase(deckName)) {
-                    return entry.getKey();
-                }
+        if (deckList == null) {
+            throw new AnkiException("Failed to get deck list");
+        }
+        for (Map.Entry<Long, String> entry : deckList.entrySet()) {
+            if (entry.getValue().equalsIgnoreCase(deckName)) {
+                return entry.getKey();
             }
         }
         return null;

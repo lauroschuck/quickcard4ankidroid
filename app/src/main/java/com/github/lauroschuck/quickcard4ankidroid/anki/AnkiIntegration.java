@@ -155,12 +155,10 @@ public class AnkiIntegration {
 
                 var actualFieldNames = ankiDroidHelper.getApi().getFieldList(modelId);
                 if (actualFieldNames == null) {
-                    Timber.e("Could not get field list for modelId: %d", modelId);
-                    showSnackbar(context, context.getString(R.string.anki_add_failed_model), true);
-                    return;
+                    throw new AnkiException(context.getString(R.string.anki_add_failed_model));
                 }
 
-                var audio = audioUrl == null ? null : processAudio(audioUrl);
+                var audio = processAudio(audioUrl);
 
                 var fieldsList = note.generateFields(
                         learningLanguage, nativeLanguage, audio, sourceUrl, actualFieldNames, cards);
@@ -223,7 +221,7 @@ public class AnkiIntegration {
                     Timber.w("No notes were added to Anki");
                     showSnackbar(context, context.getString(R.string.anki_add_failed_none), true);
                 }
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 Timber.e(e, "Error adding cards to Anki");
                 showSnackbar(context, context.getString(R.string.anki_add_failed_error, e.getMessage()), true);
             }
@@ -253,8 +251,12 @@ public class AnkiIntegration {
                 // Revoke permission after synchronous call is finished
                 context.revokeUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
             }
-        } catch (IOException | RuntimeException e) {
+        } catch (IOException e) {
+            Timber.e(e, "Audio I/O failed for URL %s", audioUrl);
+            showSnackbar(context, context.getString(R.string.anki_audio_download_failed), true);
+        } catch (RuntimeException e) {
             Timber.e(e, "Audio processing failed for URL %s", audioUrl);
+            showSnackbar(context, context.getString(R.string.anki_audio_processing_failed), true);
         }
         return null;
     }

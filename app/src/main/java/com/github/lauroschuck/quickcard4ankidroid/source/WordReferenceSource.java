@@ -239,7 +239,9 @@ public class WordReferenceSource implements DataSource {
             List<Map<String, String>> entries =
                     gson.fromJson(entriesArr, new TypeToken<List<Map<String, String>>>() {}.getType());
 
-            if (entries.isEmpty()) return null;
+            if (entries.isEmpty()) {
+                return null;
+            }
 
             Map<String, List<Map<String, String>>> grouped =
                     entries.stream().collect(Collectors.groupingBy(e -> e.getOrDefault("lexicalCategory", "")));
@@ -338,7 +340,7 @@ public class WordReferenceSource implements DataSource {
 
         } catch (RuntimeException e) {
             Timber.e(e, "Parsing error for %s", word);
-            listener.onError("Parsing/processing error: " + e, e);
+            listener.onError("Parsing/processing error: " + e.getMessage(), e);
         }
     }
 
