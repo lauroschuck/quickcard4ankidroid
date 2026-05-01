@@ -2,9 +2,9 @@ package com.github.lauroschuck.quickcard4ankidroid.data;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.preference.PreferenceManager;
 import com.github.lauroschuck.quickcard4ankidroid.firebase.FirebaseHelper;
 import com.github.lauroschuck.quickcard4ankidroid.ui.enqueue.EnqueueActivity;
 import java.util.ArrayList;

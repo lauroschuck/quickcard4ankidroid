@@ -2,11 +2,11 @@ package com.github.lauroschuck.quickcard4ankidroid.ui.main;
 
 import android.app.Application;
 import android.content.Context;
-import android.preference.PreferenceManager;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.preference.PreferenceManager;
 import com.github.lauroschuck.quickcard4ankidroid.data.DataSourceRepository;
 import com.github.lauroschuck.quickcard4ankidroid.data.DatabaseRemoteStorage;
 import com.github.lauroschuck.quickcard4ankidroid.data.NavigationManager;
