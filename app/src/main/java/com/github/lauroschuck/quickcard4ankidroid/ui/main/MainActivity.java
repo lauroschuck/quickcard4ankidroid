@@ -35,6 +35,7 @@ import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import lombok.NonNull;
 import timber.log.Timber;
@@ -242,19 +243,22 @@ public class MainActivity extends AppCompatActivity {
         var currentLearning = getLanguageFromPref(prefs, SettingsActivity.KEY_LEARNING_LANGUAGE);
         var currentNative = getLanguageFromPref(prefs, SettingsActivity.KEY_NATIVE_LANGUAGE);
 
-        if (currentLearning != null
-                && currentNative != null
-                && (!currentLearning.equals(viewModel.getLastUsedLearningLanguage())
-                        || !currentNative.equals(viewModel.getLastUsedNativeLanguage()))) {
-            var word = viewModel.getNavigationManager().getCurrentWord().getValue();
-            if (word != null && !word.isEmpty()) {
-                Timber.d("Language changed, refetching word: %s", word);
-                fetchDefinition(word, true);
+        boolean changed = !Objects.equals(currentLearning, viewModel.getLastUsedLearningLanguage())
+                || !Objects.equals(currentNative, viewModel.getLastUsedNativeLanguage());
+
+        if (changed) {
+            if (currentLearning != null && currentNative != null) {
+                var word = viewModel.getNavigationManager().getCurrentWord().getValue();
+                if (word != null && !word.isEmpty()) {
+                    Timber.d("Language changed, refetching word: %s", word);
+                    fetchDefinition(word, true);
+                }
             }
             viewModel.setLastUsedLearningLanguage(currentLearning);
             viewModel.setLastUsedNativeLanguage(currentNative);
             FirebaseHelper.setUserLanguages(currentLearning, currentNative);
             updateDictionaryTitle();
+            setupSourceSpinner();
         }
 
         viewModel.getWordRepository().reload();

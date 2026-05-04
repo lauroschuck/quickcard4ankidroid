@@ -52,12 +52,8 @@ public class SettingsActivity extends AppCompatActivity {
     private EditText deckNameEditText;
     private CheckBox useDefaultDeckNameCheckbox;
     private RecyclerView dictionariesRecyclerView;
-    private View downloadSection;
-    private Spinner newLearningLanguageSpinner;
-    private Spinner newNativeLanguageSpinner;
-    private TextView dictionaryStatsText;
-    private Button downloadButton;
     private Button clearCacheButton;
+    private Button addDictionaryButton;
 
     private SharedPreferences prefs;
     private MainViewModel viewModel;
@@ -116,47 +112,12 @@ public class SettingsActivity extends AppCompatActivity {
             }
         });
 
-        downloadSection = findViewById(R.id.downloadSection);
-        newLearningLanguageSpinner = findViewById(R.id.newLearningLanguageSpinner);
-        newNativeLanguageSpinner = findViewById(R.id.newNativeLanguageSpinner);
-        dictionaryStatsText = findViewById(R.id.dictionaryStatsText);
-        downloadButton = findViewById(R.id.downloadButton);
         clearCacheButton = findViewById(R.id.clearCacheButton);
+        addDictionaryButton = findViewById(R.id.addDictionaryButton);
 
-        findViewById(R.id.addDictionaryButton).setOnClickListener(v -> {
-            downloadSection.setVisibility(downloadSection.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
-        });
+        addDictionaryButton.setOnClickListener(v -> showDownloadDialog());
 
         clearCacheButton.setOnClickListener(v -> confirmClearCache());
-
-        downloadButton.setOnClickListener(v -> {
-            Language learning = (Language) newLearningLanguageSpinner.getSelectedItem();
-            Language nativeLang = (Language) newNativeLanguageSpinner.getSelectedItem();
-            if (learning != null && nativeLang != null) {
-                viewModel.downloadDictionary(learning, nativeLang);
-            }
-        });
-
-        newLearningLanguageSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                Language selected = (Language) parent.getItemAtPosition(position);
-                updateNativeSpinner(selected);
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {}
-        });
-
-        newNativeLanguageSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                updateStatsDisplay();
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {}
-        });
     }
 
     private void setupRecyclerView() {
@@ -187,11 +148,7 @@ public class SettingsActivity extends AppCompatActivity {
 
         viewModel.getActiveDownload().observe(this, info -> {
             updateAdapterData();
-            downloadButton.setEnabled(info == null);
-        });
-
-        viewModel.getObservableStats().observe(this, stats -> {
-            updateLearningSpinner();
+            addDictionaryButton.setVisibility(info == null ? View.VISIBLE : View.GONE);
         });
 
         viewModel.getDownloadError().observe(this, errorMessage -> {
@@ -240,50 +197,74 @@ public class SettingsActivity extends AppCompatActivity {
         }
     }
 
-    private void updateLearningSpinner() {
-        List<Language> languages = viewModel.getAvailableLearningLanguages();
-        List<Language> sortedList = new ArrayList<>(languages);
-        sortedList.sort(Comparator.comparing(Language::getDisplayName));
+    private void showDownloadDialog() {
+        var view = getLayoutInflater().inflate(R.layout.dialog_download_dictionary, null);
+        Spinner learningSpinner = view.findViewById(R.id.newLearningLanguageSpinner);
+        Spinner nativeSpinner = view.findViewById(R.id.newNativeLanguageSpinner);
+        TextView statsText = view.findViewById(R.id.dictionaryStatsText);
 
-        ArrayAdapter<Language> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, sortedList);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        newLearningLanguageSpinner.setAdapter(adapter);
-    }
+        List<Language> learningLanguages = new ArrayList<>(viewModel.getAvailableLearningLanguages());
+        learningLanguages.sort(Comparator.comparing(Language::getDisplayName));
+        ArrayAdapter<Language> learningAdapter =
+                new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, learningLanguages);
+        learningAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        learningSpinner.setAdapter(learningAdapter);
 
-    private void updateNativeSpinner(Language learning) {
-        List<Language> languages = viewModel.getAvailableNativeLanguages(learning);
-        List<Language> sortedList = new ArrayList<>(languages);
-        sortedList.sort(Comparator.comparing(Language::getDisplayName));
+        learningSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Language selected = (Language) parent.getItemAtPosition(position);
+                List<Language> nativeLanguages = new ArrayList<>(viewModel.getAvailableNativeLanguages(selected));
+                nativeLanguages.sort(Comparator.comparing(Language::getDisplayName));
+                ArrayAdapter<Language> nativeAdapter = new ArrayAdapter<>(
+                        SettingsActivity.this, android.R.layout.simple_spinner_item, nativeLanguages);
+                nativeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                nativeSpinner.setAdapter(nativeAdapter);
+            }
 
-        ArrayAdapter<Language> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, sortedList);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        newNativeLanguageSpinner.setAdapter(adapter);
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
 
-        updateStatsDisplay();
-    }
+        nativeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                Language learning = (Language) learningSpinner.getSelectedItem();
+                Language nativeLang = (Language) nativeSpinner.getSelectedItem();
+                DatabaseRemoteStorage.DictionaryStats stats = viewModel.getStatsFor(learning, nativeLang);
+                if (stats != null) {
+                    statsText.setVisibility(View.VISIBLE);
+                    String sizeStr = Formatter.formatShortFileSize(SettingsActivity.this, stats.sizeBytes());
+                    CompactDecimalFormat df =
+                            CompactDecimalFormat.getInstance(Locale.US, CompactDecimalFormat.CompactStyle.SHORT);
+                    statsText.setText(getString(
+                            R.string.settings_dictionary_stats_format,
+                            sizeStr,
+                            formatInstant(stats.lastModified()),
+                            df.format(stats.headwords()),
+                            df.format(stats.glosses()),
+                            df.format(stats.examples()),
+                            df.format(stats.pronunciations())));
+                } else {
+                    statsText.setVisibility(View.GONE);
+                }
+            }
 
-    private void updateStatsDisplay() {
-        Language learning = (Language) newLearningLanguageSpinner.getSelectedItem();
-        Language nativeLang = (Language) newNativeLanguageSpinner.getSelectedItem();
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
 
-        DatabaseRemoteStorage.DictionaryStats stats = viewModel.getStatsFor(learning, nativeLang);
-        if (stats != null) {
-            dictionaryStatsText.setVisibility(View.VISIBLE);
-            String sizeStr = Formatter.formatShortFileSize(this, stats.sizeBytes());
-
-            CompactDecimalFormat df =
-                    CompactDecimalFormat.getInstance(Locale.US, CompactDecimalFormat.CompactStyle.SHORT);
-            dictionaryStatsText.setText(getString(
-                    R.string.settings_dictionary_stats_format,
-                    sizeStr,
-                    formatInstant(stats.lastModified()),
-                    df.format(stats.headwords()),
-                    df.format(stats.glosses()),
-                    df.format(stats.examples()),
-                    df.format(stats.pronunciations())));
-        } else {
-            dictionaryStatsText.setVisibility(View.GONE);
-        }
+        new AlertDialog.Builder(this)
+                .setView(view)
+                .setPositiveButton(R.string.settings_download_button, (dialog, which) -> {
+                    Language learning = (Language) learningSpinner.getSelectedItem();
+                    Language nativeLang = (Language) nativeSpinner.getSelectedItem();
+                    if (learning != null && nativeLang != null) {
+                        viewModel.downloadDictionary(learning, nativeLang);
+                    }
+                })
+                .setNegativeButton(R.string.settings_cancel, null)
+                .show();
     }
 
     private static String formatInstant(Instant lastMod) {

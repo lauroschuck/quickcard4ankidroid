@@ -160,8 +160,12 @@ public class MainViewModel extends AndroidViewModel {
 
         downloadedDictionaries.postValue(list);
 
-        if (list.size() == 1) {
-            autoSelectDictionary(list.get(0));
+        if (!list.isEmpty()) {
+            String curL = prefs.getString(SettingsActivity.KEY_LEARNING_LANGUAGE, "");
+            String curN = prefs.getString(SettingsActivity.KEY_NATIVE_LANGUAGE, "");
+            if (curL.isEmpty() || curN.isEmpty()) {
+                autoSelectDictionary(list.get(0));
+            }
         }
     }
 
