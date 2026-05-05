@@ -18,6 +18,7 @@
         <activity
             android:name="com.github.lauroschuck.quickcard4ankidroid.ui.main.MainActivity"
             android:launchMode="singleTop"
+            android:label="QuickCard Add"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
