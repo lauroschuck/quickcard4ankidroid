@@ -2,6 +2,7 @@ package com.github.lauroschuck.quickcard4ankidroid.firebase;
 
 import android.content.Context;
 import android.os.Bundle;
+import com.github.lauroschuck.quickcard4ankidroid.BuildConfig;
 import com.github.lauroschuck.quickcard4ankidroid.anki.notes.DictionaryNote;
 import com.github.lauroschuck.quickcard4ankidroid.anki.notes.TextNote;
 import com.github.lauroschuck.quickcard4ankidroid.model.Language;
@@ -9,6 +10,9 @@ import com.github.lauroschuck.quickcard4ankidroid.source.DataSource;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.analytics.FirebaseAnalytics;
+import com.google.firebase.appcheck.FirebaseAppCheck;
+import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory;
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FieldValue;
@@ -29,6 +33,17 @@ public class FirebaseHelper {
     private static FirebaseFirestore firestore;
 
     public static void earlyInit() {
+        // App Check must be the first
+        var firebaseAppCheck = FirebaseAppCheck.getInstance();
+
+        if (BuildConfig.DEBUG) {
+            // Use the Debug Provider for emulators/local testing
+            firebaseAppCheck.installAppCheckProviderFactory(DebugAppCheckProviderFactory.getInstance());
+        } else {
+            // Use Play Integrity for the Play Store version
+            firebaseAppCheck.installAppCheckProviderFactory(PlayIntegrityAppCheckProviderFactory.getInstance());
+        }
+
         remoteConfig = FirebaseRemoteConfig.getInstance();
         FirebaseRemoteConfigSettings configSettings = new FirebaseRemoteConfigSettings.Builder()
                 .setMinimumFetchIntervalInSeconds(3600) // Fetch every hour
