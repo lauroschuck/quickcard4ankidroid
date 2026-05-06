@@ -1,5 +1,6 @@
 package com.github.lauroschuck.quickcard4ankidroid.anki.notes;
 
+import androidx.annotation.Keep;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -91,6 +92,7 @@ public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
         }
     }
 
+    @Keep
     public record Input(
             String headword,
             String ipa,

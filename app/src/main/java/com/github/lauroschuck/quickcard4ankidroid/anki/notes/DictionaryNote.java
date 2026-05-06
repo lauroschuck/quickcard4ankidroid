@@ -1,6 +1,7 @@
 package com.github.lauroschuck.quickcard4ankidroid.anki.notes;
 
 import android.net.Uri;
+import androidx.annotation.Keep;
 import com.github.lauroschuck.quickcard4ankidroid.model.Language;
 import java.util.ArrayList;
 import java.util.List;
@@ -192,6 +193,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
     record IndexedField(int index, @NonNull String fieldName, FieldFunction<Input> valueGenerator)
             implements CardField<Input> {}
 
+    @Keep
     public record Input(
             @NonNull String headword, String ipa, String lexicalCategory, @NonNull List<Definition> definitions)
             implements AbstractAnkiNote.Input {
@@ -202,6 +204,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
             }
         }
 
+        @Keep
         public record Definition(@NonNull String definition, String learningText, String nativeText) {
 
             public Definition {

@@ -307,7 +307,7 @@ public class SettingsActivity extends AppCompatActivity {
                         R.string.settings_delete_dict_message,
                         dict.learning().getDisplayName(),
                         dict.nativeLang().getDisplayName()))
-                .setPositiveButton(R.string.settings_delete_confirm, (dialog, which) -> {
+                .setPositiveButton(R.string.dict_delete_description, (dialog, which) -> {
                     viewModel.deleteDictionary(dict);
                     FirebaseHelper.logDeleteDictionary(dict.learning(), dict.nativeLang());
                 })
@@ -380,7 +380,7 @@ public class SettingsActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle(R.string.settings_clear_cache_title)
                 .setMessage(R.string.settings_clear_cache_message)
-                .setPositiveButton(R.string.settings_clear_confirm, (dialog, which) -> clearAppCache())
+                .setPositiveButton(R.string.common_close, (dialog, which) -> clearAppCache())
                 .setNegativeButton(R.string.settings_cancel, null)
                 .show();
     }

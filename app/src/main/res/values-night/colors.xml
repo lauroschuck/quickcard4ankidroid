@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="enqueue_header_bg">#2C2C2C</color>
     <color name="anki_dark_text">#E1E1E1</color>
     <color name="anki_light_text">#AAAAAA</color>
 </resources>

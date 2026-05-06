@@ -1,9 +1,11 @@
 package com.github.lauroschuck.quickcard4ankidroid.model;
 
+import androidx.annotation.Keep;
 import java.util.Locale;
 import lombok.EqualsAndHashCode;
 import lombok.NonNull;
 
+@Keep
 @EqualsAndHashCode
 public class Language {
 

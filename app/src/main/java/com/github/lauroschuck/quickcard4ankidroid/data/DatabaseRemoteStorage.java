@@ -2,6 +2,7 @@ package com.github.lauroschuck.quickcard4ankidroid.data;
 
 import android.content.Context;
 import android.os.SystemClock;
+import androidx.annotation.Keep;
 import com.github.lauroschuck.quickcard4ankidroid.firebase.FirebaseHelper;
 import com.github.lauroschuck.quickcard4ankidroid.model.Language;
 import com.google.gson.Gson;
@@ -42,28 +43,30 @@ public class DatabaseRemoteStorage {
 
         try {
             Metadata root = gson.fromJson(json, Metadata.class);
-            mirrors.clear();
-            if (root.mirrors != null) {
-                mirrors.addAll(root.mirrors);
+            if (root.mirrors == null
+                    || root.mirrors.isEmpty()
+                    || root.dictionaries == null
+                    || root.dictionaries.isEmpty()) {
+                callback.onError("Invalid dictionary metadata");
+                return;
             }
 
             List<DictionaryStats> stats = new ArrayList<>();
             for (DictionaryEntry entry : root.dictionaries) {
-                try {
-                    stats.add(new DictionaryStats(
-                            Language.ofIsoCode(entry.learningLang),
-                            Language.ofIsoCode(entry.nativeLang),
-                            entry.headwords,
-                            entry.examples,
-                            entry.sizeBytes,
-                            entry.glosses,
-                            entry.pronunciations,
-                            Instant.ofEpochSecond(entry.lastModified),
-                            entry.file));
-                } catch (RuntimeException e) {
-                    Timber.w(e, "Skipping dictionary entry: %s-%s", entry.learningLang, entry.nativeLang);
-                }
+                stats.add(new DictionaryStats(
+                        Language.ofIsoCode(entry.learningLang),
+                        Language.ofIsoCode(entry.nativeLang),
+                        entry.headwords,
+                        entry.examples,
+                        entry.sizeBytes,
+                        entry.glosses,
+                        entry.pronunciations,
+                        Instant.ofEpochSecond(entry.lastModified),
+                        entry.file));
             }
+            mirrors.clear();
+            mirrors.addAll(root.mirrors);
+
             callback.onSuccess(stats);
         } catch (JsonSyntaxException e) {
             Timber.e(e, "Failed to parse dictionaries JSON: invalid syntax");
@@ -135,11 +138,13 @@ public class DatabaseRemoteStorage {
         });
     }
 
+    @Keep
     private static class Metadata {
         List<String> mirrors;
         List<DictionaryEntry> dictionaries;
     }
 
+    @Keep
     private static class DictionaryEntry {
         @SerializedName("learning_lang")
         String learningLang;
@@ -161,6 +166,7 @@ public class DatabaseRemoteStorage {
         int pronunciations;
     }
 
+    @Keep
     public record DictionaryStats(
             Language learning,
             Language nativeLang,

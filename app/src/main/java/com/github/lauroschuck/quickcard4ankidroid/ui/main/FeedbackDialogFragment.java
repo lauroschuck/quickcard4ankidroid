@@ -38,7 +38,7 @@ public class FeedbackDialogFragment extends AppCompatDialogFragment {
                 .setTitle(R.string.feedback_title)
                 .setView(view)
                 .setPositiveButton(R.string.feedback_send, null)
-                .setNegativeButton(R.string.feedback_cancel, null)
+                .setNegativeButton(R.string.common_cancel, null)
                 .create();
 
         dialog.setOnShowListener(dialogInterface -> {

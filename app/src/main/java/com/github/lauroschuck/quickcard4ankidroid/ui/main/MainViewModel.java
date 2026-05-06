@@ -2,6 +2,7 @@ package com.github.lauroschuck.quickcard4ankidroid.ui.main;
 
 import android.app.Application;
 import android.content.Context;
+import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
@@ -77,6 +78,7 @@ public class MainViewModel extends AndroidViewModel {
     @Getter
     private Language lastUsedNativeLanguage;
 
+    @Keep
     public record DownloadInfo(Language learning, Language nativeLang, String fileName, long downloaded, long total) {
         public int getProgress() {
             return total > 0 ? (int) (downloaded * 100 / total) : 0;

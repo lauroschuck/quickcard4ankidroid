@@ -19,8 +19,21 @@ android {
     }
 
     buildTypes {
+        debug {
+            minifyEnabled false // Keep default debug fast
+        }
+        minifyTest {
+            initWith release
+            debuggable false
+            minifyEnabled true
+            shrinkResources true
+            signingConfig signingConfigs.debug
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            matchingFallbacks = ['release', 'debug']
+        }
         release {
-            minifyEnabled false
+            minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -33,9 +46,14 @@ android {
     buildFeatures {
         buildConfig true
     }
+
+    lint {
+        disable 'DuplicateCrowdInStrings'
+    }
 }
 
 dependencies {
+    implementation 'androidx.annotation:annotation:1.9.1'
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'androidx.preference:preference:1.2.1'
     implementation 'androidx.activity:activity:1.9.3'
@@ -58,7 +76,11 @@ dependencies {
     implementation 'com.google.firebase:firebase-messaging'
     implementation 'com.google.firebase:firebase-inappmessaging-display'
 
+    // App Check Debug provider
+    // compileOnly allows FirebaseHelper in src/main to compile for all variants (including release)
+    compileOnly 'com.google.firebase:firebase-appcheck-debug'
     debugImplementation 'com.google.firebase:firebase-appcheck-debug'
+    minifyTestImplementation 'com.google.firebase:firebase-appcheck-debug'
 
     // Add Glide to allow Firebase to render Card Layout images from Messaging campaigns
     implementation 'com.github.bumptech.glide:glide:4.16.0'

@@ -25,7 +25,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <intent-filter>
+            <intent-filter android:label="@string/intent_process_text_add">
                 <action android:name="android.intent.action.PROCESS_TEXT"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <data android:mimeType="text/plain"/>
@@ -47,7 +47,7 @@
             android:label="QuickCard Enqueue"
             android:exported="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar">
-            <intent-filter>
+            <intent-filter android:label="QuickCard Enqueue">
                 <action android:name="android.intent.action.PROCESS_TEXT"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <data android:mimeType="text/plain"/>
@@ -63,7 +63,7 @@
         </activity>
 
         <activity android:name="com.github.lauroschuck.quickcard4ankidroid.ui.settings.SettingsActivity"
-            android:label="Settings"
+            android:label="@string/nav_settings"
             android:theme="@style/SettingsTheme" />
 
         <activity
