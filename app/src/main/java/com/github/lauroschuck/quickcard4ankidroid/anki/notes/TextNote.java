@@ -9,7 +9,7 @@ import lombok.NonNull;
 public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
     public TextNote(@NonNull CardAssets assets) {
         super(
-                "quickcard4ankidroid.TextV54",
+                "quickcard4ankidroid.TextV55",
                 generateFieldNames(),
                 assets.getSharedCss() + assets.getTextCss(),
                 generateCardTypes(assets));

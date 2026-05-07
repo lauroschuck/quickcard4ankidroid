@@ -53,7 +53,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
 
     public DictionaryNote(@NonNull CardAssets assets) {
         super(
-                "quickcard4ankidroid.DictionaryDefinitionV54",
+                "quickcard4ankidroid.DictionaryDefinitionV55",
                 generateFieldNames(),
                 assets.getSharedCss() + assets.getDictionaryCss(),
                 generateCardTypes(assets));
