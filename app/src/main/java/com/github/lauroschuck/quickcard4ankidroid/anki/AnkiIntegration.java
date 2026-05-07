@@ -45,6 +45,7 @@ import timber.log.Timber;
 public class AnkiIntegration {
 
     public static final int AD_PERM_REQUEST = 0;
+    private static final String KEY_ANKI_PERM_REQUESTED = "anki_perm_requested";
 
     private static final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -73,16 +74,16 @@ public class AnkiIntegration {
                     .setTitle(R.string.permission_rationale_title)
                     .setMessage(R.string.permission_rationale_message)
                     .setPositiveButton(R.string.permission_grant_button, (dialog, which) -> {
-                        ankiDroidHelper.requestPermission(activity, requestCode);
+                        requestPermission(activity, requestCode);
                     })
                     .setNegativeButton(R.string.permission_cancel_button, null)
                     .show();
         } else {
             // Check if we have already asked and been denied (permanent denial)
-            // Note: This is a bit tricky to detect perfectly without tracking,
-            // but usually if rationale is false and we don't have permission,
-            // it means "Don't ask again" is active.
-            if (!hasPermission()) {
+            var prefs = PreferenceManager.getDefaultSharedPreferences(activity);
+            boolean wasAsked = prefs.getBoolean(KEY_ANKI_PERM_REQUESTED, false);
+
+            if (!hasPermission() && wasAsked) {
                 new AlertDialog.Builder(activity)
                         .setTitle(R.string.permission_rationale_title)
                         .setMessage(R.string.permission_denied_permanent_message)
@@ -92,9 +93,15 @@ public class AnkiIntegration {
                         .setNegativeButton(R.string.permission_cancel_button, null)
                         .show();
             } else {
-                ankiDroidHelper.requestPermission(activity, requestCode);
+                requestPermission(activity, requestCode);
             }
         }
+    }
+
+    private void requestPermission(Activity activity, int requestCode) {
+        var prefs = PreferenceManager.getDefaultSharedPreferences(activity);
+        prefs.edit().putBoolean(KEY_ANKI_PERM_REQUESTED, true).apply();
+        ankiDroidHelper.requestPermission(activity, requestCode);
     }
 
     public void openAppSettings(Activity activity) {
