@@ -17,6 +17,7 @@ import com.github.lauroschuck.quickcard4ankidroid.model.Language;
 import com.github.lauroschuck.quickcard4ankidroid.ui.settings.SettingsActivity;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -159,6 +160,9 @@ public class MainViewModel extends AndroidViewModel {
                 }
             }
         }
+
+        list.sort(Comparator.comparing((DownloadedDictionary d) -> d.learning().getDisplayName())
+                .thenComparing(d -> d.nativeLang().getDisplayName()));
 
         downloadedDictionaries.postValue(list);
 
