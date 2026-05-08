@@ -142,6 +142,11 @@ public class SettingsActivity extends AppCompatActivity {
             public void onInfo(MainViewModel.DownloadedDictionary dict) {
                 showDictionaryInfo(dict);
             }
+
+            @Override
+            public void onLegacy(MainViewModel.DownloadedDictionary dict) {
+                showLegacyInfo();
+            }
         });
         dictionariesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         dictionariesRecyclerView.setAdapter(adapter);
@@ -326,6 +331,14 @@ public class SettingsActivity extends AppCompatActivity {
                 .show();
     }
 
+    private void showLegacyInfo() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.settings_legacy_dict_title)
+                .setMessage(R.string.settings_legacy_dict_message)
+                .setPositiveButton(R.string.common_close, null)
+                .show();
+    }
+
     private void setActiveDictionary(Language learningContext, Language learning, Language nativeLang) {
         prefs.edit()
                 .putString(KEY_LEARNING_LANGUAGE, learning.getIsoCode())
@@ -411,7 +424,7 @@ public class SettingsActivity extends AppCompatActivity {
                         R.string.settings_update_dict_message,
                         dict.learning().getDisplayName(),
                         dict.nativeLang().getDisplayName(),
-                        formatInstant(local.lastModified()),
+                        formatInstant(remote.lastModified()),
                         comparison))
                 .setPositiveButton(R.string.settings_update_confirm, (dialog, which) -> {
                     viewModel.updateDictionary(dict);

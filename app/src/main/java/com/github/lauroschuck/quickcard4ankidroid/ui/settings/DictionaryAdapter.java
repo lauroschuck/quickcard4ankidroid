@@ -33,6 +33,8 @@ public class DictionaryAdapter extends RecyclerView.Adapter<DictionaryAdapter.Vi
         void onUpdate(MainViewModel.DownloadedDictionary dict);
 
         void onInfo(MainViewModel.DownloadedDictionary dict);
+
+        void onLegacy(MainViewModel.DownloadedDictionary dict);
     }
 
     public DictionaryAdapter(OnDictionaryActionListener listener) {
@@ -96,6 +98,7 @@ public class DictionaryAdapter extends RecyclerView.Adapter<DictionaryAdapter.Vi
         holder.deleteButton.setOnClickListener(v -> listener.onDelete(dict));
         holder.updateButton.setOnClickListener(v -> listener.onUpdate(dict));
         holder.infoButton.setOnClickListener(v -> listener.onInfo(dict));
+        holder.legacyIcon.setOnClickListener(v -> listener.onLegacy(dict));
     }
 
     private void bindDownloading(ViewHolder holder, MainViewModel.DownloadInfo info) {
