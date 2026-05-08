@@ -164,8 +164,6 @@ public class MainViewModel extends AndroidViewModel {
         list.sort(Comparator.comparing((DownloadedDictionary d) -> d.learning().getDisplayName())
                 .thenComparing(d -> d.nativeLang().getDisplayName()));
 
-        downloadedDictionaries.postValue(list);
-
         if (!list.isEmpty()) {
             String curL = prefs.getString(SettingsActivity.KEY_LEARNING_LANGUAGE, "");
             String curN = prefs.getString(SettingsActivity.KEY_NATIVE_LANGUAGE, "");
@@ -173,6 +171,8 @@ public class MainViewModel extends AndroidViewModel {
                 autoSelectDictionary(list.get(0));
             }
         }
+
+        downloadedDictionaries.postValue(list);
     }
 
     public void updateDictionary(DownloadedDictionary dict) {

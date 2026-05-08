@@ -207,12 +207,15 @@ public class SettingsActivity extends AppCompatActivity {
                             "%s-%s", learning.getDisplayName(learning), nativeLang.getDisplayName(learning))
                     .toLowerCase(Locale.ROOT);
             deckNameEditText.setText(defaultName);
+        } else {
+            deckNameEditText.setText("");
         }
     }
 
     private void updateAdapterData() {
         String lIso = prefs.getString(KEY_LEARNING_LANGUAGE, "");
         String nIso = prefs.getString(KEY_NATIVE_LANGUAGE, "");
+        updateDefaultDeckName();
         List<MainViewModel.DownloadedDictionary> dicts =
                 viewModel.getDownloadedDictionaries().getValue();
         MainViewModel.DownloadInfo info = viewModel.getActiveDownload().getValue();
