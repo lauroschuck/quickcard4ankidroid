@@ -52,7 +52,7 @@ import java.util.stream.Stream;
  */
 public class KaikkiProcessor {
 
-    private static final long MIN_HEADWORDS = 1000;
+    private static final long MIN_HEADWORDS = 10000;
     private static final JsonObject POISON_PILL = new JsonObject();
 
     private static class DatabaseSession implements AutoCloseable {
@@ -82,6 +82,7 @@ public class KaikkiProcessor {
         long exampleCount = 0;
         long pronunciationCount = 0;
         long linkCount = 0;
+        boolean removed = false;
 
         DatabaseSession(String dbPath, String learningLangCode) throws SQLException {
             this.dbPath = dbPath;
@@ -405,7 +406,7 @@ public class KaikkiProcessor {
         // Find the absolute root of the project to ensure output goes to project-root/processor/out/
         String currentDir = System.getProperty("user.dir");
         String outBase = currentDir.endsWith("processor") ? "out" : "processor/out";
-        String outDir = outBase + File.separator + timestampDir;
+        String outDir = outBase + File.separator + timestampDir + File.separator + epochSeconds;
         new File(outDir).mkdirs();
 
         KaikkiProcessor converter = new KaikkiProcessor();
@@ -453,7 +454,7 @@ public class KaikkiProcessor {
             for (Map.Entry<String, DatabaseSession> entry : sessions.entrySet()) {
                 String learningCode = entry.getKey();
                 DatabaseSession session = entry.getValue();
-                boolean kept = session.headwordCount >= MIN_HEADWORDS;
+                boolean kept = !session.removed;
                 summaryTable
                         .computeIfAbsent(learningCode, k -> new TreeMap<>())
                         .put(nativeLangCode, kept);
@@ -465,7 +466,6 @@ public class KaikkiProcessor {
                     meta.put("native_lang", nativeLangCode);
                     meta.put("file", dbFile.getName());
                     meta.put("last_modified", lastModEpoch);
-                    meta.put("last_modified_iso", lastModInstant.toString());
                     meta.put("size_bytes", dbFile.length());
                     meta.put("headwords", session.headwordCount);
                     meta.put("glosses", session.glossCount);
@@ -500,7 +500,7 @@ public class KaikkiProcessor {
             String[] mirrorBases) {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("timestamp", epochSeconds);
-        root.put("timestamp_iso", Instant.ofEpochSecond(epochSeconds).toString());
+        root.put("timestamp_iso", Instant.ofEpochSecond(epochSeconds).atZone(ZoneOffset.systemDefault()).toOffsetDateTime().toString());
 
         List<String> fullMirrors = new ArrayList<>();
         for (String base : mirrorBases) {
@@ -615,6 +615,7 @@ public class KaikkiProcessor {
                     System.out.println(String.format(
                             Locale.US, "  ! Deleting database (below min %d): %s", MIN_HEADWORDS, session.dbPath));
                     new File(session.dbPath).delete();
+                    session.removed = true;
                 }
             }
         }
