@@ -60,13 +60,18 @@ public class DictionaryAdapter extends RecyclerView.Adapter<DictionaryAdapter.Vi
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        if (activeDownload != null && position == dictionaries.size()) {
-            bindDownloading(holder, activeDownload);
-            return;
+        if (activeDownload != null) {
+            if (position == 0) {
+                bindDownloading(holder, activeDownload);
+                return;
+            }
+            // Offset for the downloading item at the top
+            MainViewModel.DownloadedDictionary dict = dictionaries.get(position - 1);
+            bindDownloaded(holder, dict);
+        } else {
+            MainViewModel.DownloadedDictionary dict = dictionaries.get(position);
+            bindDownloaded(holder, dict);
         }
-
-        MainViewModel.DownloadedDictionary dict = dictionaries.get(position);
-        bindDownloaded(holder, dict);
     }
 
     private void bindDownloaded(ViewHolder holder, MainViewModel.DownloadedDictionary dict) {

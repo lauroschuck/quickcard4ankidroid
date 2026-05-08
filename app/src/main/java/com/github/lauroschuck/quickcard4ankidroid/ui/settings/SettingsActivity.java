@@ -19,6 +19,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -151,9 +152,22 @@ public class SettingsActivity extends AppCompatActivity {
             updateAdapterData();
         });
 
-        viewModel.getActiveDownload().observe(this, info -> {
-            updateAdapterData();
-            addDictionaryButton.setVisibility(info == null ? View.VISIBLE : View.GONE);
+        viewModel.getActiveDownload().observe(this, new Observer<>() {
+            private boolean isDownloading = false;
+
+            @Override
+            public void onChanged(MainViewModel.DownloadInfo info) {
+                updateAdapterData();
+                addDictionaryButton.setVisibility(info == null ? View.VISIBLE : View.GONE);
+
+                if (info != null && !isDownloading) {
+                    // Only scroll to top when the download actually starts
+                    dictionariesRecyclerView.scrollToPosition(0);
+                    isDownloading = true;
+                } else if (info == null) {
+                    isDownloading = false;
+                }
+            }
         });
 
         viewModel.getDownloadError().observe(this, errorMessage -> {
