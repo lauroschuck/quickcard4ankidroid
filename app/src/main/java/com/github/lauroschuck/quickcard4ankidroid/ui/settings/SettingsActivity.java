@@ -136,6 +136,11 @@ public class SettingsActivity extends AppCompatActivity {
             public void onUpdate(MainViewModel.DownloadedDictionary dict) {
                 confirmUpdate(dict);
             }
+
+            @Override
+            public void onInfo(MainViewModel.DownloadedDictionary dict) {
+                showDictionaryInfo(dict);
+            }
         });
         dictionariesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         dictionariesRecyclerView.setAdapter(adapter);
@@ -280,6 +285,31 @@ public class SettingsActivity extends AppCompatActivity {
         } else {
             return fallback;
         }
+    }
+
+    private void showDictionaryInfo(MainViewModel.DownloadedDictionary dict) {
+        DatabaseRemoteStorage.DictionaryStats stats = dict.localStats();
+        String sizeStr = Formatter.formatShortFileSize(this, stats.sizeBytes());
+        CompactDecimalFormat df = CompactDecimalFormat.getInstance(Locale.US, CompactDecimalFormat.CompactStyle.SHORT);
+        String message = getString(
+                R.string.settings_dictionary_stats_format,
+                sizeStr,
+                formatInstant(stats.lastModified()),
+                df.format(stats.headwords()),
+                df.format(stats.glosses()),
+                df.format(stats.examples()),
+                df.format(stats.pronunciations()));
+
+        String title = getString(
+                R.string.settings_dictionary_info_title_format,
+                dict.learning().getDisplayName(),
+                dict.nativeLang().getDisplayName());
+
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton(R.string.common_close, null)
+                .show();
     }
 
     private void setActiveDictionary(Language learningContext, Language learning, Language nativeLang) {

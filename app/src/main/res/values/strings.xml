@@ -94,7 +94,7 @@
     <!-- Settings Activity Dialogs/Toasts -->
     <string name="settings_cache_cleared">Cache cleared successfully</string>
     <string name="settings_cache_clear_failed">Failed to clear cache</string>
-    <string name="settings_dictionary_stats_format">Size: %1$s\nLast modified: %2$s\n%3$s headwords\n%4$s definitions\n%5$s example phrases\n%6$s pronunciations</string>
+    <string name="settings_dictionary_stats_format">Size: %1$s\nTimestamp: %2$s\n%3$s headwords\n%4$s definitions\n%5$s example phrases\n%6$s pronunciations</string>
     <string name="settings_active_dict_changed">Active dictionary set to %1$s-%2$s</string>
     <string name="settings_stats_headwords">Headwords</string>
     <string name="settings_stats_definitions">Definitions</string>
@@ -113,6 +113,8 @@
     <string name="settings_cancel">@string/common_cancel</string>
 
     <!-- Dictionary Adapter -->
+    <string name="dict_info_description">Dictionary information</string>
+    <string name="settings_dictionary_info_title_format">%1$s-%2$s Dictionary</string>
     <string name="dict_unsupported_description">Unsupported dictionary</string>
     <string name="dict_update_available_description">Update available</string>
     <string name="dict_delete_description">Delete</string>
