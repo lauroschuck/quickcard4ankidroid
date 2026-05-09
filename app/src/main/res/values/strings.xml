@@ -37,7 +37,7 @@
     <string name="about_title">@string/nav_about</string>
     <string name="about_version">Version %1$s</string>
     <string name="about_homepage_label">Project Homepage</string>
-    <string name="about_homepage_url">https://github.com/lauroschuck/ankidroid-quick-add</string>
+    <string name="about_homepage_url">https://github.com/lauroschuck/quickcard4ankidroid</string>
     <string name="about_attribution_title">Attributions</string>
     <string name="about_attribution_wiktionary">Dictionary data is derived from Wiktionary.org (licensed under CC-BY-SA 3.0).</string>
     <string name="about_attribution_kaikki_wiktextract">Data was processed using Kaikki.org and wiktextract by Tatu Ylonen (licensed under MIT).</string>
