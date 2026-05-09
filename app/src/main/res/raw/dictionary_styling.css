@@ -67,6 +67,11 @@
     border-left-color: #388ed3;
 }
 
+.night_mode .hint button {
+    color: #d0d7de;
+    background: #57606a;
+}
+
 .night_mode .hint .content .row {
     color: #8b949e;
     background-color: #161b22;

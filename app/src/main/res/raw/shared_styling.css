@@ -169,6 +169,10 @@ html {
     color: #c9d1d9;
 }
 
+.night_mode .audio .replay-button:before {
+    filter: invert(65%) sepia(9%) saturate(464%) hue-rotate(172deg) brightness(88%) contrast(89%);
+}
+
 .night_mode .nt2lt .text,
 .night_mode .lt2nt .text {
     color: #cfd8dc;
