@@ -5,3 +5,7 @@
 /*
  * Text note - Card bottom
  */
+
+ .definition-box:not(:has(*)) {
+     display: none;
+ }
