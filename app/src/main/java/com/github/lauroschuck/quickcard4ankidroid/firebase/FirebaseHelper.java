@@ -203,9 +203,9 @@ public class FirebaseHelper {
         bundle.putString("download_native_language", nativeLang.getIsoCode());
         bundle.putLong("elapsed_ms", elapsedMs);
         bundle.putBoolean("success", errorMessage == null && throwable == null);
-        bundle.putString("error_message", errorMessage);
+        bundle.putString("error_message", errorMessage == null ? "N/A" : errorMessage);
         bundle.putString(
-                "exception", throwable == null ? null : throwable.getClass().getName());
+                "exception", throwable == null ? "N/A" : throwable.getClass().getName());
         logEvent("download_dictionary", bundle);
     }
 
