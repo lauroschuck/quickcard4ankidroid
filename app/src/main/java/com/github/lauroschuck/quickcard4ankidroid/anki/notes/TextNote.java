@@ -9,7 +9,7 @@ import lombok.NonNull;
 public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
     public TextNote(@NonNull CardAssets assets) {
         super(
-                "quickcard4ankidroid.TextV55",
+                "quickcard4ankidroid.TextV59",
                 generateFieldNames(),
                 assets.getSharedCss() + assets.getTextCss(),
                 generateCardTypes(assets));
@@ -55,13 +55,13 @@ public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
     enum Field implements CardField<Input> {
         LEARNING_TEXT("LearningText", (l, n, s, i) -> cleanHtml(i.learningText())),
         ALT_LEARNING_TEXT("AltLearningText", (l, n, s, i) -> null),
-        LEARNING_LANG("LearningLang", (l, n, s, i) -> l.getDisplayName()),
+        LEARNING_LANG("LearningLang", (l, n, s, i) -> l.getDisplayName(l)),
         NATIVE_TEXT("NativeText", (l, n, s, i) -> cleanHtml(i.nativeText())),
         ALT_NATIVE_TEXT("AltNativeText", (l, n, s, i) -> null),
-        NATIVE_LANG("NativeLang", (l, n, s, i) -> n.getDisplayName()),
-        LEXICAL_CAT("LexicalCat", (l, n, s, i) -> i.lexicalCategory()),
+        NATIVE_LANG("NativeLang", (l, n, s, i) -> n.getDisplayName(l)),
         LEARNING_WORD("LearningWord", (l, n, s, i) -> i.headword()),
         IPA("IPA", (l, n, s, i) -> i.ipa()),
+        LEXICAL_CAT("LexicalCat", (l, n, s, i) -> i.lexicalCategory()),
         DEFINITION("Definition", (l, n, s, i) -> i.definition()),
         PERSONAL_NOTES("PersonalNotes", (l, n, s, i) -> null),
         HIDDEN_NOTES("HiddenNotes", (l, n, s, i) -> null),

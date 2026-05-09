@@ -15,6 +15,8 @@ import lombok.NonNull;
 
 public class CardAssets {
 
+    private static final String REFERENCE_TEXT = "More info: https://github.com/lauroschuck/quickcard4ankidroid";
+
     private final Handlebars handlebars;
     private final Map<TemplateId, String> templateCache;
 
@@ -71,7 +73,7 @@ public class CardAssets {
         try {
             var templateString = getTemplate(templateId);
             var template = handlebars.compileInline(templateString);
-            return template.apply(Map.of("REPEAT_SIZE", repeatSize));
+            return template.apply(Map.of("REPEAT_SIZE", repeatSize, "REFERENCE_TEXT", REFERENCE_TEXT));
         } catch (IOException e) {
             throw new RuntimeException("Template error: " + e.getMessage(), e);
         }
@@ -81,7 +83,7 @@ public class CardAssets {
         try {
             var templateString = getTemplate(templateId);
             var template = handlebars.compileInline(templateString);
-            return template.apply(Map.of("INDEX", index));
+            return template.apply(Map.of("INDEX", index, "REFERENCE_TEXT", REFERENCE_TEXT));
         } catch (IOException e) {
             throw new RuntimeException("Template error: " + e.getMessage(), e);
         }
@@ -94,6 +96,8 @@ public class CardAssets {
         DICTIONARY_DEFINITION_TO_WORD_BACK(R.raw.dictionary_definition_to_word_back),
         DICTIONARY_LEARNING_TEXT_TO_NATIVE_TEXT_FRONT(R.raw.dictionary_learning_text_to_native_text_front),
         DICTIONARY_LEARNING_TEXT_TO_NATIVE_TEXT_BACK(R.raw.dictionary_learning_text_to_native_text_back),
+        DICTIONARY_NATIVE_TEXT_TO_LEARNING_TEXT_FRONT(R.raw.dictionary_native_text_to_learning_text_front),
+        DICTIONARY_NATIVE_TEXT_TO_LEARNING_TEXT_BACK(R.raw.dictionary_native_text_to_learning_text_back),
         TEXT_LEARNING_TO_NATIVE_FRONT(R.raw.text_learning_to_native_front),
         TEXT_LEARNING_TO_NATIVE_BACK(R.raw.text_learning_to_native_back),
         TEXT_NATIVE_TO_LEARNING_FRONT(R.raw.text_native_to_learning_front),

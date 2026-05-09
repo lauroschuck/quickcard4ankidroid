@@ -53,7 +53,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
 
     public DictionaryNote(@NonNull CardAssets assets) {
         super(
-                "quickcard4ankidroid.DictionaryDefinitionV55",
+                "quickcard4ankidroid.DictionaryDefinitionV59",
                 generateFieldNames(),
                 assets.getSharedCss() + assets.getDictionaryCss(),
                 generateCardTypes(assets));
@@ -74,6 +74,8 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
     private static List<CardType> generateCardTypes(CardAssets assets) {
         return Stream.of(
                         Stream.of(generateLearningWordToNativeDefinitionsCard(assets)),
+                        getDefinitionIndexesStream()
+                                .map(index -> generateIndexedNativeTextToLearningTextCard(assets, index)),
                         getDefinitionIndexesStream()
                                 .map(index -> generateIndexedNativeDefinitionToLearningWordCard(assets, index)),
                         getDefinitionIndexesStream()
@@ -96,6 +98,13 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
                 String.format(Locale.US, "NativeDefinition%d-LearningWord", index),
                 assets.getIndexedTemplate(CardAssets.TemplateId.DICTIONARY_DEFINITION_TO_WORD_FRONT, index),
                 assets.getIndexedTemplate(CardAssets.TemplateId.DICTIONARY_DEFINITION_TO_WORD_BACK, index));
+    }
+
+    private static CardType generateIndexedNativeTextToLearningTextCard(CardAssets assets, int index) {
+        return new CardType(
+                String.format(Locale.US, "NativeText%d-LearningText%d", index, index),
+                assets.getIndexedTemplate(CardAssets.TemplateId.DICTIONARY_NATIVE_TEXT_TO_LEARNING_TEXT_FRONT, index),
+                assets.getIndexedTemplate(CardAssets.TemplateId.DICTIONARY_NATIVE_TEXT_TO_LEARNING_TEXT_BACK, index));
     }
 
     private static CardType generateIndexedLearningTextToNativeTextCard(CardAssets assets, int index) {
@@ -147,11 +156,11 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
 
     enum NonIndexedField implements CardField<Input> {
         ID("Id", (l, n, s, i) -> computeId(l, n, i)),
-        LEARNING_WORD("LearningWord", (l, n, s, i) -> i.headword),
+        LEARNING_WORD("LearningWord", (l, n, s, i) -> i.headword()),
         IPA("IPA", (l, n, s, i) -> i.ipa()),
-        LEARNING_LANG("LearningLang", (l, n, s, i) -> l.getDisplayName(n)),
         LEXICAL_CAT("LexicalCat", (l, n, s, i) -> i.lexicalCategory()),
-        NATIVE_LANG("NativeLang", (l, n, s, i) -> n.getDisplayName(n)),
+        LEARNING_LANG("LearningLang", (l, n, s, i) -> l.getDisplayName(l)),
+        NATIVE_LANG("NativeLang", (l, n, s, i) -> n.getDisplayName(l)),
         PERSONAL_NOTES("PersonalNotes", (l, n, s, i) -> null),
         HIDDEN_NOTES("HiddenNotes", (l, n, s, i) -> null),
         AUDIO("Audio", null),

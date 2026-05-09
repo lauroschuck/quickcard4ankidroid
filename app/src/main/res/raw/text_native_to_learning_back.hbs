@@ -1,3 +1,5 @@
+<!-- Individual native-to-learning-text card, not grouped under a single headword -->
+<!-- [[REFERENCE_TEXT]] -->
 <div class="text-note nt2lt back">
     <div class="top">
         <div class="text native">
@@ -7,7 +9,7 @@
             {{/AltNativeText}}
         </div>
         <div class="context">
-            <span class="lexical-cat">{{LexicalCat}}</span>
+            <span class="languages">{{NativeLang}} ⟶ {{LearningLang}}</span>
         </div>
     </div>
 
@@ -31,6 +33,9 @@
             {{#IPA}}
                 <div class="ipa">{{IPA}}</div>
             {{/IPA}}
+            <div class="context">
+                <span class="lexical-cat">{{LexicalCat}}</span>
+            </div>
             {{#Definition}}
                 <div class="definition">{{Definition}}</div>
             {{/Definition}}

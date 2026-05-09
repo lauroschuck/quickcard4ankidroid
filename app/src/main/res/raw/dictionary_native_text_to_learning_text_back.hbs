@@ -1,27 +1,27 @@
-<!-- Reverse definition card, must depend on example phrases -->
+<!-- Preferred single-definition-to-word card, based on example phrases -->
 <!-- [[REFERENCE_TEXT]] -->
-{{#Definition[[INDEX]]_LearningText}}
-    <div class="dictionary-note lt2nt back">
+{{#Definition[[INDEX]]_NativeText}}
+    <div class="dictionary-note nt2lt back">
         <div class="top">
-            <div class="text learning">
-                <div class="main">{{Definition[[INDEX]]_LearningText}}</div>
-                {{#Definition[[INDEX]]_AltLearningText}}
-                    <div class="alt">{{Definition[[INDEX]]_AltLearningText}}</div>
-                {{/Definition[[INDEX]]_AltLearningText}}
+            <div class="text native">
+                <div class="main">{{Definition[[INDEX]]_NativeText}}</div>
+                {{#Definition[[INDEX]]_AltNativeText}}
+                    <div class="alt">{{Definition[[INDEX]]_AltNativeText}}</div>
+                {{/Definition[[INDEX]]_AltNativeText}}
             </div>
             <div class="context">
-                <span class="languages">{{LearningLang}} ⟶ {{NativeLang}}</span>
+                <span class="languages">{{NativeLang}} ⟶ {{LearningLang}}</span>
             </div>
         </div>
 
         <hr id="answer"/>
 
         <div class="bottom">
-            <div class="text native">
-                <div class="main">{{Definition[[INDEX]]_NativeText}}</div>
-                {{#Definition[[INDEX]]_AltNativeText}}
-                    <div class="alt">{{Definition[[INDEX]]_AltNativeText}}</div>
-                {{/Definition[[INDEX]]_AltNativeText}}
+            <div class="text learning">
+                <div class="main">{{Definition[[INDEX]]_LearningText}}</div>
+                {{#Definition[[INDEX]]_AltLearningText}}
+                    <div class="alt">{{Definition[[INDEX]]_AltLearningText}}</div>
+                {{/Definition[[INDEX]]_AltLearningText}}
             </div>
 
             <div class="definition-box">
@@ -47,4 +47,4 @@
             {{#Audio}}<div class="audio">{{Audio}}</div>{{/Audio}}
         </div>
     </div>
-{{/Definition[[INDEX]]_LearningText}}
+{{/Definition[[INDEX]]_NativeText}}
