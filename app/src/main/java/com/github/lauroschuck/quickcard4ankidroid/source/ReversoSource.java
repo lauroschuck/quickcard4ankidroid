@@ -2,6 +2,7 @@ package com.github.lauroschuck.quickcard4ankidroid.source;
 
 import android.net.Uri;
 import android.webkit.WebView;
+import com.github.lauroschuck.quickcard4ankidroid.AppConfig;
 import com.github.lauroschuck.quickcard4ankidroid.anki.notes.DictionaryNote;
 import com.github.lauroschuck.quickcard4ankidroid.anki.notes.TextNote;
 import com.github.lauroschuck.quickcard4ankidroid.model.Language;
@@ -51,7 +52,7 @@ public class ReversoSource implements DataSource {
 
         Request request = new Request.Builder()
                 .url(url)
-                .header("User-Agent", "QuickCard4AnkiDroid/1.0")
+                .header("User-Agent", AppConfig.USER_AGENT)
                 .build();
 
         client.newCall(request).enqueue(new Callback() {
@@ -212,7 +213,7 @@ public class ReversoSource implements DataSource {
 
         Request request = new Request.Builder()
                 .url(url)
-                .header("User-Agent", "QuickCard4AnkiDroid/1.0")
+                .header("User-Agent", AppConfig.USER_AGENT)
                 .header("Referer", "https://context.reverso.net/")
                 .build();
 

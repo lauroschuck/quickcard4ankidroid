@@ -9,6 +9,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.preference.PreferenceManager;
+import com.github.lauroschuck.quickcard4ankidroid.AppConfig;
 import com.github.lauroschuck.quickcard4ankidroid.R;
 import com.github.lauroschuck.quickcard4ankidroid.anki.notes.AbstractAnkiNote;
 import com.github.lauroschuck.quickcard4ankidroid.anki.notes.DictionaryNote;
@@ -340,7 +341,7 @@ public class AnkiIntegration {
 
         var request = new Request.Builder()
                 .url(urlString.toString())
-                .header("User-Agent", "QuickCard4AnkiDroid/1.0 (https://github.com/lauroschuck/quickcard4ankidroid)")
+                .header("User-Agent", AppConfig.USER_AGENT)
                 .build();
 
         try (Response response = client.newCall(request).execute()) {

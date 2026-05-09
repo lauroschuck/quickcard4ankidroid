@@ -1,6 +1,7 @@
 package com.github.lauroschuck.quickcard4ankidroid.source;
 
 import android.net.Uri;
+import com.github.lauroschuck.quickcard4ankidroid.AppConfig;
 import com.github.lauroschuck.quickcard4ankidroid.anki.notes.DictionaryNote;
 import com.github.lauroschuck.quickcard4ankidroid.anki.notes.TextNote;
 import com.github.lauroschuck.quickcard4ankidroid.model.Language;
@@ -43,7 +44,7 @@ public class WordReferenceSource implements DataSource {
 
         Request request = new Request.Builder()
                 .url(url)
-                .header("User-Agent", "QuickCard4AnkiDroid/1.0")
+                .header("User-Agent", AppConfig.USER_AGENT)
                 .build();
 
         client.newCall(request).enqueue(new Callback() {
