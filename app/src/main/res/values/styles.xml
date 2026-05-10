@@ -3,8 +3,15 @@
     <style name="AppTheme" parent="Theme.MaterialComponents.NoActionBar">
         <!-- Primary branding color (Anki Star Blue) -->
         <item name="colorPrimary">@color/anki_blue</item>
+        <item name="colorPrimaryVariant">#0086d1</item>
+        <item name="colorOnPrimary">@color/white</item>
         <!-- Accent color for checkboxes and active elements -->
         <item name="colorAccent">@color/anki_blue</item>
+        <item name="colorSecondary">@color/anki_blue</item>
+        <item name="colorSecondaryVariant">#0086d1</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <!-- Control activated color for checkboxes/radio buttons -->
+        <item name="colorControlActivated">@color/anki_blue</item>
         <!-- Background color resembling the Anki Note -->
         <item name="android:windowBackground">@color/anki_note</item>
         <!-- Immerse into display cutouts -->
@@ -14,14 +21,22 @@
     <!-- Specific theme for Settings to ensure readability -->
     <style name="SettingsTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="colorPrimary">@color/anki_blue</item>
+        <item name="colorPrimaryVariant">#0086d1</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorAccent">@color/anki_blue</item>
+        <item name="colorSecondary">@color/anki_blue</item>
+        <item name="colorSecondaryVariant">#0086d1</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorControlActivated">@color/anki_blue</item>
         <item name="android:windowBackground">@android:color/white</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 
     <!-- Specific theme for Open Source Licenses to ensure readability -->
-    <style name="LicensesTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+    <style name="LicensesTheme" parent="Theme.MaterialComponents.Light.DarkActionBar">
         <item name="colorPrimary">@color/anki_blue</item>
-        <item name="colorPrimaryDark">#0086d1</item>
+        <item name="colorPrimaryVariant">#0086d1</item>
+        <item name="colorOnPrimary">@color/white</item>
         <item name="android:windowBackground">@android:color/white</item>
     </style>
 </resources>
