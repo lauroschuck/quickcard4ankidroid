@@ -13,6 +13,8 @@ import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.core.view.GravityCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -31,6 +33,7 @@ import com.github.lauroschuck.quickcard4ankidroid.source.DataSource;
 import com.github.lauroschuck.quickcard4ankidroid.ui.definition.DefinitionFragment;
 import com.github.lauroschuck.quickcard4ankidroid.ui.search.SearchFragment;
 import com.github.lauroschuck.quickcard4ankidroid.ui.settings.SettingsActivity;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
 import java.util.List;
@@ -486,10 +489,29 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == AnkiIntegration.AD_PERM_REQUEST) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                showSnackbar(getString(R.string.permission_granted_message), false);
+                showPermissionResultDialog(getString(R.string.permission_granted_message), false);
             } else {
-                showSnackbar(getString(R.string.permission_denied_message), true);
+                showPermissionResultDialog(getString(R.string.permission_denied_message), true);
             }
         }
+    }
+
+    private void showPermissionResultDialog(String message, boolean isError) {
+        var iconRes = isError ? R.drawable.ic_badge_exclamation : R.drawable.ic_check;
+
+        var icon = ContextCompat.getDrawable(this, iconRes);
+        if (icon != null) {
+            icon = DrawableCompat.wrap(icon).mutate();
+            if (!isError) {
+                DrawableCompat.setTint(icon, ContextCompat.getColor(this, R.color.anki_blue));
+            }
+        }
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.permission_rationale_title)
+                .setMessage(message)
+                .setIcon(icon)
+                .setPositiveButton(R.string.common_close, null)
+                .show();
     }
 }

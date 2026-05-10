@@ -49,7 +49,7 @@
     <string name="permission_denied_message">Permission denied. Cannot add cards to Anki without it.</string>
     <string name="permission_denied_permanent_message">Permission was permanently denied. Please enable it in App Settings to add cards to Anki.</string>
     <string name="permission_granted_message">Permission granted! You can now add cards to Anki.</string>
-    <string name="permission_grant_button">Allow</string>
+    <string name="permission_proceed_button">Proceed</string>
     <string name="permission_cancel_button">Not Now</string>
     <string name="permission_settings_button">@string/nav_settings</string>
     <string name="error_anki_not_installed_title">AnkiDroid Not Found</string>

@@ -74,7 +74,7 @@ public class AnkiIntegration {
             new AlertDialog.Builder(activity)
                     .setTitle(R.string.permission_rationale_title)
                     .setMessage(R.string.permission_rationale_message)
-                    .setPositiveButton(R.string.permission_grant_button, (dialog, which) -> {
+                    .setPositiveButton(R.string.permission_proceed_button, (dialog, which) -> {
                         requestPermission(activity, requestCode);
                     })
                     .setNegativeButton(R.string.permission_cancel_button, null)

@@ -1,6 +1,6 @@
 <resources>
     <!-- Base application theme using Anki branding colors -->
-    <style name="AppTheme" parent="Theme.AppCompat.NoActionBar">
+    <style name="AppTheme" parent="Theme.MaterialComponents.NoActionBar">
         <!-- Primary branding color (Anki Star Blue) -->
         <item name="colorPrimary">@color/anki_blue</item>
         <!-- Accent color for checkboxes and active elements -->
@@ -12,7 +12,7 @@
     </style>
 
     <!-- Specific theme for Settings to ensure readability -->
-    <style name="SettingsTheme" parent="Theme.AppCompat.Light.NoActionBar">
+    <style name="SettingsTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="colorPrimary">@color/anki_blue</item>
         <item name="android:windowBackground">@android:color/white</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
