@@ -12,6 +12,8 @@
         <item name="colorOnSecondary">@color/white</item>
         <!-- Control activated color for checkboxes/radio buttons -->
         <item name="colorControlActivated">@color/anki_blue</item>
+        <!-- Restoring slide animation for Snackbar -->
+        <item name="snackbarStyle">@style/Widget.App.Snackbar</item>
         <!-- Background color resembling the Anki Note -->
         <item name="android:windowBackground">@color/anki_note</item>
         <!-- Immerse into display cutouts -->
@@ -28,6 +30,7 @@
         <item name="colorSecondaryVariant">#0086d1</item>
         <item name="colorOnSecondary">@color/white</item>
         <item name="colorControlActivated">@color/anki_blue</item>
+        <item name="snackbarStyle">@style/Widget.App.Snackbar</item>
         <item name="android:windowBackground">@android:color/white</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
@@ -37,6 +40,11 @@
         <item name="colorPrimary">@color/anki_blue</item>
         <item name="colorPrimaryVariant">#0086d1</item>
         <item name="colorOnPrimary">@color/white</item>
+        <item name="snackbarStyle">@style/Widget.App.Snackbar</item>
         <item name="android:windowBackground">@android:color/white</item>
+    </style>
+
+    <style name="Widget.App.Snackbar" parent="Widget.MaterialComponents.Snackbar">
+        <item name="animationMode">slide</item>
     </style>
 </resources>
