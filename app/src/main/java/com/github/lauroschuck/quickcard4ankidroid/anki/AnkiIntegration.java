@@ -6,7 +6,6 @@ import android.net.Uri;
 import android.webkit.MimeTypeMap;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
-import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.preference.PreferenceManager;
 import com.github.lauroschuck.quickcard4ankidroid.AppConfig;
@@ -15,8 +14,8 @@ import com.github.lauroschuck.quickcard4ankidroid.anki.notes.AbstractAnkiNote;
 import com.github.lauroschuck.quickcard4ankidroid.anki.notes.DictionaryNote;
 import com.github.lauroschuck.quickcard4ankidroid.anki.notes.TextNote;
 import com.github.lauroschuck.quickcard4ankidroid.model.Language;
+import com.github.lauroschuck.quickcard4ankidroid.ui.main.MainActivity;
 import com.github.lauroschuck.quickcard4ankidroid.ui.settings.SettingsActivity;
-import com.google.android.material.snackbar.Snackbar;
 import com.ichi2.anki.api.AddContentApi;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -141,7 +140,7 @@ public class AnkiIntegration {
             Consumer<String> onSuccess) {
         if (cards.isEmpty()) {
             Timber.w("No cards selected to add");
-            showSnackbar(context, context.getString(R.string.anki_no_cards_selected), true);
+            showSnackbar(context.getString(R.string.anki_no_cards_selected), true);
             return;
         }
 
@@ -193,7 +192,6 @@ public class AnkiIntegration {
                         var id = fieldsList.get(duplicates.get(0))[0];
                         Timber.w("Found duplicate note '%s', aborting", id);
                         showSnackbar(
-                                context,
                                 context.getString(
                                         R.string.anki_duplicate_note,
                                         firstDuplicate.headword(),
@@ -212,7 +210,7 @@ public class AnkiIntegration {
 
                 if (fieldsList.isEmpty()) {
                     Timber.i("No new notes to add (all were duplicates)");
-                    showSnackbar(context, context.getString(R.string.anki_notes_exist), false);
+                    showSnackbar(context.getString(R.string.anki_notes_exist), false);
                     return;
                 }
 
@@ -221,9 +219,7 @@ public class AnkiIntegration {
 
                 if (added > 0) {
                     showSnackbar(
-                            context,
-                            context.getResources().getQuantityString(R.plurals.anki_add_success, added, added),
-                            false);
+                            context.getResources().getQuantityString(R.plurals.anki_add_success, added, added), false);
                     if (onSuccess != null) {
                         for (int i = 0; i < added; i++) {
                             // This is a bit of a simplification as we don't know exactly which ones were added if some
@@ -234,11 +230,11 @@ public class AnkiIntegration {
                     }
                 } else {
                     Timber.w("No notes were added to Anki");
-                    showSnackbar(context, context.getString(R.string.anki_add_failed_none), true);
+                    showSnackbar(context.getString(R.string.anki_add_failed_none), true);
                 }
             } catch (RuntimeException e) {
                 Timber.e(e, "Error adding cards to Anki");
-                showSnackbar(context, context.getString(R.string.anki_add_failed_error, e.getMessage()), true);
+                showSnackbar(context.getString(R.string.anki_add_failed_error, e.getMessage()), true);
             }
         });
     }
@@ -401,19 +397,14 @@ public class AnkiIntegration {
         return modelId;
     }
 
-    private static void showSnackbar(Activity activity, String message, boolean isError) {
-        activity.runOnUiThread(() -> {
-            var rootView = activity.findViewById(android.R.id.content);
-            if (rootView != null) {
-                var snackbar = Snackbar.make(rootView, message, Snackbar.LENGTH_LONG);
-                var bgColor = isError ? R.color.error_red : R.color.anki_blue;
-                snackbar.setBackgroundTint(ContextCompat.getColor(activity, bgColor));
-                snackbar.setTextColor(ContextCompat.getColor(activity, R.color.white));
-                snackbar.show();
-            } else {
-                Toast.makeText(activity, message, Toast.LENGTH_SHORT).show();
-            }
-        });
+    private void showSnackbar(String message, boolean isError) {
+        if (context instanceof MainActivity mainActivity) {
+            mainActivity.showSnackbar(message, isError);
+        } else {
+            context.runOnUiThread(() -> {
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show();
+            });
+        }
     }
 
     private static class AudioProcessingException extends RuntimeException {

@@ -44,7 +44,6 @@ import lombok.NonNull;
 import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity {
-
     private DrawerLayout drawerLayout;
     private Spinner sourceSpinner;
     private MainViewModel viewModel;
@@ -471,9 +470,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void showSnackbar(String message, boolean isError) {
-        var rootView = findViewById(android.R.id.content);
-        if (rootView != null) {
-            var snackbar = Snackbar.make(rootView, message, Snackbar.LENGTH_LONG);
+        View snackbarView = null;
+        Fragment currentFragment = getCurrentFragment();
+        if (currentFragment != null && currentFragment.getView() != null) {
+            snackbarView = currentFragment.getView();
+        }
+
+        if (snackbarView == null) {
+            snackbarView = findViewById(android.R.id.content);
+        }
+
+        if (snackbarView != null) {
+            var snackbar = Snackbar.make(snackbarView, message, Snackbar.LENGTH_LONG);
             var bgColor = isError ? R.color.error_red : R.color.anki_blue;
             snackbar.setBackgroundTint(androidx.core.content.ContextCompat.getColor(this, bgColor));
             snackbar.setTextColor(androidx.core.content.ContextCompat.getColor(this, R.color.white));

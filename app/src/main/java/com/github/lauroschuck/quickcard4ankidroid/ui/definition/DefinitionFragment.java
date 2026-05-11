@@ -35,7 +35,7 @@ public class DefinitionFragment extends Fragment {
 
     private MainViewModel viewModel;
     private WebView webView;
-    private View createCardsFabContainer;
+    private FloatingActionButton createCardsFab;
     private TabLayout noteTypeTabLayout;
     private MediaPlayer mediaPlayer;
     private AnkiIntegration ankiIntegration;
@@ -130,8 +130,7 @@ public class DefinitionFragment extends Fragment {
         viewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
 
         webView = view.findViewById(R.id.webView);
-        createCardsFabContainer = view.findViewById(R.id.createCardsFabContainer);
-        FloatingActionButton createCardsFab = view.findViewById(R.id.createCardsFab);
+        createCardsFab = view.findViewById(R.id.createCardsFab);
         FloatingActionButton closeButton = view.findViewById(R.id.closeButton);
         noteTypeTabLayout = view.findViewById(R.id.noteTypeTabLayout);
 
@@ -163,9 +162,9 @@ public class DefinitionFragment extends Fragment {
 
     private void updateFabVisibility(int count) {
         if (count > 0) {
-            createCardsFabContainer.setVisibility(View.VISIBLE);
+            createCardsFab.setVisibility(View.VISIBLE);
         } else {
-            createCardsFabContainer.setVisibility(View.GONE);
+            createCardsFab.setVisibility(View.GONE);
         }
     }
 

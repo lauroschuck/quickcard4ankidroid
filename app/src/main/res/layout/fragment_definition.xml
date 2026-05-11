@@ -1,102 +1,102 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/definitionRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Note Type Selector Header -->
-    <LinearLayout
-        android:id="@+id/noteTypeHeader"
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:background="#f8f9fa">
+        android:layout_height="match_parent">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/definition_note_type_label"
-            android:textStyle="bold"
-            android:textColor="@color/anki_dark_text"
-            android:layout_marginEnd="8dp"/>
-
-        <com.google.android.material.tabs.TabLayout
-            android:id="@+id/noteTypeTabLayout"
+        <!-- Note Type Selector Header -->
+        <LinearLayout
+            android:id="@+id/noteTypeHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:tabMode="fixed"
-            app:tabGravity="fill"
-            android:background="@android:color/transparent"
-            app:tabIndicatorHeight="2dp"
-            app:tabIndicatorColor="@color/anki_blue"
-            app:tabSelectedTextColor="@color/anki_blue"
-            app:tabTextColor="@color/anki_light_text">
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:background="#f8f9fa">
 
-            <com.google.android.material.tabs.TabItem
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/definition_tab_dictionary" />
+                android:text="@string/definition_note_type_label"
+                android:textStyle="bold"
+                android:textColor="@color/anki_dark_text"
+                android:layout_marginEnd="8dp"/>
 
-            <com.google.android.material.tabs.TabItem
-                android:layout_width="wrap_content"
+            <com.google.android.material.tabs.TabLayout
+                android:id="@+id/noteTypeTabLayout"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/definition_tab_examples" />
-        </com.google.android.material.tabs.TabLayout>
-    </LinearLayout>
+                app:tabMode="fixed"
+                app:tabGravity="fill"
+                android:background="@android:color/transparent"
+                app:tabIndicatorHeight="2dp"
+                app:tabIndicatorColor="@color/anki_blue"
+                app:tabSelectedTextColor="@color/anki_blue"
+                app:tabTextColor="@color/anki_light_text">
 
-    <WebView
-        android:id="@+id/webView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/noteTypeHeader" />
+                <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/definition_tab_dictionary" />
 
-    <!-- Floating Close Button (Top Right) -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/closeButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/noteTypeHeader"
-        android:layout_alignParentEnd="true"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:src="@android:drawable/ic_menu_close_clear_cancel"
-        app:tint="@color/white"
-        app:backgroundTint="@color/anki_blue"
-        app:borderWidth="2dp"
-        app:strokeColor="@android:color/white"
-        app:elevation="4dp"
-        app:useCompatPadding="true"
-        app:fabSize="mini" />
+                <com.google.android.material.tabs.TabItem
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/definition_tab_examples" />
+            </com.google.android.material.tabs.TabLayout>
+        </LinearLayout>
 
-    <!-- Floating Create Cards Button (Bottom Right) -->
-    <FrameLayout
-        android:id="@+id/createCardsFabContainer"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_alignParentEnd="true"
-        android:padding="16dp"
-        android:clipChildren="false"
-        android:clipToPadding="false"
-        android:visibility="gone">
+        <WebView
+            android:id="@+id/webView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/noteTypeHeader" />
 
+        <!-- Floating Close Button (Top Right) -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/createCardsFab"
+            android:id="@+id/closeButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@android:drawable/ic_input_add"
-            app:tint="@android:color/white"
+            android:layout_below="@id/noteTypeHeader"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="16dp"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:tint="@color/white"
             app:backgroundTint="@color/anki_blue"
-            app:borderWidth="3dp"
+            app:borderWidth="2dp"
             app:strokeColor="@android:color/white"
-            app:maxImageSize="48dp"
-            android:contentDescription="@string/definition_create_cards_description"
-            app:fabSize="normal"
             app:elevation="4dp"
-            app:useCompatPadding="true" />
-    </FrameLayout>
+            app:useCompatPadding="true"
+            app:fabSize="mini" />
 
-</RelativeLayout>
+    </RelativeLayout>
+
+    <!-- Floating Create Cards Button (Bottom Right) -->
+    <!-- Managed by CoordinatorLayout to slide up with Snackbars -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/createCardsFab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_input_add"
+        app:tint="@android:color/white"
+        app:backgroundTint="@color/anki_blue"
+        app:strokeWidth="3dp"
+        app:strokeColor="@android:color/white"
+        app:borderWidth="0dp"
+        app:maxImageSize="56dp"
+        android:contentDescription="@string/definition_create_cards_description"
+        app:fabSize="normal"
+        app:elevation="6dp"
+        app:useCompatPadding="true"
+        android:visibility="gone" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
