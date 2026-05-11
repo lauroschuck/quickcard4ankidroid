@@ -504,7 +504,11 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void showPermissionResultDialog(String message, boolean isError) {
+    public void showResultDialog(int titleRes, int messageRes, boolean isError) {
+        showResultDialog(getString(titleRes), getString(messageRes), isError);
+    }
+
+    public void showResultDialog(String title, String message, boolean isError) {
         var iconRes = isError ? R.drawable.ic_badge_exclamation : R.drawable.ic_check;
 
         var icon = ContextCompat.getDrawable(this, iconRes);
@@ -516,10 +520,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         new MaterialAlertDialogBuilder(this)
-                .setTitle(R.string.permission_rationale_title)
+                .setTitle(title)
                 .setMessage(message)
                 .setIcon(icon)
                 .setPositiveButton(R.string.common_close, null)
                 .show();
+    }
+
+    private void showPermissionResultDialog(String message, boolean isError) {
+        showResultDialog(getString(R.string.permission_rationale_title), message, isError);
     }
 }

@@ -1,13 +1,16 @@
 package com.github.lauroschuck.quickcard4ankidroid.ui.main;
 
 import android.app.Dialog;
+import android.content.Context;
 import android.os.Bundle;
 import android.util.Patterns;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Toast;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -28,11 +31,25 @@ public class FeedbackDialogFragment extends AppCompatDialogFragment {
         EditText nameInput = view.findViewById(R.id.feedbackName);
         EditText emailInput = view.findViewById(R.id.feedbackEmail);
         EditText messageInput = view.findViewById(R.id.feedbackMessage);
+        TextView errorText = view.findViewById(R.id.feedbackErrorText);
+        ProgressBar progressBar = view.findViewById(R.id.feedbackProgressBar);
+        View formContainer = view.findViewById(R.id.feedbackFormContainer);
 
         TextInputLayout nameLayout = (TextInputLayout) nameInput.getParent().getParent();
         TextInputLayout emailLayout = (TextInputLayout) emailInput.getParent().getParent();
         TextInputLayout messageLayout =
                 (TextInputLayout) messageInput.getParent().getParent();
+
+        emailInput.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                String email = emailInput.getText().toString().trim();
+                if (!email.isEmpty() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                    emailLayout.setError(getString(R.string.feedback_error_email_invalid));
+                }
+            } else {
+                emailLayout.setError(null);
+            }
+        });
 
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setTitle(R.string.feedback_title)
@@ -42,8 +59,10 @@ public class FeedbackDialogFragment extends AppCompatDialogFragment {
                 .create();
 
         dialog.setOnShowListener(dialogInterface -> {
-            Button button = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
-            button.setOnClickListener(v -> {
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+
+            positiveButton.setOnClickListener(v -> {
                 String name = nameInput.getText().toString().trim();
                 String email = emailInput.getText().toString().trim();
                 String message = messageInput.getText().toString().trim();
@@ -75,7 +94,13 @@ public class FeedbackDialogFragment extends AppCompatDialogFragment {
                     return;
                 }
 
-                button.setEnabled(false);
+                // UI feedback: Loading state
+                hideKeyboard();
+                positiveButton.setEnabled(false);
+                negativeButton.setEnabled(false);
+                progressBar.setVisibility(View.VISIBLE);
+                errorText.setVisibility(View.GONE);
+                formContainer.setAlpha(0.5f);
 
                 FirebaseHelper.sendFeedback(
                         name,
@@ -84,8 +109,10 @@ public class FeedbackDialogFragment extends AppCompatDialogFragment {
                         documentReference -> {
                             if (isAdded()) {
                                 FirebaseHelper.logFeedback(true);
-                                Toast.makeText(requireContext(), R.string.feedback_success, Toast.LENGTH_SHORT)
-                                        .show();
+                                if (requireActivity() instanceof MainActivity activity) {
+                                    activity.showResultDialog(
+                                            R.string.feedback_title, R.string.feedback_success, false);
+                                }
                                 dismiss();
                             }
                         },
@@ -93,14 +120,26 @@ public class FeedbackDialogFragment extends AppCompatDialogFragment {
                             Timber.e(e, "Error sending feedback");
                             if (isAdded()) {
                                 FirebaseHelper.logFeedback(false);
-                                Toast.makeText(requireContext(), R.string.feedback_error_generic, Toast.LENGTH_SHORT)
-                                        .show();
-                                button.setEnabled(true);
+                                progressBar.setVisibility(View.GONE);
+                                positiveButton.setEnabled(true);
+                                negativeButton.setEnabled(true);
+                                formContainer.setAlpha(1.0f);
+                                errorText.setText(getString(R.string.feedback_error_generic));
+                                errorText.setVisibility(View.VISIBLE);
                             }
                         });
             });
         });
 
         return dialog;
+    }
+
+    private void hideKeyboard() {
+        View view = requireDialog().getCurrentFocus();
+        if (view != null) {
+            InputMethodManager imm =
+                    (InputMethodManager) requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
     }
 }
