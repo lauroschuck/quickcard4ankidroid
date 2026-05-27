@@ -26,7 +26,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:textSize="16sp"
-            android:textColor="@color/anki_dark_text"
+            android:textColor="@color/text_primary"
             android:layout_marginStart="8dp" />
 
         <ImageView
@@ -47,7 +47,7 @@
             android:src="@drawable/ic_update"
             android:visibility="gone"
             android:layout_marginEnd="4dp"
-            app:tint="@color/anki_blue"
+            app:tint="@color/accent_primary"
             android:contentDescription="@string/dict_update_available_description" />
 
         <ImageButton
@@ -89,6 +89,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="12sp"
-            android:textColor="@color/anki_light_text" />
+            android:textColor="@color/text_secondary" />
     </LinearLayout>
 </LinearLayout>

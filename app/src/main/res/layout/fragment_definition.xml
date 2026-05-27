@@ -18,15 +18,14 @@
             android:gravity="center_vertical"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
-            android:background="#f8f9fa">
+            android:background="@color/header_background">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/definition_note_type_label"
                 android:textStyle="bold"
-                android:textColor="@color/anki_dark_text"
-                android:layout_marginEnd="8dp"/>
+                android:textColor="@color/text_primary"                android:layout_marginEnd="8dp"/>
 
             <com.google.android.material.tabs.TabLayout
                 android:id="@+id/noteTypeTabLayout"
@@ -36,9 +35,9 @@
                 app:tabGravity="fill"
                 android:background="@android:color/transparent"
                 app:tabIndicatorHeight="2dp"
-                app:tabIndicatorColor="@color/anki_blue"
-                app:tabSelectedTextColor="@color/anki_blue"
-                app:tabTextColor="@color/anki_light_text">
+                app:tabIndicatorColor="@color/accent_primary"
+                app:tabSelectedTextColor="@color/accent_primary"
+                app:tabTextColor="@color/text_secondary">
 
                 <com.google.android.material.tabs.TabItem
                     android:layout_width="wrap_content"
@@ -69,7 +68,7 @@
             android:layout_marginEnd="16dp"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
             app:tint="@color/white"
-            app:backgroundTint="@color/anki_blue"
+            app:backgroundTint="@color/accent_primary"
             app:borderWidth="2dp"
             app:strokeColor="@android:color/white"
             app:elevation="4dp"
@@ -88,7 +87,7 @@
         android:layout_margin="16dp"
         android:src="@android:drawable/ic_input_add"
         app:tint="@android:color/white"
-        app:backgroundTint="@color/anki_blue"
+        app:backgroundTint="@color/accent_primary"
         app:strokeWidth="3dp"
         app:strokeColor="@android:color/white"
         app:borderWidth="0dp"

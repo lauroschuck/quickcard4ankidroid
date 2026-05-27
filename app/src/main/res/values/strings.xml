@@ -76,6 +76,11 @@
 
     <!-- Settings Activity -->
     <string name="settings_title">@string/nav_settings</string>
+    <string name="settings_section_ui_theme">UI Theme</string>
+    <string name="settings_theme_label">Application Theme</string>
+    <string name="settings_theme_system">Follow System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
     <string name="settings_section_anki_deck">Anki Deck</string>
     <string name="settings_parent_deck_label">Parent deck name</string>
     <string name="settings_parent_deck_hint">@string/app_name</string>

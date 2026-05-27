@@ -26,7 +26,7 @@
             android:layout_height="wrap_content"
             android:textSize="14sp"
             android:gravity="center"
-            android:textColor="#666666"
+            android:textColor="@color/text_secondary"
             android:layout_marginBottom="24dp"/>
 
         <Button
@@ -36,9 +36,9 @@
             android:text="@string/about_homepage_label"
             android:textSize="16sp"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            app:strokeColor="@color/anki_blue"
+            app:strokeColor="@color/accent_primary"
             app:strokeWidth="2dp"
-            android:textColor="@color/anki_blue"
+            android:textColor="@color/accent_primary"
             android:layout_marginBottom="24dp"/>
 
         <TextView
@@ -61,7 +61,7 @@
             android:text="@string/about_attribution_kaikki_wiktextract"
             android:layout_marginBottom="32dp"
             android:textSize="13sp"
-            android:textColor="#666666"/>
+            android:textColor="@color/text_secondary"/>
 
         <Button
             android:id="@+id/aboutLicensesButton"
@@ -69,7 +69,7 @@
             android:layout_height="60dp"
             android:text="@string/about_licenses_button"
             android:textSize="16sp"
-            android:backgroundTint="@color/anki_blue"
+            android:backgroundTint="@color/accent_primary"
             android:textColor="@android:color/white"
             android:layout_marginBottom="16dp"/>
 
@@ -80,7 +80,7 @@
             android:text="@string/common_close"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:textSize="16sp"
-            android:textColor="#666666"/>
+            android:textColor="@color/accent_primary"/>
 
     </LinearLayout>
 </ScrollView>

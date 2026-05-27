@@ -25,8 +25,8 @@
                 android:layout_weight="1"
                 android:hint="@string/search_hint"
                 android:inputType="text"
-                android:textColor="@color/anki_dark_text"
-                android:textColorHint="@color/anki_light_text"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_secondary"
                 android:imeOptions="actionSearch"/>
 
             <FrameLayout
@@ -39,7 +39,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/search_button"
-                    android:backgroundTint="@color/anki_blue"
+                    android:backgroundTint="@color/accent_primary"
                     android:textColor="@android:color/white" />
 
                 <ProgressBar
@@ -70,7 +70,7 @@
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:padding="8dp"
-            android:background="#F5F5F5"
+            android:background="@color/header_background"
             android:clickable="true"
             android:focusable="true">
 
@@ -80,7 +80,7 @@
                 android:layout_weight="1"
                 android:text="@string/search_enqueued_words_header"
                 android:textStyle="bold"
-                android:textColor="@color/anki_dark_text"/>
+                android:textColor="@color/text_primary"/>
 
             <ImageView
                 android:id="@+id/enqueueChevron"
@@ -104,7 +104,7 @@
         android:orientation="vertical"
         android:gravity="center"
         android:padding="32dp"
-        android:background="@android:color/white"
+        android:background="@color/app_background"
         android:visibility="gone">
 
         <TextView
@@ -113,23 +113,21 @@
             android:text="@string/search_no_dictionary_title"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:textColor="@color/anki_dark_text"
-            android:layout_marginBottom="8dp"/>
+            android:textColor="@color/text_primary"            android:layout_marginBottom="8dp"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/search_no_dictionary_message"
             android:gravity="center"
-            android:textColor="@color/anki_light_text"
-            android:layout_marginBottom="24dp"/>
+            android:textColor="@color/text_secondary"            android:layout_marginBottom="24dp"/>
 
         <Button
             android:id="@+id/openSettingsButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/search_go_to_settings"
-            android:backgroundTint="@color/anki_blue"
+            android:backgroundTint="@color/accent_primary"
             android:textColor="@android:color/white"/>
     </LinearLayout>
 </FrameLayout>

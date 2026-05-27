@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@android:color/white">
+    android:background="@color/app_background">
 
     <!-- Top Bar Container (Blue for OS toolbar area) -->
     <LinearLayout
@@ -11,14 +11,14 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@color/anki_blue">
+        android:background="@color/header_primary">
 
         <!-- Settings Header (Gray app menu) -->
         <LinearLayout
             android:id="@+id/settingsHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/anki_note"
+            android:background="@color/header_secondary"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:padding="12dp">
@@ -38,6 +38,33 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:padding="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_section_ui_theme"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_theme_label"
+            android:textStyle="bold" />
+
+        <Spinner
+            android:id="@+id/themeSpinner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="16dp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/divider_color"
+            android:layout_marginBottom="16dp" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -87,7 +114,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#DDDDDD"
+            android:background="@color/divider_color"
             android:layout_marginBottom="16dp" />
 
         <TextView
@@ -111,7 +138,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#DDDDDD"
+            android:background="@color/divider_color"
             android:layout_marginBottom="16dp" />
 
         <LinearLayout
@@ -135,7 +162,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/settings_add_dictionary_button"
                 style="?android:attr/borderlessButtonStyle"
-                android:textColor="@color/anki_blue" />
+                android:textColor="@color/accent_primary" />
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView

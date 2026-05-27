@@ -197,7 +197,7 @@ public class DefinitionFragment extends Fragment {
     }
 
     private void configureWebView() {
-        webView.setBackgroundColor(android.graphics.Color.WHITE);
+        webView.setBackgroundColor(android.graphics.Color.TRANSPARENT);
         webView.getSettings().setJavaScriptEnabled(true);
         webView.addJavascriptInterface(new WebAppInterface(), "Android");
         webView.setWebChromeClient(new WebChromeClient() {

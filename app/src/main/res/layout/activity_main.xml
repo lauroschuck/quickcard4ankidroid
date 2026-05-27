@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="@android:color/white">
+        android:background="@color/app_background">
 
         <!-- Top Bar Container (Blue for OS toolbar area) -->
         <LinearLayout
@@ -17,7 +17,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="@color/anki_blue">
+            android:background="@color/header_primary">
 
             <!-- Compact Header (Gray app menu) -->
             <LinearLayout
@@ -27,7 +27,7 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:padding="8dp"
-                android:background="@color/anki_note">
+                android:background="@color/header_secondary">
 
                 <FrameLayout
                     android:layout_width="wrap_content"
@@ -82,7 +82,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:background="@color/anki_dark_text"
+                    android:background="@color/header_dark_element"
                     android:paddingStart="4dp"
                     android:paddingEnd="4dp">
 
@@ -108,7 +108,7 @@
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="@color/anki_note"
+        android:background="@color/surface_nav"
         app:itemTextColor="@android:color/white"
         app:menu="@menu/drawer_menu" />
 

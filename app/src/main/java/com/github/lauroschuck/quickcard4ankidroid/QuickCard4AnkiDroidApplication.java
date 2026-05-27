@@ -3,7 +3,10 @@ package com.github.lauroschuck.quickcard4ankidroid;
 import android.app.Application;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.preference.PreferenceManager;
 import com.github.lauroschuck.quickcard4ankidroid.firebase.FirebaseHelper;
+import com.github.lauroschuck.quickcard4ankidroid.ui.settings.SettingsActivity;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import timber.log.Timber;
 
@@ -11,6 +14,7 @@ public class QuickCard4AnkiDroidApplication extends Application {
     @Override
     public void onCreate() {
         FirebaseHelper.earlyInit();
+        initTheme();
 
         super.onCreate();
 
@@ -28,6 +32,22 @@ public class QuickCard4AnkiDroidApplication extends Application {
         }
 
         FirebaseHelper.init(this);
+    }
+
+    private void initTheme() {
+        var prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        int themeMode = prefs.getInt(SettingsActivity.KEY_THEME, SettingsActivity.THEME_SYSTEM);
+        switch (themeMode) {
+            case SettingsActivity.THEME_LIGHT:
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                break;
+            case SettingsActivity.THEME_DARK:
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                break;
+            default:
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+                break;
+        }
     }
 
     private static class CrashReportingTree extends Timber.Tree {

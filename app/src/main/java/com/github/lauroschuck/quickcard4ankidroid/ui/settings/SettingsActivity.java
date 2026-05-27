@@ -17,6 +17,7 @@ import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.Observer;
@@ -47,7 +48,12 @@ public class SettingsActivity extends AppCompatActivity {
     public static final String KEY_PARENT_DECK_NAME = "parent_deck_name";
     public static final String KEY_DECK_NAME = "deck_name";
     public static final String KEY_USE_DEFAULT_DECK_NAME = "use_default_deck_name";
+    public static final String KEY_THEME = "ui_theme";
     public static final String DEFAULT_PARENT_DECK_NAME = "QuickCard for AnkiDroid";
+
+    public static final int THEME_SYSTEM = 0;
+    public static final int THEME_LIGHT = 1;
+    public static final int THEME_DARK = 2;
 
     private EditText parentDeckNameEditText;
     private EditText deckNameEditText;
@@ -55,6 +61,7 @@ public class SettingsActivity extends AppCompatActivity {
     private RecyclerView dictionariesRecyclerView;
     private Button clearCacheButton;
     private Button addDictionaryButton;
+    private Spinner themeSpinner;
 
     private SharedPreferences prefs;
     private MainViewModel viewModel;
@@ -105,6 +112,9 @@ public class SettingsActivity extends AppCompatActivity {
         deckNameEditText = findViewById(R.id.deckNameEditText);
         useDefaultDeckNameCheckbox = findViewById(R.id.useDefaultDeckNameCheckbox);
         dictionariesRecyclerView = findViewById(R.id.dictionariesRecyclerView);
+        themeSpinner = findViewById(R.id.themeSpinner);
+
+        setupThemeSpinner();
 
         useDefaultDeckNameCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             deckNameEditText.setEnabled(!isChecked);
@@ -119,6 +129,48 @@ public class SettingsActivity extends AppCompatActivity {
         addDictionaryButton.setOnClickListener(v -> showDownloadDialog());
 
         clearCacheButton.setOnClickListener(v -> confirmClearCache());
+    }
+
+    private void setupThemeSpinner() {
+        String[] themes = {
+            getString(R.string.settings_theme_system),
+            getString(R.string.settings_theme_light),
+            getString(R.string.settings_theme_dark)
+        };
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, themes);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        themeSpinner.setAdapter(adapter);
+
+        int currentTheme = prefs.getInt(KEY_THEME, THEME_SYSTEM);
+        themeSpinner.setSelection(currentTheme);
+
+        themeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                int savedTheme = prefs.getInt(KEY_THEME, THEME_SYSTEM);
+                if (savedTheme != position) {
+                    prefs.edit().putInt(KEY_THEME, position).apply();
+                    applyTheme(position);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+    }
+
+    private void applyTheme(int themeMode) {
+        switch (themeMode) {
+            case THEME_LIGHT:
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                break;
+            case THEME_DARK:
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                break;
+            default:
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+                break;
+        }
     }
 
     private void setupRecyclerView() {
