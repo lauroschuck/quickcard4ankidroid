@@ -12,10 +12,10 @@ import android.widget.Button;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatDialogFragment;
 import com.github.lauroschuck.quickcard4ankidroid.R;
 import com.google.android.gms.oss.licenses.OssLicensesMenuActivity;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import timber.log.Timber;
 
 public class AboutDialogFragment extends AppCompatDialogFragment {
@@ -53,6 +53,6 @@ public class AboutDialogFragment extends AppCompatDialogFragment {
 
         closeButton.setOnClickListener(v -> dismiss());
 
-        return new AlertDialog.Builder(requireContext()).setView(view).create();
+        return new MaterialAlertDialogBuilder(requireContext()).setView(view).create();
     }
 }

@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.net.Uri;
 import android.webkit.MimeTypeMap;
 import android.widget.Toast;
-import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.FileProvider;
 import androidx.preference.PreferenceManager;
 import com.github.lauroschuck.quickcard4ankidroid.AppConfig;
@@ -16,6 +15,7 @@ import com.github.lauroschuck.quickcard4ankidroid.anki.notes.TextNote;
 import com.github.lauroschuck.quickcard4ankidroid.model.Language;
 import com.github.lauroschuck.quickcard4ankidroid.ui.main.MainActivity;
 import com.github.lauroschuck.quickcard4ankidroid.ui.settings.SettingsActivity;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.ichi2.anki.api.AddContentApi;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -63,14 +63,14 @@ public class AnkiIntegration {
 
     public void requestPermissionWithRationale(Activity activity, int requestCode) {
         if (!AnkiDroidHelper.isApiAvailable(activity)) {
-            new AlertDialog.Builder(activity)
+            new MaterialAlertDialogBuilder(activity)
                     .setTitle(R.string.error_anki_not_installed_title)
                     .setMessage(R.string.error_anki_not_installed_message)
                     .setPositiveButton(R.string.install_button, (dialog, which) -> openPlayStore(activity))
                     .setNegativeButton(R.string.permission_cancel_button, null)
                     .show();
         } else if (ankiDroidHelper.shouldShowRationale(activity)) {
-            new AlertDialog.Builder(activity)
+            new MaterialAlertDialogBuilder(activity)
                     .setTitle(R.string.permission_rationale_title)
                     .setMessage(R.string.permission_rationale_message)
                     .setPositiveButton(R.string.permission_proceed_button, (dialog, which) -> {
@@ -84,7 +84,7 @@ public class AnkiIntegration {
             boolean wasAsked = prefs.getBoolean(KEY_ANKI_PERM_REQUESTED, false);
 
             if (!hasPermission() && wasAsked) {
-                new AlertDialog.Builder(activity)
+                new MaterialAlertDialogBuilder(activity)
                         .setTitle(R.string.permission_rationale_title)
                         .setMessage(R.string.permission_denied_permanent_message)
                         .setPositiveButton(R.string.permission_settings_button, (dialog, which) -> {
@@ -261,7 +261,7 @@ public class AnkiIntegration {
                     : context.getString(R.string.anki_audio_failed_message, headword);
 
             context.runOnUiThread(() -> {
-                new AlertDialog.Builder(context)
+                new MaterialAlertDialogBuilder(context)
                         .setTitle(R.string.anki_audio_failed_title)
                         .setMessage(message)
                         .setPositiveButton(R.string.anki_audio_failed_proceed, (dialog, which) -> {

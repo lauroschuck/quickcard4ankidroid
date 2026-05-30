@@ -15,7 +15,6 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.view.ViewCompat;
@@ -30,6 +29,7 @@ import com.github.lauroschuck.quickcard4ankidroid.data.DatabaseRemoteStorage;
 import com.github.lauroschuck.quickcard4ankidroid.firebase.FirebaseHelper;
 import com.github.lauroschuck.quickcard4ankidroid.model.Language;
 import com.github.lauroschuck.quickcard4ankidroid.ui.main.MainViewModel;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import java.io.File;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -333,7 +333,7 @@ public class SettingsActivity extends AppCompatActivity {
             public void onNothingSelected(AdapterView<?> parent) {}
         });
 
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this)
                 .setView(view)
                 .setPositiveButton(R.string.settings_download_button, (dialog, which) -> {
                     Language learning = (Language) learningSpinner.getSelectedItem();
@@ -379,7 +379,7 @@ public class SettingsActivity extends AppCompatActivity {
                 dict.learning().getDisplayName(),
                 dict.nativeLang().getDisplayName());
 
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this)
                 .setTitle(title)
                 .setMessage(message)
                 .setPositiveButton(R.string.common_close, null)
@@ -387,7 +387,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void showLegacyInfo() {
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.settings_legacy_dict_title)
                 .setMessage(R.string.settings_legacy_dict_message)
                 .setPositiveButton(R.string.common_close, null)
@@ -413,7 +413,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void confirmDelete(MainViewModel.DownloadedDictionary dict) {
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.settings_delete_dict_title)
                 .setMessage(getString(
                         R.string.settings_delete_dict_message,
@@ -473,7 +473,7 @@ public class SettingsActivity extends AppCompatActivity {
                                 + Formatter.formatShortFileSize(
                                         this, Math.abs(remote.sizeBytes() - local.sizeBytes())));
 
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.settings_update_dict_title)
                 .setMessage(getString(
                         R.string.settings_update_dict_message,
@@ -489,7 +489,7 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     private void confirmClearCache() {
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.settings_clear_cache_title)
                 .setMessage(R.string.settings_clear_cache_message)
                 .setPositiveButton(R.string.common_close, (dialog, which) -> clearAppCache())

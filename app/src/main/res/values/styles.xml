@@ -10,8 +10,13 @@
         <item name="colorOnSecondary">@color/on_primary</item>
         <item name="colorControlActivated">@color/anki_blue</item>
         <item name="snackbarStyle">@style/Widget.App.Snackbar</item>
+        <item name="materialAlertDialogTheme">@style/AppTheme.MaterialAlertDialog</item>
         <item name="android:windowBackground">@color/app_background</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+
+    <style name="AppTheme.MaterialAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="colorPrimary">@color/accent_primary</item>
     </style>
 
     <!-- Specific theme for Settings -->
@@ -25,6 +30,7 @@
         <item name="colorOnSecondary">@color/on_primary</item>
         <item name="colorControlActivated">@color/anki_blue</item>
         <item name="snackbarStyle">@style/Widget.App.Snackbar</item>
+        <item name="materialAlertDialogTheme">@style/AppTheme.MaterialAlertDialog</item>
         <item name="android:windowBackground">@color/app_background</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
@@ -35,6 +41,7 @@
         <item name="colorPrimaryVariant">@color/header_secondary</item>
         <item name="colorOnPrimary">@color/on_primary</item>
         <item name="snackbarStyle">@style/Widget.App.Snackbar</item>
+        <item name="materialAlertDialogTheme">@style/AppTheme.MaterialAlertDialog</item>
         <item name="android:windowBackground">@color/app_background</item>
     </style>
 

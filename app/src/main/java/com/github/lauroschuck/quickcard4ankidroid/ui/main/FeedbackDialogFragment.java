@@ -17,6 +17,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatDialogFragment;
 import com.github.lauroschuck.quickcard4ankidroid.R;
 import com.github.lauroschuck.quickcard4ankidroid.firebase.FirebaseHelper;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputLayout;
 import timber.log.Timber;
 
@@ -51,7 +52,7 @@ public class FeedbackDialogFragment extends AppCompatDialogFragment {
             }
         });
 
-        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+        AlertDialog dialog = new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.feedback_title)
                 .setView(view)
                 .setPositiveButton(R.string.feedback_send, null)
