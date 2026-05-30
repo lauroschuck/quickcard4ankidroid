@@ -77,11 +77,15 @@ public class KaikkiProcessor {
         final BlockingQueue<JsonObject> queue = new LinkedBlockingQueue<>(2000);
         final Thread writerThread;
 
-        long headwordCount = 0;
+        long headwordCount = -1;
         long glossCount = 0;
         long exampleCount = 0;
         long pronunciationCount = 0;
         long linkCount = 0;
+        long formOfCount = 0;
+        long deletedHeadwords = -1;
+        long deletedLinks = -1;
+        long collectiveLinkCount = -1;
         boolean removed = false;
 
         DatabaseSession(String dbPath, String learningLangCode) throws SQLException {
@@ -139,6 +143,7 @@ public class KaikkiProcessor {
                     }
                 }
                 commitInternal();
+                cleanDeadLinks();
             } catch (InterruptedException | SQLException e) {
                 throw new RuntimeException("Consumption failure", e);
             }
@@ -257,20 +262,42 @@ public class KaikkiProcessor {
         }
 
         private void processLinksInternal(long entryId, JsonObject sense) throws SQLException {
-            if (!sense.has("links")) {
-                return;
-            }
-            for (JsonElement linkElem : sense.getAsJsonArray("links")) {
-                JsonArray linkArr = linkElem.getAsJsonArray();
-                if (linkArr.size() == 2) {
-                    String target = linkArr.get(1).getAsString();
-                    if (target.contains("#")) {
-                        String lemma = target.substring(0, target.indexOf("#"));
+            // Give priority to form_of links, as they are simpler: no anchor, no potential to
+            // refer to the wrong word as the text word, present in every language dump
+            if (sense.has("form_of")) {
+                for (JsonElement formOfElem : sense.getAsJsonArray("form_of")) {
+                    JsonObject formOfObj = formOfElem.getAsJsonObject();
+                    if (formOfObj.has("word")) {
+                        var word = formOfObj.get("word").getAsString();
                         pSenseLink.setLong(1, entryId);
-                        pSenseLink.setString(2, linkArr.get(0).getAsString());
-                        pSenseLink.setLong(3, getOrCreateHeadwordIdInternal(lemma));
+                        pSenseLink.setString(2, word);
+                        pSenseLink.setLong(3, getOrCreateHeadwordIdInternal(word));
                         pSenseLink.addBatch();
-                        linkCount++;
+                        formOfCount++;
+                    }
+                }
+            }
+            // As a backup, process links: English only, and they need anchors to be of value
+            // (otherwise they are referring to the same language of the dump)
+            // Also, the unique key on the links table will ensure that if there is both a link and
+            // a form_of of the same word, the link insertion will be ignored
+            if (sense.has("links")) {
+                // Are these only available in the English Wiktionary?
+                for (JsonElement linkElem : sense.getAsJsonArray("links")) {
+                    JsonArray linkArr = linkElem.getAsJsonArray();
+                    if (linkArr.size() == 2) {
+                        String target = linkArr.get(1).getAsString();
+                        // Checking that the anchor is to the learning language seems unreliable,
+                        // so add anyway and clean up later
+                        String[] splitTarget = target.split("#");
+                        if (splitTarget.length == 2) {
+                            String lemma = splitTarget[0];
+                            pSenseLink.setLong(1, entryId);
+                            pSenseLink.setString(2, linkArr.get(0).getAsString());
+                            pSenseLink.setLong(3, getOrCreateHeadwordIdInternal(lemma));
+                            pSenseLink.addBatch();
+                            linkCount++;
+                        }
                     }
                 }
             }
@@ -383,6 +410,58 @@ public class KaikkiProcessor {
             conn.commit();
         }
 
+        private void cleanDeadLinks() throws SQLException {
+            // Links referring to headwords with no lex categories (or anything else) ae either
+            // really empty records (newer seen one) or a new headword for a link that is broken
+            // or from another language (lots), therefore erase these headwords and these links
+
+            deletedLinks = conn.prepareStatement("""
+                    DELETE FROM sense_links
+                    WHERE native_headword_id IN (
+                        SELECT h.id
+                        FROM headwords h
+                        LEFT JOIN lexical_entries le ON h.id = le.headword_id
+                        WHERE le.id is null
+                    )
+                    """).executeUpdate();
+            deletedHeadwords = conn.prepareStatement("""
+                    DELETE FROM headwords
+                    WHERE id NOT IN (
+                        SELECT le.headword_id
+                        FROM lexical_entries le
+                    )
+                    """).executeUpdate();
+
+            // Obtain the respective counters, especially links, as it is not the same as
+            // links plus form_of minus deleted because of ignored links because they conflicted
+            // with form_of and got ignored but still counted
+            headwordCount = selectLong("SELECT count(*) FROM headwords");
+            collectiveLinkCount = selectLong("SELECT count(*) FROM sense_links");
+
+            conn.commit();
+        }
+
+        private long selectLong(String query) throws SQLException {
+            var ps = conn.prepareStatement(query);
+            if (!ps.execute()) {
+                throw new RuntimeException("Failed to execute");
+            }
+            var rs = ps.getResultSet();
+            if (!rs.next()) {
+                throw new RuntimeException("No value");
+            }
+            return rs.getLong(1);
+        }
+
+        private long getGeneratedKeys(PreparedStatement ps) throws SQLException {
+            try (ResultSet rs = ps.getGeneratedKeys()) {
+                if (!rs.next()) {
+                    throw new RuntimeException("No value");
+                }
+                return rs.getLong(1);
+            }
+        }
+
         @Override
         public void close() throws SQLException, InterruptedException {
             queue.put(POISON_PILL);
@@ -476,6 +555,7 @@ public class KaikkiProcessor {
                     meta.put("glosses", session.glossCount);
                     meta.put("examples", session.exampleCount);
                     meta.put("pronunciations", session.pronunciationCount);
+                    meta.put("links", session.collectiveLinkCount);
                     dictionaryMetadataList.add(meta);
                 }
             }
@@ -621,22 +701,26 @@ public class KaikkiProcessor {
                 DatabaseSession session = entry.getValue();
                 session.close();
                 String learningCode = entry.getKey();
-                System.out.println(String.format(
-                        Locale.US,
-                        "- %s, %s: %d headwords, %d glosses, %d examples, %d pronunciations, %d links added.",
-                        learningCode,
-                        session.learningLangName,
-                        session.headwordCount,
-                        session.glossCount,
-                        session.exampleCount,
-                        session.pronunciationCount,
-                        session.linkCount));
                 if (session.headwordCount < MIN_HEADWORDS) {
-                    System.out.println(String.format(
-                            Locale.US, "  ! Deleting database (below min %d): %s", MIN_HEADWORDS, session.dbPath));
                     new File(session.dbPath).delete();
                     session.removed = true;
                 }
+                System.out.printf(
+                        Locale.US,
+                        "%s %s, %s: %d headwords (without %d dead ends), %d glosses, %d examples, %d pronunciations, %d links (%d links plus %d forms minus %d dead ends).%s%n",
+                        session.removed ? " !  deleted" : ">>> created",
+                        learningCode,
+                        session.learningLangName,
+                        session.headwordCount,
+                        session.deletedHeadwords,
+                        session.glossCount,
+                        session.exampleCount,
+                        session.pronunciationCount,
+                        session.collectiveLinkCount,
+                        session.linkCount,
+                        session.formOfCount,
+                        session.deletedLinks,
+                        session.removed ? " Deleted by being below " + MIN_HEADWORDS + " headwords." : "");
             }
         }
         return sessions;
@@ -711,7 +795,7 @@ public class KaikkiProcessor {
                     native_headword_id INTEGER,
                     FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id),
                     FOREIGN KEY(native_headword_id) REFERENCES headwords(id),
-                    UNIQUE(lexical_entry_id, word, native_headword_id))""");
+                    UNIQUE(lexical_entry_id, word))""");
         st.execute("""
                 CREATE TABLE bold_offsets (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
