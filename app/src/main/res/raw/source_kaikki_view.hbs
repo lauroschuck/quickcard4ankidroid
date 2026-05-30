@@ -31,6 +31,13 @@
             .gloss {
                 margin-bottom: 0.3em;
             }
+            .gloss-item {
+                margin-bottom: 0.2em;
+            }
+            .gloss-item.nested {
+                border-left: 2px solid {{colors.divider_color}};
+                padding-left: 0.5em;
+            }
             dl {
                 margin-top: 0.5em;
                 margin-bottom: 0.5em;
@@ -313,7 +320,7 @@
                             <input type='checkbox' class='sense-checkbox' id='chk-sense-{{entryId}}' onchange='toggleSense(this)'>
                             <div class='gloss'>
                                 {{#each glosses}}
-                                    <div>{{{this}}}</div>
+                                    <div class="gloss-item {{#if @index}}nested{{/if}}" style="margin-left: calc({{@index}} * 1.2em);">{{{this}}}</div>
                                 {{/each}}
                             </div>
                             {{#each relations}}
