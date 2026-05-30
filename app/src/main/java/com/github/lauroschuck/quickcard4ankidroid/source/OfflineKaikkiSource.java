@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.NonNull;
@@ -309,7 +310,11 @@ public class OfflineKaikkiSource implements DataSource {
             while (cursor.moveToNext()) {
                 String linkText = cursor.getString(0);
                 String nativeWord = cursor.getString(1);
-                text = text.replace(linkText, "<a href='app://fetch/" + nativeWord + "'>" + linkText + "</a>");
+                // Use Unicode-aware regex lookarounds to match only standalone words
+                // (?<!\p{L}) : not preceded by a letter
+                // (?!\p{L})  : not followed by a letter
+                String regex = "(?<!\\p{L})" + Pattern.quote(linkText) + "(?!\\p{L})";
+                text = text.replaceAll(regex, "<a href='app://fetch/" + nativeWord + "'>$0</a>");
             }
         }
         return text;
@@ -497,7 +502,7 @@ public class OfflineKaikkiSource implements DataSource {
                 if (glosses.length() > 0) {
                     glosses.append("<br/>");
                 }
-                glosses.append(applyLinks(glossCursor.getString(0), entryId, db));
+                glosses.append(glossCursor.getString(0));
             }
         }
         return glosses.toString();
