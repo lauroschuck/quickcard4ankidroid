@@ -110,13 +110,13 @@ public class KaikkiProcessor {
                     "INSERT INTO examples (lexical_entry_id, learning_text, native_text) VALUES (?, ?, ?)",
                     Statement.RETURN_GENERATED_KEYS);
             this.pSenseLink = conn.prepareStatement(
-                    "INSERT INTO sense_links (lexical_entry_id, word, native_headword_id) VALUES (?, ?, ?)");
+                    "INSERT OR IGNORE INTO sense_links (lexical_entry_id, word, native_headword_id) VALUES (?, ?, ?)");
             this.pOffset = conn.prepareStatement(
-                    "INSERT INTO bold_offsets (example_id, text_type, start_index, end_index) VALUES (?, ?, ?, ?)");
+                    "INSERT OR IGNORE INTO bold_offsets (example_id, text_type, start_index, end_index) VALUES (?, ?, ?, ?)");
             this.pPronunciation = conn.prepareStatement(
-                    "INSERT INTO pronunciations (headword_id, audio_url, description) VALUES (?, ?, ?)");
+                    "INSERT OR IGNORE INTO pronunciations (headword_id, audio_url, description) VALUES (?, ?, ?)");
             this.pRelation =
-                    conn.prepareStatement("INSERT INTO relations (lexical_entry_id, type, word) VALUES (?, ?, ?)");
+                    conn.prepareStatement("INSERT OR IGNORE INTO relations (lexical_entry_id, type, word) VALUES (?, ?, ?)");
             this.pLanguage = conn.prepareStatement("INSERT OR IGNORE INTO languages (iso, name) VALUES (?, ?)");
             this.pUpdateIpa = conn.prepareStatement("UPDATE headwords SET ipa = ? WHERE id = ?");
 
@@ -294,7 +294,12 @@ public class KaikkiProcessor {
                     pExample.setLong(1, entryId);
                     pExample.setString(2, src);
                     pExample.setString(3, trg);
-                    pExample.executeUpdate();
+                    try {
+                        pExample.executeUpdate();
+                    } catch (SQLException e) {
+                        // Some entries happen to have multiple repeated examples, just ignore them
+                        continue;
+                    }
                     long exId;
                     try (ResultSet rs = pExample.getGeneratedKeys()) {
                         rs.next();
@@ -669,34 +674,78 @@ public class KaikkiProcessor {
         st.execute("DROP TABLE IF EXISTS pronunciations");
         st.execute("DROP TABLE IF EXISTS headwords");
         st.execute("DROP TABLE IF EXISTS languages");
-        st.execute("CREATE TABLE headwords (id INTEGER PRIMARY KEY AUTOINCREMENT, headword TEXT UNIQUE, ipa TEXT)");
-        st.execute(
-                "CREATE TABLE lexical_entries (id INTEGER PRIMARY KEY AUTOINCREMENT, headword_id INTEGER, lexical_category TEXT, sense_index INTEGER, FOREIGN KEY(headword_id) REFERENCES headwords(id))");
-        st.execute(
-                "CREATE TABLE glosses (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, gloss TEXT, gloss_index INTEGER, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id))");
-        st.execute(
-                "CREATE TABLE examples (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, learning_text TEXT, native_text TEXT, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id))");
-        st.execute(
-                "CREATE TABLE sense_links (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, word TEXT, native_headword_id INTEGER, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id), FOREIGN KEY(native_headword_id) REFERENCES headwords(id))");
-        st.execute(
-                "CREATE TABLE bold_offsets (id INTEGER PRIMARY KEY AUTOINCREMENT, example_id INTEGER, text_type CHAR(1), start_index INTEGER, end_index INTEGER, FOREIGN KEY(example_id) REFERENCES examples(id))");
-        st.execute(
-                "CREATE TABLE pronunciations (id INTEGER PRIMARY KEY AUTOINCREMENT, headword_id INTEGER, audio_url TEXT, description TEXT, FOREIGN KEY(headword_id) REFERENCES headwords(id))");
-        st.execute(
-                "CREATE TABLE relations (id INTEGER PRIMARY KEY AUTOINCREMENT, lexical_entry_id INTEGER, type CHAR(1), word TEXT, FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id))");
-        st.execute("CREATE TABLE languages (iso TEXT PRIMARY KEY, name TEXT)");
+        st.execute("""
+                CREATE TABLE headwords (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    headword TEXT UNIQUE,
+                    ipa TEXT)""");
+        st.execute("""
+                CREATE TABLE lexical_entries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    headword_id INTEGER,
+                    lexical_category TEXT,
+                    sense_index INTEGER,
+                    FOREIGN KEY(headword_id) REFERENCES headwords(id),
+                    UNIQUE(headword_id, lexical_category, sense_index))""");
+        st.execute("""
+                CREATE TABLE glosses (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    lexical_entry_id INTEGER,
+                    gloss TEXT,
+                    gloss_index INTEGER,
+                    FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id),
+                    UNIQUE(lexical_entry_id, gloss, gloss_index))""");
+        st.execute("""
+                CREATE TABLE examples (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    lexical_entry_id INTEGER,
+                    learning_text TEXT,
+                    native_text TEXT,
+                    FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id),
+                    UNIQUE(lexical_entry_id, learning_text, native_text))""");
+        st.execute("""
+                CREATE TABLE sense_links (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    lexical_entry_id INTEGER,
+                    word TEXT,
+                    native_headword_id INTEGER,
+                    FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id),
+                    FOREIGN KEY(native_headword_id) REFERENCES headwords(id),
+                    UNIQUE(lexical_entry_id, word, native_headword_id))""");
+        st.execute("""
+                CREATE TABLE bold_offsets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    example_id INTEGER,
+                    text_type CHAR(1),
+                    start_index INTEGER,
+                    end_index INTEGER,
+                    FOREIGN KEY(example_id) REFERENCES examples(id),
+                    UNIQUE(example_id, text_type, start_index, end_index))""");
+        st.execute("""
+                CREATE TABLE pronunciations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    headword_id INTEGER,
+                    audio_url TEXT,
+                    description TEXT,
+                    FOREIGN KEY(headword_id) REFERENCES headwords(id),
+                    UNIQUE(headword_id, audio_url))""");
+        st.execute("""
+                CREATE TABLE relations (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    lexical_entry_id INTEGER,
+                    type CHAR(1),
+                    word TEXT,
+                    FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id),
+                    UNIQUE(lexical_entry_id, type, word))""");
+        st.execute("""
+                CREATE TABLE languages (
+                    iso TEXT PRIMARY KEY,
+                    name TEXT)""");
         st.execute("CREATE INDEX idx_hw_word ON headwords(headword)");
         st.execute("CREATE INDEX idx_le_hw ON lexical_entries(headword_id)");
         st.execute("CREATE INDEX idx_gl_le ON glosses(lexical_entry_id)");
         st.execute("CREATE INDEX idx_ex_le ON examples(lexical_entry_id)");
         st.execute("CREATE INDEX idx_sl_le ON sense_links(lexical_entry_id)");
-    }
-
-    private static void setupStatsSchema(Connection conn) throws SQLException {
-        Statement st = conn.createStatement();
-        st.execute("DROP TABLE IF EXISTS stats");
-        st.execute(
-                "CREATE TABLE stats (learning_lang TEXT, native_lang TEXT, learning_lang_name TEXT, headwords INTEGER, glosses INTEGER, examples INTEGER)");
     }
 
     private static void printSummaryTable(Map<String, Map<String, Boolean>> status) {
