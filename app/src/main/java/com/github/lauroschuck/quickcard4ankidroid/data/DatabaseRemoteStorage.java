@@ -14,7 +14,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
@@ -26,7 +28,7 @@ public class DatabaseRemoteStorage {
     private final Context context;
     private final OkHttpClient client;
     private final Gson gson;
-    private final List<String> mirrors = new ArrayList<>();
+    private final List<MirrorInfo> mirrors = new ArrayList<>();
 
     public DatabaseRemoteStorage(Context context) {
         this.context = context;
@@ -62,10 +64,13 @@ public class DatabaseRemoteStorage {
                         entry.glosses,
                         entry.pronunciations,
                         Instant.ofEpochSecond(entry.lastModified),
-                        entry.file));
+                        entry.file,
+                        root.timestamp));
             }
             mirrors.clear();
-            mirrors.addAll(root.mirrors);
+            for (Map.Entry<String, String> entry : root.mirrors.entrySet()) {
+                mirrors.add(new MirrorInfo(entry.getKey(), entry.getValue()));
+            }
 
             callback.onSuccess(stats);
         } catch (JsonSyntaxException e) {
@@ -83,27 +88,63 @@ public class DatabaseRemoteStorage {
             return;
         }
 
-        // Use the first mirror
-        String mirror = mirrors.get(0);
-        if (!mirror.endsWith("/")) {
-            mirror += "/";
+        List<MirrorInfo> shuffledMirrors = new ArrayList<>(mirrors);
+        Collections.shuffle(shuffledMirrors);
+
+        downloadFromMirror(0, shuffledMirrors, stats, callback, SystemClock.uptimeMillis());
+    }
+
+    private void downloadFromMirror(
+            int mirrorIndex,
+            List<MirrorInfo> shuffledMirrors,
+            DictionaryStats stats,
+            DownloadCallback callback,
+            long overallStart) {
+        long mirrorStart = SystemClock.uptimeMillis();
+        if (mirrorIndex >= shuffledMirrors.size()) {
+            callback.onError(
+                    "Download failed. Please try again later.", null, SystemClock.uptimeMillis() - overallStart);
+            return;
         }
-        String url = mirror + stats.fileName();
+
+        MirrorInfo mirror = shuffledMirrors.get(mirrorIndex);
+        String baseUrl = mirror.url();
+        if (!baseUrl.endsWith("/")) {
+            baseUrl += "/";
+        }
+        String url = baseUrl + stats.fileName();
 
         Request request = new Request.Builder().url(url).build();
-        Timber.d("Downloading dictionary from %s", url);
+        Timber.d(
+                "Attempting download from mirror %d/%d [%s]: %s",
+                mirrorIndex + 1, shuffledMirrors.size(), mirror.id(), url);
 
-        long start = SystemClock.uptimeMillis();
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                callback.onError("Download failure", e, SystemClock.uptimeMillis() - start);
+                Timber.w(e, "Mirror %d [%s] failed: %s", mirrorIndex + 1, mirror.id(), url);
+                long elapsed = SystemClock.uptimeMillis() - mirrorStart;
+                boolean hasMore = mirrorIndex + 1 < shuffledMirrors.size();
+                logDownloadAttempt(stats, mirror.id(), 0, false, hasMore, elapsed, e.getMessage(), e);
+                downloadFromMirror(mirrorIndex + 1, shuffledMirrors, stats, callback, overallStart);
             }
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
+                int code = response.code();
                 if (!response.isSuccessful()) {
-                    callback.onError("Server error " + response.code(), null, SystemClock.uptimeMillis() - start);
+                    Timber.w(
+                            "Mirror %d [%s] returned error %d: %s\n%s",
+                            mirrorIndex + 1,
+                            mirror.id(),
+                            response.code(),
+                            url,
+                            response.peekBody(1000).string());
+                    long elapsed = SystemClock.uptimeMillis() - mirrorStart;
+                    boolean hasMore = mirrorIndex + 1 < shuffledMirrors.size();
+                    logDownloadAttempt(stats, mirror.id(), code, false, hasMore, elapsed, response.message(), null);
+                    response.close();
+                    downloadFromMirror(mirrorIndex + 1, shuffledMirrors, stats, callback, overallStart);
                     return;
                 }
 
@@ -122,26 +163,62 @@ public class DatabaseRemoteStorage {
                         downloaded += read;
                         callback.onProgress(downloaded, totalBytes);
                     }
+                    long elapsed = SystemClock.uptimeMillis() - mirrorStart;
                     if (tempFile.renameTo(outFile)) {
-                        callback.onSuccess(outFile, SystemClock.uptimeMillis() - start);
+                        logDownloadAttempt(stats, mirror.id(), code, true, false, elapsed, null, null);
+                        callback.onSuccess(outFile, SystemClock.uptimeMillis() - overallStart);
                     } else {
-                        callback.onError("Rename failed", null, SystemClock.uptimeMillis() - start);
+                        boolean hasMore = mirrorIndex + 1 < shuffledMirrors.size();
+                        logDownloadAttempt(stats, mirror.id(), code, false, hasMore, elapsed, "Rename failed", null);
+                        callback.onError("Rename failed", null, SystemClock.uptimeMillis() - overallStart);
                     }
                 } catch (IOException e) {
-                    callback.onError("Write failure: " + e.getMessage(), e, SystemClock.uptimeMillis() - start);
+                    Timber.w(e, "Write failure from mirror %d [%s]: %s", mirrorIndex + 1, mirror.id(), url);
+                    long elapsed = SystemClock.uptimeMillis() - mirrorStart;
+                    boolean hasMore = mirrorIndex + 1 < shuffledMirrors.size();
+                    logDownloadAttempt(stats, mirror.id(), code, false, hasMore, elapsed, e.getMessage(), e);
+                    downloadFromMirror(mirrorIndex + 1, shuffledMirrors, stats, callback, overallStart);
                 } finally {
                     if (tempFile.exists()) {
                         tempFile.delete();
                     }
+                    response.close();
                 }
             }
         });
     }
 
+    private void logDownloadAttempt(
+            DictionaryStats stats,
+            String mirrorId,
+            int code,
+            boolean success,
+            boolean hasMore,
+            long elapsed,
+            String errorMessage,
+            Throwable throwable) {
+        FirebaseHelper.DownloadOutcome outcome = success
+                ? FirebaseHelper.DownloadOutcome.SUCCESS
+                : (hasMore ? FirebaseHelper.DownloadOutcome.NA : FirebaseHelper.DownloadOutcome.FAILURE);
+
+        FirebaseHelper.logDownloadDictionary(
+                stats.learning(),
+                stats.nativeLang(),
+                mirrorId,
+                FirebaseHelper.getMetadataVersion(),
+                stats.metadataTimestamp(),
+                code,
+                outcome,
+                elapsed,
+                errorMessage,
+                throwable);
+    }
+
     @Keep
     private static class Metadata {
-        List<String> mirrors;
+        Map<String, String> mirrors;
         List<DictionaryEntry> dictionaries;
+        long timestamp;
     }
 
     @Keep
@@ -176,7 +253,8 @@ public class DatabaseRemoteStorage {
             int glosses,
             int pronunciations,
             Instant lastModified,
-            String fileName) {
+            String fileName,
+            long metadataTimestamp) {
 
         public String serialize() {
             return String.join(
@@ -189,12 +267,13 @@ public class DatabaseRemoteStorage {
                     String.valueOf(examples),
                     fileName,
                     String.valueOf(lastModified.getEpochSecond()),
-                    String.valueOf(sizeBytes));
+                    String.valueOf(sizeBytes),
+                    String.valueOf(metadataTimestamp));
         }
 
         public static DictionaryStats deserialize(String data) {
             String[] p = data.split(":");
-            if (p.length != 9) {
+            if (p.length < 9) {
                 throw new IllegalArgumentException("Illegal data for deserialization: " + data);
             }
             return new DictionaryStats(
@@ -206,7 +285,8 @@ public class DatabaseRemoteStorage {
                     Integer.parseInt(p[4]),
                     Integer.parseInt(p[3]),
                     Instant.ofEpochSecond(Long.parseLong(p[7])),
-                    p[6]);
+                    p[6],
+                    p.length > 9 ? Long.parseLong(p[9]) : 0);
         }
     }
 
@@ -223,4 +303,6 @@ public class DatabaseRemoteStorage {
 
         void onError(String message, Throwable throwable, long elapsedMs);
     }
+
+    private record MirrorInfo(String id, String url) {}
 }

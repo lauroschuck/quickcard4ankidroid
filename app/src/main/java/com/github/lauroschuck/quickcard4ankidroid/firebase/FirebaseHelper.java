@@ -27,6 +27,8 @@ import timber.log.Timber;
 
 public class FirebaseHelper {
 
+    private static final String VERSION = "v1";
+    private static final String DICTIONARIES_METADATA_KEY = "dictionaries_" + VERSION;
     private static FirebaseRemoteConfig remoteConfig;
     private static FirebaseAnalytics analytics;
     private static FirebaseCrashlytics crashlytics;
@@ -52,13 +54,16 @@ public class FirebaseHelper {
         remoteConfig.fetchAndActivate();
     }
 
+    public static String getMetadataVersion() {
+        return VERSION;
+    }
+
     public static String getDictionariesConfigJson() {
         if (remoteConfig == null) {
             throw new IllegalStateException("Remote Config not initialized");
         }
-        var key = "dictionaries_v1";
-        Timber.d("Obtaining dictionary metadata from remote config under key %s", key);
-        return remoteConfig.getString(key);
+        Timber.d("Obtaining dictionary metadata from remote config under key %s", DICTIONARIES_METADATA_KEY);
+        return remoteConfig.getString(DICTIONARIES_METADATA_KEY);
     }
 
     public static void init(Context context) {
@@ -188,21 +193,27 @@ public class FirebaseHelper {
         logEvent("export_text_cards", bundle);
     }
 
-    public static void logDownloadDictionary(@NonNull Language learning, @NonNull Language nativeLang, long elapsedMs) {
-        logDownloadDictionary(learning, nativeLang, elapsedMs, null, null);
-    }
-
     public static void logDownloadDictionary(
             @NonNull Language learning,
             @NonNull Language nativeLang,
+            @NonNull String mirrorId,
+            @NonNull String version,
+            long metadataTimestamp,
+            int returnCode,
+            @NonNull DownloadOutcome outcome,
             long elapsedMs,
             String errorMessage,
             Throwable throwable) {
         Bundle bundle = new Bundle();
         bundle.putString("download_learning_language", learning.getIsoCode());
         bundle.putString("download_native_language", nativeLang.getIsoCode());
+        bundle.putString("mirror_id", mirrorId);
+        bundle.putString("dictionary_version", version);
+        bundle.putLong("metadata_timestamp", metadataTimestamp);
+        bundle.putInt("return_code", returnCode);
+        bundle.putString("outcome", outcome.value());
         bundle.putLong("elapsed_ms", elapsedMs);
-        bundle.putBoolean("success", errorMessage == null && throwable == null);
+        bundle.putBoolean("success", outcome == DownloadOutcome.SUCCESS);
         bundle.putString("error_message", errorMessage == null ? "N/A" : errorMessage);
         bundle.putString(
                 "exception", throwable == null ? "N/A" : throwable.getClass().getName());
@@ -271,6 +282,17 @@ public class FirebaseHelper {
         TEXT;
 
         public String value() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+    }
+
+    public enum DownloadOutcome {
+        SUCCESS,
+        FAILURE,
+        NA;
+
+        public String value() {
+            if (this == NA) return "N/A";
             return name().toLowerCase(Locale.ROOT);
         }
     }

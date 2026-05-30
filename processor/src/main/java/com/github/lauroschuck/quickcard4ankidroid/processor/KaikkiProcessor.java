@@ -497,20 +497,35 @@ public class KaikkiProcessor {
             List<Map<String, Object>> dictionaries,
             long epochSeconds,
             String version,
-            String[] mirrorBases) {
+            String[] mirrorPairs) {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("timestamp", epochSeconds);
-        root.put("timestamp_iso", Instant.ofEpochSecond(epochSeconds).atZone(ZoneOffset.systemDefault()).toOffsetDateTime().toString());
+        root.put(
+                "timestamp_iso",
+                Instant.ofEpochSecond(epochSeconds)
+                        .atZone(ZoneOffset.systemDefault())
+                        .toOffsetDateTime()
+                        .toString());
 
-        List<String> fullMirrors = new ArrayList<>();
-        for (String base : mirrorBases) {
-            // Format: <base_url>/<version>/<timestamp>
-            String fullUrl = base;
-            if (!fullUrl.endsWith("/")) {
-                fullUrl += "/";
+        Map<String, String> fullMirrors = new LinkedHashMap<>();
+        for (String pair : mirrorPairs) {
+            String[] parts = pair.split("=", 2);
+            if (parts.length != 2) {
+                throw new RuntimeException("Invalid mirror format (expected ID=URL): " + pair);
             }
-            fullUrl += version + "/" + epochSeconds;
-            fullMirrors.add(fullUrl);
+            String id = parts[0].trim();
+            String base = parts[1].trim();
+
+            String fullUrl;
+            if ("pCloud".equalsIgnoreCase(id)) {
+                fullUrl = base + (base.endsWith("/") ? "" : "/") + "QuickCard4AnkiDroid/" + version + "/" + epochSeconds;
+            } else if ("BackBlaze".equalsIgnoreCase(id)) {
+                fullUrl =
+                        base + (base.endsWith("/") ? "" : "/") + "QuickCard4AnkiDroid-" + version + "-" + epochSeconds;
+            } else {
+                throw new RuntimeException("Unknown mirror ID: " + id);
+            }
+            fullMirrors.put(id, fullUrl);
         }
         root.put("mirrors", fullMirrors);
         root.put("dictionaries", dictionaries);

@@ -12,7 +12,6 @@ import com.github.lauroschuck.quickcard4ankidroid.data.DataSourceRepository;
 import com.github.lauroschuck.quickcard4ankidroid.data.DatabaseRemoteStorage;
 import com.github.lauroschuck.quickcard4ankidroid.data.NavigationManager;
 import com.github.lauroschuck.quickcard4ankidroid.data.WordRepository;
-import com.github.lauroschuck.quickcard4ankidroid.firebase.FirebaseHelper;
 import com.github.lauroschuck.quickcard4ankidroid.model.Language;
 import com.github.lauroschuck.quickcard4ankidroid.ui.settings.SettingsActivity;
 import java.io.File;
@@ -196,7 +195,6 @@ public class MainViewModel extends AndroidViewModel {
             @Override
             public void onSuccess(File newFile, long elapsedMs) {
                 activeDownload.postValue(null);
-                FirebaseHelper.logDownloadDictionary(dict.learning(), dict.nativeLang(), elapsedMs);
 
                 // 1. Delete old file
                 File oldFile = dict.file(getApplication());
@@ -215,8 +213,6 @@ public class MainViewModel extends AndroidViewModel {
             @Override
             public void onError(String errorMessage, Throwable throwable, long elapsedMs) {
                 activeDownload.postValue(null);
-                FirebaseHelper.logDownloadDictionary(
-                        dict.learning(), dict.nativeLang(), elapsedMs, errorMessage, throwable);
                 Timber.e("Update failed: %s", errorMessage);
                 downloadError.postValue(errorMessage);
             }
@@ -304,7 +300,6 @@ public class MainViewModel extends AndroidViewModel {
             @Override
             public void onSuccess(File file, long elapsedMs) {
                 activeDownload.postValue(null);
-                FirebaseHelper.logDownloadDictionary(learning, nativeLang, elapsedMs);
                 registerInMetadata(stats);
                 refreshDownloadedDictionaries();
                 dataSourceRepository.reloadSources();
@@ -313,7 +308,6 @@ public class MainViewModel extends AndroidViewModel {
             @Override
             public void onError(String errorMessage, Throwable throwable, long elapsedMs) {
                 activeDownload.postValue(null);
-                FirebaseHelper.logDownloadDictionary(learning, nativeLang, elapsedMs, errorMessage, throwable);
                 Timber.e("Download failed: %s", errorMessage);
                 downloadError.postValue(errorMessage);
             }
