@@ -4,12 +4,12 @@ import android.content.Context;
 import com.github.jknack.handlebars.EscapingStrategy;
 import com.github.jknack.handlebars.Handlebars;
 import com.github.lauroschuck.quickcard4ankidroid.R;
+import com.github.lauroschuck.quickcard4ankidroid.util.ResourcesUtil;
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import kotlin.io.ByteStreamsKt;
 import lombok.Getter;
 import lombok.NonNull;
 
@@ -32,10 +32,10 @@ public class CardAssets {
     public CardAssets(@NonNull Context context) {
         handlebars = createHandlebars();
         templateCache = Stream.of(TemplateId.values())
-                .collect(Collectors.toMap(Function.identity(), t -> load(t.rawResource, context)));
-        sharedCss = load(R.raw.shared_styling, context);
-        dictionaryCss = load(R.raw.dictionary_styling, context);
-        textCss = load(R.raw.text_styling, context);
+                .collect(Collectors.toMap(Function.identity(), t -> ResourcesUtil.loadRaw(t.rawResource, context)));
+        sharedCss = ResourcesUtil.loadRaw(R.raw.shared_styling, context);
+        dictionaryCss = ResourcesUtil.loadRaw(R.raw.dictionary_styling, context);
+        textCss = ResourcesUtil.loadRaw(R.raw.text_styling, context);
     }
 
     private Handlebars createHandlebars() {
@@ -55,14 +55,6 @@ public class CardAssets {
             return sb.toString();
         });
         return hb;
-    }
-
-    private String load(int rawResource, Context context) {
-        try (var resource = context.getResources().openRawResource(rawResource)) {
-            return new String(ByteStreamsKt.readBytes(resource));
-        } catch (IOException e) {
-            throw new RuntimeException("Error loading asset: " + e.getMessage(), e);
-        }
     }
 
     public String getTemplate(@NonNull TemplateId templateId) {

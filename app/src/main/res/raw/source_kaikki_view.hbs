@@ -1,0 +1,163 @@
+<html>
+    <head>
+        <style>
+            body { font-family: sans-serif; padding: 12px; line-height: 1.5; color: #202122; transition: background 0.3s; }
+            h2 { border-bottom: 1px solid #a2a9b1; margin-bottom: 0.25em; padding-top: 0.5em; font-size: 1.5em; display: flex; align-items: center; }
+            h3 { font-size: 1.25em; font-weight: bold; margin-top: 1.2em; }
+            ol { padding-left: 1.5em; }
+            li.definition { margin-bottom: 0.8em; position: relative; }
+            .gloss { margin-bottom: 0.3em; }
+            dl { margin-top: 0.5em; margin-bottom: 0.5em; }
+            .h-usage-example { font-style: italic; display: block; margin-top: 0.5em; }
+            .h-usage-example-translation { font-style: normal; color: #54595d; display: block; font-size: 0.9em; margin-left: 2em; margin-top: 0.2em; }
+            a { color: #36c; text-decoration: none; }
+
+            .example-checkbox, .sense-checkbox, .example-radio, .audio-radio { margin-right: 8px; vertical-align: middle; }
+
+            /* Mode Toggling */
+            body.mode-examples .sense-checkbox, body.mode-examples .example-radio { display: none !important; }
+            body.mode-definitions .example-checkbox { display: none !important; }
+
+            /* Mode-specific gloss layout */
+            body.mode-examples .gloss { display: block; }
+            body.mode-definitions .gloss { display: inline-block; width: 90%; vertical-align: top; }
+
+            /* Definitions mode specifics */
+            body.mode-definitions .h-usage-example .example-radio { visibility: hidden; }
+            body.mode-definitions li.definition.selected .h-usage-example .example-radio { visibility: visible; }
+            body.mode-definitions li.definition.selected { background-color: #f8f9fa; border-radius: 4px; }
+
+            .relation-group { margin: 4px 0; font-size: 0.9em; }
+            .relation-label { cursor: pointer; background: #eee; padding: 2px 6px; border-radius: 3px; margin-right: 8px; font-weight: bold; color: #36c; }
+            .relation-label:hover { background: #ddd; }
+
+            .pronunciation-header { font-size: 0.9em; font-weight: bold; color: #555; margin-bottom: 4px; }
+            .pronunciation-box { background: #f0f7ff; padding: 10px; border-radius: 4px; margin-bottom: 1em; border-left: 4px solid #36c; }
+            .ipa-text { font-family: "Lucida Sans Unicode", "Arial Unicode MS", sans-serif; font-size: 1.1em; color: #202122; margin-bottom: 8px; display: block; }
+            .pronunciation-item { margin-bottom: 4px; display: flex; align-items: center; }
+            .pronunciation-item:only-child .audio-radio { display: none; }
+            .play-button { text-decoration: none; background: #36c; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 12px; margin-right: 8px; }
+            .pron-desc { font-size: 0.9em; color: #555; }
+            .no-desc { color: #999; font-style: italic; }
+
+            .wiktionary-link { text-decoration: none; color: #36c; margin-left: 12px; font-size: 0.6em; font-weight: bold; border: 1px solid #36c; padding: 0 6px; border-radius: 4px; background: #f0f7ff; vertical-align: middle; }
+            .did-you-mean { margin-bottom: 1em; font-size: 0.9em; color: #555; font-style: italic; }
+            .did-you-mean a { font-style: normal; font-weight: bold; margin-right: 8px; }
+
+            .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; text-align: center; margin-bottom: 20px; }
+            .footer a { color: #36c; font-size: 0.95em; }
+        </style>
+        <script>
+            function setMode(mode) {
+                document.body.className = 'mode-' + mode;
+            }
+            function toggleSense(cb) {
+                const MAX_SENSES = {{maxSenses}};
+                                const posBlock = cb.closest('.pos-block');
+                                let checkedInPos = posBlock.querySelectorAll('.sense-checkbox:checked');
+
+                                cb.closest('li.definition').classList.toggle('selected', cb.checked);
+
+                                checkedInPos = posBlock.querySelectorAll('.sense-checkbox:checked');
+                                const allSensesInPos = posBlock.querySelectorAll('.sense-checkbox');
+                                if (checkedInPos.length === MAX_SENSES) {
+                                    allSensesInPos.forEach(s => {
+                                        if (!s.checked) s.disabled = true;
+                                    });
+                                    if (window.Android && window.Android.showToast) {
+                                        const posName = posBlock.querySelector('h3').innerText;
+                                        window.Android.showToast('Maximum of ' + MAX_SENSES + ' definitions allowed per category (' + posName + ').');
+                                    }
+                                } else {
+                                    allSensesInPos.forEach(s => s.disabled = false);
+                                }
+
+                                if (window.Android) {
+                                    var totalChecked = document.querySelectorAll('.sense-checkbox:checked').length;
+                                    Android.updateSelectedCount(totalChecked);
+                                }
+                            }
+        </script>
+    </head>
+    <body data-word="{{word}}" class="mode-examples">
+        <h2>
+            {{word}} ({{langName}})
+            {{#if wiktionaryUrl}}
+                <a href="{{wiktionaryUrl}}" class="wiktionary-link" target="_blank">W</a>
+            {{/if}}
+        </h2>
+
+        {{#if variations}}
+            <div class="did-you-mean">
+                Did you mean:
+                {{#each variations}}
+                    <a href="app://fetch/{{this}}">{{this}}</a>
+                {{/each}}
+            </div>
+        {{/if}}
+
+        {{#if hasPronunciation}}
+            <div class='pronunciation-box'>
+                <div class='pronunciation-header'>Pronunciation</div>
+                {{#if ipa}}
+                    <span class='ipa-text'>{{{ipa}}}</span>
+                {{/if}}
+                <div class="pronunciation-items">
+                    {{#each pronunciations}}
+                        <div class='pronunciation-item'>
+                            <input type='radio' name='audio-choice' value='{{url}}' class='audio-radio' {{#if @first}}checked{{/if}}>
+                            <a class='play-button' href='app://play/{{encodedUrl}}'>&#9658;</a>
+                            <span class='pron-desc'>{{{description}}}</span>
+                        </div>
+                    {{/each}}
+                </div>
+            </div>
+        {{/if}}
+
+        {{#each posBlocks}}
+            <div class='pos-block'>
+                <h3>{{pos}}</h3>
+                <ol>
+                    {{#each senses}}
+                        <li class='definition' id='sense-{{entryId}}'>
+                            <input type='checkbox' class='sense-checkbox' id='chk-sense-{{entryId}}' onchange='toggleSense(this)'>
+                            <div class='gloss'>
+                                {{#each glosses}}
+                                    <div>{{{this}}}</div>
+                                {{/each}}
+                            </div>
+                            {{#each relations}}
+                                <div class='relation-group'>
+                                    <span class='relation-label' onclick='var el = this.nextElementSibling; el.style.display = el.style.display === "none" ? "inline" : "none"'>{{label}}</span>
+                                    <span class='relation-links' style='display:none'>
+                                        {{#each words}}
+                                            {{#unless @first}}, {{/unless}}<a href='app://fetch/{{this}}'>{{this}}</a>
+                                        {{/each}}
+                                    </span>
+                                </div>
+                            {{/each}}
+                            {{#if examples}}
+                                <dl>
+                                    {{#each examples}}
+                                        <dd class='h-usage-example'>
+                                            <input type='checkbox' class='example-checkbox' id='example-{{id}}'>
+                                            <input type='radio' class='example-radio' name='radio-sense-{{../entryId}}' value='{{id}}' {{#if @first}}checked{{/if}}>
+                                            <span lang='sv'>{{{learningText}}}</span>
+                                            <div class='h-usage-example-translation'>{{{nativeText}}}</div>
+                                        </dd>
+                                    {{/each}}
+                                </dl>
+                            {{/if}}
+                        </li>
+                    {{/each}}
+                </ol>
+            </div>
+        {{/each}}
+
+        {{#if wiktionaryUrl}}
+            <div class="footer">
+                <a href="{{wiktionaryUrl}}" target="_blank">View this word on Wiktionary</a>
+            </div>
+        {{/if}}
+    </body>
+</html>

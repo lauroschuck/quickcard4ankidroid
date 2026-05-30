@@ -1,0 +1,25 @@
+(() => {
+    const isDefinitions = document.body.classList.contains('mode-definitions');
+    const selectedAudio = document.querySelector('input[name="audio-choice"]:checked');
+    const audioUrl = selectedAudio ? selectedAudio.value : null;
+
+    if (isDefinitions) {
+        const entries = [];
+        document.querySelectorAll('.sense-checkbox:checked').forEach(cb => {
+            const entryId = cb.id.replace('chk-sense-', '');
+            const radio = document.querySelector('input[name="radio-sense-' + entryId + '"]:checked');
+            entries.push({
+                entryId: entryId,
+                exampleId: radio ? radio.value : null
+            });
+        });
+        Android.processSelectedCards(JSON.stringify({ mode: 'definitions', entries: entries, audioUrl: audioUrl }));
+    } else {
+        const selectedIds = [];
+        document.querySelectorAll('.example-checkbox:checked').forEach(cb => {
+            const id = cb.id.replace('example-', '');
+            selectedIds.push(id);
+        });
+        Android.processSelectedCards(JSON.stringify({ mode: 'examples', examples: selectedIds, audioUrl: audioUrl }));
+    }
+})();
