@@ -121,7 +121,7 @@ done
 if [ "$FORCE" = false ] && [ "$NEW_DUMPS_COUNT" -eq 0 ]; then
     echo ""
     echo "No new dumps found. All latest versions are already processed. Aborting."
-    exit 0
+    exit 2
 fi
 
 echo ""

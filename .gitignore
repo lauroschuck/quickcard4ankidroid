@@ -35,3 +35,4 @@ google-services.json
 
 /.gemini/
 /.idea/
+/run_processor.sh

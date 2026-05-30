@@ -153,11 +153,9 @@ public class KaikkiProcessor {
             String word = entry.get("word").getAsString();
             long headwordId = getOrCreateHeadwordIdInternal(word);
 
-            if (entry.has("lang") && entry.has("lang_code")) {
-                pLanguage.setString(1, entry.get("lang_code").getAsString());
-                pLanguage.setString(2, entry.get("lang").getAsString());
-                pLanguage.addBatch();
-            }
+            pLanguage.setString(1, entry.get("lang_code").getAsString());
+            pLanguage.setString(2, entry.get("lang").getAsString());
+            pLanguage.addBatch();
 
             if (entry.has("sounds")) {
                 JsonArray sounds = entry.getAsJsonArray("sounds");
@@ -240,10 +238,7 @@ public class KaikkiProcessor {
             pEntry.setString(2, pos);
             pEntry.setInt(3, index);
             pEntry.executeUpdate();
-            try (ResultSet rs = pEntry.getGeneratedKeys()) {
-                rs.next();
-                return rs.getLong(1);
-            }
+            return getGeneratedKeys(pEntry);
         }
 
         private void processGlossesInternal(long entryId, JsonObject sense) throws SQLException {
@@ -328,10 +323,7 @@ public class KaikkiProcessor {
                         continue;
                     }
                     long exId;
-                    try (ResultSet rs = pExample.getGeneratedKeys()) {
-                        rs.next();
-                        exId = rs.getLong(1);
-                    }
+                    exId = getGeneratedKeys(pExample);
                     if (ex.has("bold_text_offsets"))
                         saveOffsetsInternal(exId, "L", ex.getAsJsonArray("bold_text_offsets"));
                     if (ex.has("bold_translation_offsets"))
@@ -376,25 +368,8 @@ public class KaikkiProcessor {
             }
 
             pHeadword.setString(1, word);
-            int rows = pHeadword.executeUpdate();
-            long id;
-            try (ResultSet rs = pHeadword.getGeneratedKeys()) {
-                if (rs.next()) {
-                    id = rs.getLong(1);
-                    headwordCount++;
-                } else {
-                    try (PreparedStatement ps = conn.prepareStatement("SELECT id FROM headwords WHERE headword = ?")) {
-                        ps.setString(1, word);
-                        try (ResultSet r = ps.executeQuery()) {
-                            if (r.next()) {
-                                id = r.getLong(1);
-                            } else {
-                                id = -1;
-                            }
-                        }
-                    }
-                }
-            }
+            pHeadword.executeUpdate();
+            long id = getGeneratedKeys(pHeadword);
             headwordCache.put(word, id);
             return id;
         }
@@ -514,14 +489,14 @@ public class KaikkiProcessor {
 
             Locale nativeLocale = new Locale(nativeLangCode);
             String nativeLangName = nativeLocale.getDisplayLanguage(Locale.ENGLISH);
-            System.out.println(String.format(
+            System.out.printf(
                     Locale.US,
-                    "\nStarting pass of dump: %s (Native: %s, %s, Mod: %s) with %d threads",
+                    "\nStarting pass of dump: %s (Native: %s, %s, Mod: %s) with %d threads%n",
                     dumpPath,
                     nativeLangCode,
                     nativeLangName,
                     lastModInstant,
-                    numThreads));
+                    numThreads);
 
             Instant dumpStart = Instant.now();
             Map<String, DatabaseSession> sessions = converter.processDumpParallel(
@@ -561,14 +536,14 @@ public class KaikkiProcessor {
             }
 
             Duration elapsed = Duration.between(dumpStart, Instant.now()).truncatedTo(ChronoUnit.SECONDS);
-            System.out.println(String.format(Locale.US, "Dump %s processed in %s", dumpPath, elapsed));
+            System.out.printf(Locale.US, "Dump %s processed in %s%n", dumpPath, elapsed);
         }
 
         writeMetadataJson(outDir, dictionaryMetadataList, epochSeconds, version, mirrorBases);
         printSummaryTable(summaryTable);
 
         Duration totalElapsed = Duration.between(totalStart, Instant.now()).truncatedTo(ChronoUnit.SECONDS);
-        System.out.println(String.format(Locale.US, "Entire process finished in %s", totalElapsed));
+        System.out.printf(Locale.US, "Entire process finished in %s%n", totalElapsed);
     }
 
     private static long parseTimestampToEpoch(String raw) {
@@ -635,11 +610,13 @@ public class KaikkiProcessor {
             int numThreads,
             String version,
             long lastModEpoch) throws SQLException, IOException, InterruptedException {
-        Map<String, DatabaseSession> sessions = new HashMap<>();
+        Map<String, DatabaseSession> sessions = new TreeMap<>();
         for (String learning : learningLangs) {
             String learningLower = learning.toLowerCase().trim();
-            if (learningLower.equals(nativeLangCode)) continue;
-            String dbFileName = String.format(
+            if (learningLower.equals(nativeLangCode)) {
+                continue;
+            }
+            String dbFileName = String.format(Locale.US,
                     "wiktionary_kaikki_%s-%s_%s_%d.db", learningLower, nativeLangCode, version, lastModEpoch);
             sessions.put(
                     learningLower,
@@ -674,19 +651,19 @@ public class KaikkiProcessor {
                     }
                     long current = linesCount.incrementAndGet();
                     if (current % 10000 == 0) {
-                        System.out.print(String.format(
+                        System.out.printf(
                                 Locale.US,
                                 "\r[%d/%d] %s : processed %d lines...",
                                 dumpIndex,
                                 totalDumps,
                                 nativeLangCode,
-                                current));
+                                current);
                     }
                 });
             }
             executor.shutdown();
             executor.awaitTermination(1, TimeUnit.HOURS);
-            System.out.print(String.format(
+            System.out.printf(
                     Locale.US,
                     "\r[%d/%d] %s : processed %d lines (%d irrelevant, %.2f%%)... Done.",
                     dumpIndex,
@@ -694,9 +671,9 @@ public class KaikkiProcessor {
                     nativeLangCode,
                     linesCount.get(),
                     irrelevantLinesCount.get(),
-                    100.0 * irrelevantLinesCount.get() / linesCount.get()));
+                    100.0 * irrelevantLinesCount.get() / linesCount.get());
 
-            System.out.println("\nSummary for dump: " + dumpPath);
+            System.out.printf("%nSummary for dump: %s%n", dumpPath);
             for (Map.Entry<String, DatabaseSession> entry : sessions.entrySet()) {
                 DatabaseSession session = entry.getValue();
                 session.close();
@@ -838,10 +815,12 @@ public class KaikkiProcessor {
         for (Map<String, Boolean> map : status.values()) natives.addAll(map.keySet());
         System.out.println("\n--- EXTRACTION SUMMARY TABLE ---");
         System.out.print("lrn\\nat |");
-        for (String t : natives) System.out.print(String.format(" %-4s |", t));
+        for (String t : natives) {
+            System.out.printf(" %-4s |", t);
+        }
         System.out.println();
         for (Map.Entry<String, Map<String, Boolean>> entry : status.entrySet()) {
-            System.out.print(String.format(" %-6s |", entry.getKey()));
+            System.out.printf(" %-6s |", entry.getKey());
             for (String t : natives) {
                 Boolean kept = entry.getValue().get(t);
                 System.out.print(kept != null && kept ? "  X   |" : "      |");
