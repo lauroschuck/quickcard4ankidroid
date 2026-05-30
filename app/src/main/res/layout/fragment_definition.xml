@@ -25,7 +25,8 @@
                 android:layout_height="wrap_content"
                 android:text="@string/definition_note_type_label"
                 android:textStyle="bold"
-                android:textColor="@color/text_primary"                android:layout_marginEnd="8dp"/>
+                android:textColor="@color/text_primary"
+                android:layout_marginEnd="8dp"/>
 
             <com.google.android.material.tabs.TabLayout
                 android:id="@+id/noteTypeTabLayout"

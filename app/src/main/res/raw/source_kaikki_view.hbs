@@ -1,51 +1,241 @@
 <html>
     <head>
         <style>
-            body { font-family: sans-serif; padding: 12px; line-height: 1.5; color: #202122; transition: background 0.3s; }
-            h2 { border-bottom: 1px solid #a2a9b1; margin-bottom: 0.25em; padding-top: 0.5em; font-size: 1.5em; display: flex; align-items: center; }
-            h3 { font-size: 1.25em; font-weight: bold; margin-top: 1.2em; }
-            ol { padding-left: 1.5em; }
-            li.definition { margin-bottom: 0.8em; position: relative; }
-            .gloss { margin-bottom: 0.3em; }
-            dl { margin-top: 0.5em; margin-bottom: 0.5em; }
-            .h-usage-example { font-style: italic; display: block; margin-top: 0.5em; }
-            .h-usage-example-translation { font-style: normal; color: #54595d; display: block; font-size: 0.9em; margin-left: 2em; margin-top: 0.2em; }
-            a { color: #36c; text-decoration: none; }
+            body {
+                font-family: sans-serif;
+                padding: 12px;
+                line-height: 1.5;
+                color: {{colors.text_primary}};
+                transition: background 0.3s;
+            }
+            h2 {
+                border-bottom: 1px solid {{colors.divider_color}};
+                margin-bottom: 0.25em;
+                padding-top: 0.5em;
+                font-size: 1.5em;
+                display: flex;
+                align-items: center;
+            }
+            h3 {
+                font-size: 1.25em;
+                font-weight: bold;
+                margin-top: 1.2em;
+            }
+            ol {
+                padding-left: 1.5em;
+            }
+            li.definition {
+                margin-bottom: 0.8em;
+                position: relative;
+            }
+            .gloss {
+                margin-bottom: 0.3em;
+            }
+            dl {
+                margin-top: 0.5em;
+                margin-bottom: 0.5em;
+            }
+            .h-usage-example {
+                font-style: italic;
+                display: block;
+                margin-top: 0.5em;
+            }
+            .h-usage-example-translation {
+                font-style: normal;
+                color: {{colors.text_secondary}};
+                display: block;
+                font-size: 0.9em;
+                margin-left: 2em;
+                margin-top: 0.2em;
+            }
+            a {
+                color: {{colors.accent_primary}};
+                text-decoration: none;
+            }
 
-            .example-checkbox, .sense-checkbox, .example-radio, .audio-radio { margin-right: 8px; vertical-align: middle; }
+            input[type="checkbox"] {
+                border-radius: 2px;
+            }
+            input[type="radio"] {
+                border-radius: 50%;
+            }
+
+            /* Custom Checkboxes and Radio Buttons */
+            input[type="checkbox"], input[type="radio"] {
+                appearance: none;
+                -webkit-appearance: none;
+                width: 18px;
+                height: 18px;
+                border: 2px solid {{colors.text_secondary}};
+                background: transparent;
+                vertical-align: middle;
+                margin-right: 8px;
+                position: relative;
+                cursor: pointer;
+                outline: none;
+            }
+
+            input[type="checkbox"]:checked, input[type="radio"]:checked {
+                background-color: {{colors.accent_primary}};
+                border-color: {{colors.accent_primary}};
+            }
+
+            /* Checkmark for checkbox */
+            input[type="checkbox"]:checked::after {
+                content: '';
+                position: absolute;
+                left: 4px;
+                width: 4px;
+                height: 9px;
+                border: solid white;
+                border-width: 0 2px 2px 0;
+                transform: rotate(45deg);
+            }
+
+            /* Dot for radio */
+            input[type="radio"]:checked::after {
+                content: '';
+                position: absolute;
+                left: 4px;
+                top: 4px;
+                width: 6px;
+                height: 6px;
+                background: white;
+                border-radius: 50%;
+            }
 
             /* Mode Toggling */
-            body.mode-examples .sense-checkbox, body.mode-examples .example-radio { display: none !important; }
-            body.mode-definitions .example-checkbox { display: none !important; }
+            body.mode-examples .sense-checkbox, body.mode-examples .example-radio {
+                display: none !important;
+            }
+            body.mode-definitions .example-checkbox {
+                display: none !important;
+            }
 
             /* Mode-specific gloss layout */
-            body.mode-examples .gloss { display: block; }
-            body.mode-definitions .gloss { display: inline-block; width: 90%; vertical-align: top; }
+            body.mode-examples .gloss {
+                display: block;
+            }
+            body.mode-definitions .gloss {
+                display: inline-block;
+                width: 90%;
+                vertical-align: top;
+            }
 
             /* Definitions mode specifics */
-            body.mode-definitions .h-usage-example .example-radio { visibility: hidden; }
-            body.mode-definitions li.definition.selected .h-usage-example .example-radio { visibility: visible; }
-            body.mode-definitions li.definition.selected { background-color: #f8f9fa; border-radius: 4px; }
+            body.mode-definitions .h-usage-example .example-radio {
+                visibility: hidden;
+            }
+            body.mode-definitions li.definition.selected .h-usage-example .example-radio {
+                visibility: visible;
+            }
+            body.mode-definitions li.definition.selected {
+                background-color: {{colors.item_background_alt}};
+                border-radius: 4px;
+            }
 
-            .relation-group { margin: 4px 0; font-size: 0.9em; }
-            .relation-label { cursor: pointer; background: #eee; padding: 2px 6px; border-radius: 3px; margin-right: 8px; font-weight: bold; color: #36c; }
-            .relation-label:hover { background: #ddd; }
+            .relation-group {
+                margin: 4px 0;
+                font-size: 0.9em;
+            }
+            .relation-label {
+                cursor: pointer;
+                background: {{colors.divider_color}};
+                padding: 2px 6px;
+                border-radius: 3px;
+                margin-right: 8px;
+                font-weight: bold;
+                color: {{colors.accent_primary}};
+            }
+            .relation-label:hover {
+                background: {{colors.item_background_alt}};
+            }
 
-            .pronunciation-header { font-size: 0.9em; font-weight: bold; color: #555; margin-bottom: 4px; }
-            .pronunciation-box { background: #f0f7ff; padding: 10px; border-radius: 4px; margin-bottom: 1em; border-left: 4px solid #36c; }
-            .ipa-text { font-family: "Lucida Sans Unicode", "Arial Unicode MS", sans-serif; font-size: 1.1em; color: #202122; margin-bottom: 8px; display: block; }
-            .pronunciation-item { margin-bottom: 4px; display: flex; align-items: center; }
-            .pronunciation-item:only-child .audio-radio { display: none; }
-            .play-button { text-decoration: none; background: #36c; color: white; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 12px; margin-right: 8px; }
-            .pron-desc { font-size: 0.9em; color: #555; }
-            .no-desc { color: #999; font-style: italic; }
+            .pronunciation-header {
+                font-size: 0.9em;
+                font-weight: bold;
+                color: {{colors.text_secondary}};
+                margin-bottom: 4px;
+            }
+            .pronunciation-box {
+                background: {{colors.item_background_alt}};
+                padding: 10px;
+                border-radius: 4px;
+                margin-bottom: 1em;
+                border-left: 4px solid {{colors.accent_primary}};
+            }
+            .ipa-text {
+                font-family: "Lucida Sans Unicode", "Arial Unicode MS", sans-serif;
+                font-size: 1.1em;
+                color: {{colors.text_primary}};
+                margin-bottom: 8px;
+                display: block;
+            }
+            .pronunciation-item {
+                margin-bottom: 4px;
+                display: flex;
+                align-items: center;
+            }
+            .pronunciation-item:only-child .audio-radio {
+                display: none;
+            }
+            .play-button {
+                text-decoration: none;
+                background: {{colors.accent_primary}};
+                color: white;
+                width: 24px;
+                height: 24px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                font-size: 12px;
+                margin-right: 8px;
+            }
+            .pron-desc {
+                font-size: 0.9em;
+                color: {{colors.text_secondary}};
+            }
+            .no-desc {
+                color: {{colors.text_secondary}};
+                font-style: italic;
+            }
 
-            .wiktionary-link { text-decoration: none; color: #36c; margin-left: 12px; font-size: 0.6em; font-weight: bold; border: 1px solid #36c; padding: 0 6px; border-radius: 4px; background: #f0f7ff; vertical-align: middle; }
-            .did-you-mean { margin-bottom: 1em; font-size: 0.9em; color: #555; font-style: italic; }
-            .did-you-mean a { font-style: normal; font-weight: bold; margin-right: 8px; }
+            .wiktionary-link {
+                text-decoration: none;
+                color: {{colors.accent_primary}};
+                margin-left: 12px;
+                font-size: 0.6em;
+                font-weight: bold;
+                border: 1px solid {{colors.accent_primary}};
+                padding: 0 6px;
+                border-radius: 4px;
+                background: {{colors.item_background_alt}};
+                vertical-align: middle;
+            }
+            .did-you-mean {
+                margin-bottom: 1em;
+                font-size: 0.9em;
+                color: {{colors.text_secondary}};
+                font-style: italic;
+            }
+            .did-you-mean a {
+                font-style: normal;
+                font-weight: bold;
+                margin-right: 8px;
+            }
 
-            .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; text-align: center; margin-bottom: 20px; }
-            .footer a { color: #36c; font-size: 0.95em; }
+            .footer {
+                margin-top: 30px;
+                padding-top: 15px;
+                border-top: 1px solid {{colors.divider_color}};
+                text-align: center;
+                margin-bottom: 20px;
+            }
+            .footer a {
+                color: {{colors.accent_primary}};
+                font-size: 0.95em;
+            }
         </style>
         <script>
             function setMode(mode) {

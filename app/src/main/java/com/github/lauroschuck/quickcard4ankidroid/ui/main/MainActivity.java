@@ -33,6 +33,7 @@ import com.github.lauroschuck.quickcard4ankidroid.source.DataSource;
 import com.github.lauroschuck.quickcard4ankidroid.ui.definition.DefinitionFragment;
 import com.github.lauroschuck.quickcard4ankidroid.ui.search.SearchFragment;
 import com.github.lauroschuck.quickcard4ankidroid.ui.settings.SettingsActivity;
+import com.github.lauroschuck.quickcard4ankidroid.util.UiUtil;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.snackbar.Snackbar;
@@ -44,6 +45,7 @@ import lombok.NonNull;
 import timber.log.Timber;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String KEY_IS_DARK_MODE = "is_dark_mode";
     private DrawerLayout drawerLayout;
     private Spinner sourceSpinner;
     private MainViewModel viewModel;
@@ -58,6 +60,19 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         viewModel = new ViewModelProvider(this).get(MainViewModel.class);
+
+        // Check for theme change
+        if (savedInstanceState != null) {
+            boolean isDarkMode = UiUtil.isDarkMode(this);
+            boolean wasDarkMode = savedInstanceState.getBoolean(KEY_IS_DARK_MODE, isDarkMode);
+            if (wasDarkMode != isDarkMode) {
+                String word = viewModel.getNavigationManager().getCurrentWord().getValue();
+                if (word != null && !word.isEmpty()) {
+                    Timber.d("Theme changed, refreshing definition for: %s", word);
+                    fetchDefinition(word, true);
+                }
+            }
+        }
 
         var cardAssets = new CardAssets(getApplicationContext());
         dictionaryNote = new DictionaryNote(cardAssets);
@@ -400,6 +415,7 @@ public class MainActivity extends AppCompatActivity {
 
         var currentSource = viewModel.getDataSourceRepository().getCurrentSource();
         if (currentSource != null) {
+            currentSource.setContext(this);
             currentSource.fetch(word, learningLanguage, nativeLanguage, new DataSource.OnResultListener() {
                 @Override
                 public void onSuccess(String html, String headword) {
@@ -529,5 +545,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void showPermissionResultDialog(String message, boolean isError) {
         showResultDialog(getString(R.string.permission_rationale_title), message, isError);
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(KEY_IS_DARK_MODE, UiUtil.isDarkMode(this));
     }
 }

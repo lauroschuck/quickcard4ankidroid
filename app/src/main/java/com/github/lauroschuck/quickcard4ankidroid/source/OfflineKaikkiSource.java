@@ -15,6 +15,7 @@ import com.github.lauroschuck.quickcard4ankidroid.anki.notes.TextNote;
 import com.github.lauroschuck.quickcard4ankidroid.model.Language;
 import com.github.lauroschuck.quickcard4ankidroid.ui.main.MainViewModel;
 import com.github.lauroschuck.quickcard4ankidroid.util.ResourcesUtil;
+import com.github.lauroschuck.quickcard4ankidroid.util.UiUtil;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import java.io.IOException;
@@ -120,6 +121,16 @@ public class OfflineKaikkiSource implements DataSource {
             var data = new HashMap<String, Object>();
             data.put("word", word);
             data.put("maxSenses", DictionaryNote.DEFINITION_FIELDS);
+
+            // Inject theme colors
+            Map<String, String> colors = new HashMap<>();
+            colors.put("text_primary", UiUtil.colorToHex(context, R.color.text_primary));
+            colors.put("text_secondary", UiUtil.colorToHex(context, R.color.text_secondary));
+            colors.put("accent_primary", UiUtil.colorToHex(context, R.color.accent_primary));
+            colors.put("divider_color", UiUtil.colorToHex(context, R.color.divider_color));
+            colors.put("item_background_alt", UiUtil.colorToHex(context, R.color.item_background_alt));
+            colors.put("app_background", UiUtil.colorToHex(context, R.color.app_background));
+            data.put("colors", colors);
 
             // 0. Fetch language name for Wiktionary anchor and construct URL
             var langName = getLanguageName(db, learningLanguage);
