@@ -186,20 +186,27 @@ public class KaikkiProcessor {
             }
         }
 
+        private static String aggregateSoundDescription(JsonObject sound) {
+            var tags = extractTagString(sound);
+            var prefix = tags.isEmpty() ? "" : tags + " ";
+
+            return Stream.of("text", "note")
+                    .filter(sound::has)
+                    .map(sound::get)
+                    .map(JsonElement::getAsString)
+                    .distinct()
+                    .collect(Collectors.joining("; ", prefix, ""))
+                    .trim();
+        }
+
         private void processIpaInternal(long headwordId, JsonArray sounds) throws SQLException {
             List<String> ipas = new ArrayList<>();
             for (JsonElement soundElem : sounds) {
                 JsonObject sound = soundElem.getAsJsonObject();
                 if (sound.has("ipa")) {
                     String ipaText = sound.get("ipa").getAsString();
-                    var tags = Stream.of("tags", "raw_tags")
-                            .filter(sound::has)
-                            .map(sound::getAsJsonArray)
-                            .flatMap(ja -> ja.asList().stream())
-                            .map(JsonElement::getAsString)
-                            .distinct()
-                            .collect(Collectors.toList());
-                    String tagsText = (tags.isEmpty() ? "" : " (" + String.join(", ", tags) + ") ");
+                    var tags = extractTagString(sound);
+                    String tagsText = (tags.isEmpty() ? "" : tags + " ");
                     ipas.add(tagsText + ipaText);
                 }
             }
@@ -217,6 +224,23 @@ public class KaikkiProcessor {
                     pUpdateIpa.addBatch();
                 }
             }
+        }
+
+        /**
+         * This method reads the {@code tags} and {@code raw_tags} from an object and returns
+         * a list of their combined unique values separated by commas. It returns empty string if
+         * no tags are present.
+         * It was initialized designed to be used on {@code sound} objects, to extract extra
+         * information about phonetic pronunciations or audio files.
+         */
+        private static String extractTagString(JsonObject obj) {
+            return Stream.of("tags", "raw_tags")
+                    .filter(obj::has)
+                    .map(obj::getAsJsonArray)
+                    .flatMap(ja -> ja.asList().stream())
+                    .map(JsonElement::getAsString)
+                    .distinct()
+                    .collect(Collectors.joining(", ", "«", "»"));
         }
 
         private void processSensesInternal(long headwordId, String pos, JsonArray senses, String word)
@@ -701,27 +725,6 @@ public class KaikkiProcessor {
             }
         }
         return sessions;
-    }
-
-    private static String aggregateSoundDescription(JsonObject sound) {
-        StringBuilder sb = new StringBuilder();
-        if (sound.has("text")) sb.append(sound.get("text").getAsString());
-        if (sound.has("note")) {
-            if (sb.length() > 0) sb.append("; ");
-            sb.append(sound.get("note").getAsString());
-        }
-        if (sound.has("tags")) {
-            JsonArray tags = sound.getAsJsonArray("tags");
-            if (tags.size() > 0) {
-                if (sb.length() > 0) sb.append(" (");
-                for (int i = 0; i < tags.size(); i++) {
-                    if (i > 0) sb.append(", ");
-                    sb.append(tags.get(i).getAsString());
-                }
-                if (sb.indexOf(" (") != -1) sb.append(")");
-            }
-        }
-        return sb.toString();
     }
 
     private static void setupSchema(Connection conn) throws SQLException {
