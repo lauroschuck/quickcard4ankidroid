@@ -741,70 +741,70 @@ public class KaikkiProcessor {
         st.execute("""
                 CREATE TABLE headwords (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    headword TEXT UNIQUE,
+                    headword TEXT UNIQUE NOT NULL,
                     ipa TEXT)""");
         st.execute("""
                 CREATE TABLE lexical_entries (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    headword_id INTEGER,
-                    lexical_category TEXT,
-                    sense_index INTEGER,
+                    headword_id INTEGER NOT NULL,
+                    lexical_category TEXT NOT NULL,
+                    sense_index INTEGER NOT NULL,
                     FOREIGN KEY(headword_id) REFERENCES headwords(id),
                     UNIQUE(headword_id, lexical_category, sense_index))""");
         st.execute("""
                 CREATE TABLE glosses (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    lexical_entry_id INTEGER,
-                    gloss TEXT,
-                    gloss_index INTEGER,
+                    lexical_entry_id INTEGER NOT NULL,
+                    gloss TEXT NOT NULL,
+                    gloss_index INTEGER NOT NULL,
                     FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id),
                     UNIQUE(lexical_entry_id, gloss, gloss_index))""");
         st.execute("""
                 CREATE TABLE examples (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    lexical_entry_id INTEGER,
-                    learning_text TEXT,
-                    native_text TEXT,
+                    lexical_entry_id INTEGER NOT NULL,
+                    learning_text TEXT NOT NULL,
+                    native_text TEXT NOT NULL,
                     FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id),
                     UNIQUE(lexical_entry_id, learning_text, native_text))""");
         st.execute("""
                 CREATE TABLE sense_links (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    lexical_entry_id INTEGER,
-                    word TEXT,
-                    native_headword_id INTEGER,
+                    lexical_entry_id INTEGER NOT NULL,
+                    word TEXT NOT NULL,
+                    native_headword_id INTEGER NOT NULL,
                     FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id),
                     FOREIGN KEY(native_headword_id) REFERENCES headwords(id),
                     UNIQUE(lexical_entry_id, word))""");
         st.execute("""
                 CREATE TABLE bold_offsets (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    example_id INTEGER,
-                    text_type CHAR(1),
-                    start_index INTEGER,
-                    end_index INTEGER,
+                    example_id INTEGER NOT NULL,
+                    text_type CHAR(1) NOT NULL,
+                    start_index INTEGER NOT NULL,
+                    end_index INTEGER NOT NULL,
                     FOREIGN KEY(example_id) REFERENCES examples(id),
                     UNIQUE(example_id, text_type, start_index, end_index))""");
         st.execute("""
                 CREATE TABLE pronunciations (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    headword_id INTEGER,
-                    audio_url TEXT,
+                    headword_id INTEGER NOT NULL,
+                    audio_url TEXT NOT NULL,
                     description TEXT,
                     FOREIGN KEY(headword_id) REFERENCES headwords(id),
                     UNIQUE(headword_id, audio_url))""");
         st.execute("""
                 CREATE TABLE relations (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    lexical_entry_id INTEGER,
-                    type CHAR(1),
-                    word TEXT,
+                    lexical_entry_id INTEGER NOT NULL,
+                    type CHAR(1) NOT NULL,
+                    word TEXT NOT NULL,
                     FOREIGN KEY(lexical_entry_id) REFERENCES lexical_entries(id),
                     UNIQUE(lexical_entry_id, type, word))""");
         st.execute("""
                 CREATE TABLE languages (
                     iso TEXT PRIMARY KEY,
-                    name TEXT)""");
+                    name TEXT NOT NULL)""");
         st.execute("CREATE INDEX idx_hw_word ON headwords(headword)");
         st.execute("CREATE INDEX idx_le_hw ON lexical_entries(headword_id)");
         st.execute("CREATE INDEX idx_gl_le ON glosses(lexical_entry_id)");
