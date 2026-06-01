@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -472,18 +473,17 @@ public class KaikkiProcessor {
     }
 
     public static void main(String[] args) throws SQLException, IOException, InterruptedException {
-        if (args.length < 5) {
+        if (args.length < 4) {
             System.out.println(
-                    "Usage: java KaikkiProcessor <version> <learning_langs_csv> <num_threads> <mirrors_csv> <nativeLang1:last_mod:dumpPath1> ...");
+                    "Usage: java KaikkiProcessor <version> <num_threads> <mirrors_csv> <nativeLang1:last_mod:dumpPath1> ...");
             return;
         }
 
         Instant totalStart = Instant.now();
         long epochSeconds = totalStart.getEpochSecond();
         String version = args[0];
-        String[] learningLangs = args[1].split(",");
-        int numThreads = Integer.parseInt(args[2]);
-        String[] mirrorBases = args[3].isEmpty() ? new String[0] : args[3].split(",");
+        int numThreads = Integer.parseInt(args[1]);
+        String[] mirrorBases = args[2].isEmpty() ? new String[0] : args[2].split(",");
         String timestampDir = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date());
 
         // Find the absolute root of the project to ensure output goes to project-root/processor/out/
@@ -496,8 +496,8 @@ public class KaikkiProcessor {
         Map<String, Map<String, Boolean>> summaryTable = new TreeMap<>();
         List<Map<String, Object>> dictionaryMetadataList = new ArrayList<>();
 
-        int totalDumps = args.length - 4;
-        for (int i = 4; i < args.length; i++) {
+        int totalDumps = args.length - 3;
+        for (int i = 3; i < args.length; i++) {
             String[] parts = args[i].split(":", 3);
             if (parts.length < 3) {
                 System.err.println("Invalid argument format: " + args[i]);
@@ -526,7 +526,6 @@ public class KaikkiProcessor {
             Map<String, DatabaseSession> sessions = converter.processDumpParallel(
                     dumpPath,
                     nativeLangCode,
-                    learningLangs,
                     outDir,
                     i - 3,
                     totalDumps,
@@ -627,30 +626,19 @@ public class KaikkiProcessor {
     private Map<String, DatabaseSession> processDumpParallel(
             String dumpPath,
             String nativeLangCode,
-            String[] learningLangs,
             String outDir,
             int dumpIndex,
             int totalDumps,
             int numThreads,
             String version,
             long lastModEpoch) throws SQLException, IOException, InterruptedException {
-        Map<String, DatabaseSession> sessions = new TreeMap<>();
-        for (String learning : learningLangs) {
-            String learningLower = learning.toLowerCase().trim();
-            if (learningLower.equals(nativeLangCode)) {
-                continue;
-            }
-            String dbFileName = String.format(Locale.US,
-                    "wiktionary_kaikki_%s-%s_%s_%d.db", learningLower, nativeLangCode, version, lastModEpoch);
-            sessions.put(
-                    learningLower,
-                    new DatabaseSession(outDir + File.separator + dbFileName, learningLower));
-        }
-
+        Map<String, DatabaseSession> sessions = new ConcurrentHashMap<>();
         ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         Semaphore semaphore = new Semaphore(numThreads * 2);
         AtomicLong linesCount = new AtomicLong(0);
-        AtomicLong irrelevantLinesCount = new AtomicLong(0);
+        AtomicLong unprocessableLinesCount = new AtomicLong(0);
+        AtomicLong selfLangLinesCount = new AtomicLong(0);
+        AtomicLong fringeLinesCount = new AtomicLong(0);
 
         try (BufferedReader br = new BufferedReader(new FileReader(dumpPath))) {
             String line;
@@ -663,13 +651,25 @@ public class KaikkiProcessor {
                         String entryLangCode = entry.has("lang_code")
                                 ? entry.get("lang_code").getAsString().toLowerCase()
                                 : null;
-                        if (entryLangCode != null && sessions.containsKey(entryLangCode)) {
-                            sessions.get(entryLangCode).queue.put(entry);
+                        if (entryLangCode == null) {
+                            unprocessableLinesCount.incrementAndGet();
+                        } else if (entryLangCode.length() != 2) {
+                            fringeLinesCount.incrementAndGet();
+                        } else if (entryLangCode.equals(nativeLangCode)) {
+                            selfLangLinesCount.incrementAndGet();
                         } else {
-                            irrelevantLinesCount.incrementAndGet();
+                            sessions.computeIfAbsent(entryLangCode, code -> {
+                                String dbFileName = String.format(Locale.US,
+                                        "wiktionary_kaikki_%s-%s_%s_%d.db", code, nativeLangCode, version, lastModEpoch);
+                                try {
+                                    return new DatabaseSession(outDir + File.separator + dbFileName, code);
+                                } catch (SQLException e) {
+                                    throw new RuntimeException("Failed to create database", e);
+                                }
+                            }).queue.put(entry);
                         }
                     } catch (Exception e) {
-                        System.err.println("Error parsing line: " + e.getMessage());
+                        System.err.println("Error parsing line: " + e);
                     } finally {
                         semaphore.release();
                     }
@@ -689,16 +689,21 @@ public class KaikkiProcessor {
             executor.awaitTermination(1, TimeUnit.HOURS);
             System.out.printf(
                     Locale.US,
-                    "\r[%d/%d] %s : processed %d lines (%d irrelevant, %.2f%%)... Done.",
+                    "\r[%d/%d] %s : processed %d lines (%d unprocessable - %.2f%%, %d %s - %.2f%%, %d fringe - %.2f%%)... Done.",
                     dumpIndex,
                     totalDumps,
                     nativeLangCode,
                     linesCount.get(),
-                    irrelevantLinesCount.get(),
-                    100.0 * irrelevantLinesCount.get() / linesCount.get());
+                    unprocessableLinesCount.get(),
+                    100.0 * unprocessableLinesCount.get() / linesCount.get(),
+                    selfLangLinesCount.get(),
+                    nativeLangCode,
+                    100.0 * selfLangLinesCount.get() / linesCount.get(),
+                    fringeLinesCount.get(),
+                    100.0 * fringeLinesCount.get() / linesCount.get());
 
             System.out.printf("%nSummary for dump: %s%n", dumpPath);
-            for (Map.Entry<String, DatabaseSession> entry : sessions.entrySet()) {
+            for (Map.Entry<String, DatabaseSession> entry : new TreeMap<>(sessions).entrySet()) {
                 DatabaseSession session = entry.getValue();
                 session.close();
                 String learningCode = entry.getKey();
@@ -709,7 +714,7 @@ public class KaikkiProcessor {
                 System.out.printf(
                         Locale.US,
                         "%s %s, %s: %d headwords (without %d dead ends), %d glosses, %d examples, %d pronunciations, %d links (%d links plus %d forms minus %d dead ends).%s%n",
-                        session.removed ? " !  deleted" : ">>> created",
+                        session.removed ? " ! " : ">>>",
                         learningCode,
                         session.learningLangName,
                         session.headwordCount,

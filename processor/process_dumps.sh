@@ -54,8 +54,6 @@ DUMPS=(
     ["vi"]="https://kaikki.org/dictionary/downloads/vi/vi-extract.jsonl.gz"
 )
 
-LEARNING_LANGS="af,am,ar,az,be,bg,bn,bs,ca,cs,cy,da,de,el,en,es,et,eu,fa,fi,fr,fy,ga,gd,gl,gn,gu,ha,he,hi,hr,hu,hy,id,ig,is,it,ja,ka,km,kn,ko,ky,lb,ln,lo,lt,lv,mk,ml,mn,mr,ms,mt,my,nb,ne,nl,no,or,pa,pl,pt,ro,ru,sk,sl,so,sq,sr,sv,sw,ta,te,tg,th,tl,tr,uk,ur,uz,vi,zh,zu"
-
 # Ensure we know where the project root is
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -126,7 +124,7 @@ fi
 
 echo ""
 echo "Step 2: Finding latest dumps..."
-PROCESSOR_ARGS="$VERSION $LEARNING_LANGS $THREADS \"$MIRRORS\""
+PROCESSOR_ARGS="$VERSION $THREADS \"$MIRRORS\""
 
 for LANG_CODE in "${!DUMPS[@]}"; do
     # The directory name is our timestamp: YYYYMMDD-HHMMSS
