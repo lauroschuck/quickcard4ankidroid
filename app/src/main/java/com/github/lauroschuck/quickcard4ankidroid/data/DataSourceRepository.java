@@ -20,6 +20,7 @@ public class DataSourceRepository {
     }
 
     public void reloadSources() {
+        close();
         sources.clear();
         ServiceLoader<DataSource> loader = ServiceLoader.load(DataSource.class);
         for (DataSource source : loader) {
