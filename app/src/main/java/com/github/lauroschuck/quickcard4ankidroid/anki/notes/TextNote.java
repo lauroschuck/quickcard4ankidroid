@@ -9,7 +9,7 @@ import lombok.NonNull;
 public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
     public TextNote(@NonNull CardAssets assets) {
         super(
-                "quickcard4ankidroid.TextV59",
+                "quickcard4ankidroid.TextV61",
                 generateFieldNames(),
                 assets.getSharedCss() + assets.getTextCss(),
                 generateCardTypes(assets));
@@ -63,6 +63,10 @@ public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
         IPA("IPA", (l, n, s, i) -> i.ipa()),
         LEXICAL_CAT("LexicalCat", (l, n, s, i) -> i.lexicalCategory()),
         DEFINITION("Definition", (l, n, s, i) -> i.definition()),
+        WORD_SYNONYMS(
+                "WordSynonyms",
+                (l, n, s, i) ->
+                        (i.synonyms() != null && !i.synonyms().isEmpty()) ? String.join(", ", i.synonyms()) : null),
         PERSONAL_NOTES("PersonalNotes", (l, n, s, i) -> null),
         HIDDEN_NOTES("HiddenNotes", (l, n, s, i) -> null),
         AUDIO("Audio", null),
@@ -99,6 +103,7 @@ public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
             @NonNull String learningText,
             @NonNull String nativeText,
             String definition,
-            String lexicalCategory)
+            String lexicalCategory,
+            List<String> synonyms)
             implements AbstractAnkiNote.Input {}
 }

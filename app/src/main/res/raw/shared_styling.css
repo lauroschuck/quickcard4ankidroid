@@ -35,6 +35,28 @@ html {
     font-size: 1.1rem;
 }
 
+.synonyms {
+    color: #57606a;
+    font-size: 0.85rem;
+    font-style: italic;
+    margin-top: 0.2em;
+}
+
+.synonyms .label {
+     display: inline-block;
+     font-weight: bold;
+     color: #888;
+     margin-right: 0.3em;
+
+     /* Longer and taller */
+     transform: scale(1.5, 1.2);
+
+     /* Fine-tune position since scaling might shift its visual center */
+     vertical-align: middle;
+     position: relative;
+     top: -1px;
+}
+
 .text.learning {
     font-style: italic;
     font-size: 1.05rem;
@@ -149,6 +171,14 @@ html {
 
 .night_mode .definition {
     color: #79c0ff;
+}
+
+.night_mode .synonyms {
+    color: #8b949e;
+}
+
+.night_mode .synonyms .label {
+    color: #6e7681;
 }
 
 .night_mode .text.native {

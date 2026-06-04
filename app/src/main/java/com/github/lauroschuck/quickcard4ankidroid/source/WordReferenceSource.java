@@ -252,7 +252,7 @@ public class WordReferenceSource implements DataSource {
                 String lexicalCat = entry.getKey();
                 List<DictionaryNote.Input.Definition> definitions = entry.getValue().stream()
                         .map(e -> new DictionaryNote.Input.Definition(
-                                e.get("definition"), e.get("learningText"), e.get("nativeText")))
+                                e.get("definition"), e.get("learningText"), e.get("nativeText"), null))
                         .collect(Collectors.toList());
 
                 inputs.add(new DictionaryNote.Input(headword != null ? headword : "", null, lexicalCat, definitions));

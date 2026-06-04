@@ -422,8 +422,9 @@ public class OfflineKaikkiSource implements DataSource {
             var learningText = applyBolding(learningTextRaw, exId, "L", db);
             var nativeText = nativeTextRaw != null ? applyBolding(nativeTextRaw, exId, "N", db) : null;
             var glosses = fetchGlosses(db, entryId);
+            var synonyms = fetchSynonyms(db, entryId);
 
-            return new TextNote.Input(headword, ipa, learningText, nativeText, glosses, lexicalCategory);
+            return new TextNote.Input(headword, ipa, learningText, nativeText, glosses, lexicalCategory, synonyms);
         }
     }
 
@@ -455,15 +456,17 @@ public class OfflineKaikkiSource implements DataSource {
                 var ipa = cursor.getString(2);
                 var lexicalCategory = cursor.getString(3);
                 var definitionText = fetchGlosses(db, entryId);
+                var synonyms = fetchSynonyms(db, entryId);
                 DictionaryNote.Input.Definition definition;
                 if (cursor.isNull(4)) {
-                    definition = new DictionaryNote.Input.Definition(definitionText, null, null);
+                    definition = new DictionaryNote.Input.Definition(definitionText, null, null, synonyms);
                 } else {
                     var exampleId = cursor.getLong(4);
                     var learningText = applyBolding(cursor.getString(5), exampleId, "L", db);
                     var nativeTextRaw = cursor.getString(6);
                     var nativeText = nativeTextRaw != null ? applyBolding(nativeTextRaw, exampleId, "N", db) : null;
-                    definition = new DictionaryNote.Input.Definition(definitionText, learningText, nativeText);
+                    definition =
+                            new DictionaryNote.Input.Definition(definitionText, learningText, nativeText, synonyms);
                 }
                 var input = new DictionaryNote.Input(headword, ipa, lexicalCategory, List.of(definition));
                 Timber.d("Intermediary input: %s", input);
@@ -506,5 +509,16 @@ public class OfflineKaikkiSource implements DataSource {
             }
         }
         return glosses.toString();
+    }
+
+    private List<String> fetchSynonyms(SQLiteDatabase db, long entryId) {
+        var synonyms = new ArrayList<String>();
+        var query = "SELECT word FROM relations WHERE lexical_entry_id = ? AND type = 'S'";
+        try (var cursor = db.rawQuery(query, new String[] {String.valueOf(entryId)})) {
+            while (cursor.moveToNext()) {
+                synonyms.add(cursor.getString(0));
+            }
+        }
+        return synonyms;
     }
 }

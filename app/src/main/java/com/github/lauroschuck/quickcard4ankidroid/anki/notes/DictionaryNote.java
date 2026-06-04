@@ -28,6 +28,16 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
                                         cleanHtml(getPotentialField(i, index - 1, Input.Definition::definition))),
                         new IndexedField(
                                 index,
+                                String.format(Locale.US, "Definition%d_WordSynonyms", index),
+                                (l, n, s, i) -> cleanHtml(getPotentialField(
+                                        i,
+                                        index - 1,
+                                        d -> (d.synonyms() != null
+                                                        && !d.synonyms().isEmpty())
+                                                ? String.join(", ", d.synonyms())
+                                                : null))),
+                        new IndexedField(
+                                index,
                                 String.format(Locale.US, "Definition%d_Included", index),
                                 (l, n, s, i) -> getPotentialField(i, index - 1, d -> "y")),
                         new IndexedField(
@@ -53,7 +63,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
 
     public DictionaryNote(@NonNull CardAssets assets) {
         super(
-                "quickcard4ankidroid.DictionaryDefinitionV59",
+                "quickcard4ankidroid.DictionaryV61",
                 generateFieldNames(),
                 assets.getSharedCss() + assets.getDictionaryCss(),
                 generateCardTypes(assets));
@@ -214,7 +224,8 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
         }
 
         @Keep
-        public record Definition(@NonNull String definition, String learningText, String nativeText) {
+        public record Definition(
+                @NonNull String definition, String learningText, String nativeText, List<String> synonyms) {
 
             public Definition {
                 if ((learningText == null) != (nativeText == null)) {

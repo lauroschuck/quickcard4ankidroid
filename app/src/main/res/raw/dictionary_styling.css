@@ -58,6 +58,11 @@
     margin-left: 3em;
 }
 
+.definitions li .synonyms {
+    margin-top: 0.5em;
+    margin-left: 2em;
+}
+
 /*
  * Night mode
  */
