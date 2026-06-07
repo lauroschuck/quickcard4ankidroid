@@ -164,7 +164,8 @@ public class KaikkiProcessor {
                 processIpaInternal(headwordId, sounds);
             }
             if (entry.has("senses")) {
-                String pos = entry.has("pos") ? entry.get("pos").getAsString() : "unknown";
+                String pos = entry.has("pos_title") ? entry.get("pos_title").getAsString() :
+                        (entry.has("pos") ? entry.get("pos").getAsString() : "unknown");
                 processSensesInternal(headwordId, pos, entry.getAsJsonArray("senses"), word);
             }
         }
