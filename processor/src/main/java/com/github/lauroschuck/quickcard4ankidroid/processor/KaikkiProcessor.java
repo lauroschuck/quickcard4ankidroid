@@ -108,7 +108,7 @@ public class KaikkiProcessor {
             this.pHeadword = conn.prepareStatement(
                     "INSERT OR IGNORE INTO headwords (headword) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
             this.pEntry = conn.prepareStatement(
-                    "INSERT INTO lexical_entries (headword_id, lexical_category, sense_index) VALUES (?, ?, ?)",
+                    "INSERT INTO lexical_entries (headword_id, pos, pos_title, sense_index) VALUES (?, ?, ?, ?)",
                     Statement.RETURN_GENERATED_KEYS);
             this.pGloss = conn.prepareStatement(
                     "INSERT INTO glosses (lexical_entry_id, gloss, gloss_index) VALUES (?, ?, ?)");
@@ -165,9 +165,12 @@ public class KaikkiProcessor {
                 processIpaInternal(headwordId, sounds);
             }
             if (entry.has("senses")) {
-                String pos = entry.has("pos_title") ? entry.get("pos_title").getAsString() :
-                        (entry.has("pos") ? entry.get("pos").getAsString() : "unknown");
-                processSensesInternal(headwordId, pos, entry.getAsJsonArray("senses"), word);
+                String pos = entry.get("pos").getAsString().trim();
+                if (pos.isEmpty()) {
+                    throw new IllegalArgumentException("POS is mandatory");
+                }
+                String posTitle = entry.has("pos_title") ? entry.get("pos_title").getAsString().trim() : "";
+                processSensesInternal(headwordId, pos, posTitle, entry.getAsJsonArray("senses"), word);
             }
         }
 
@@ -215,7 +218,7 @@ public class KaikkiProcessor {
             }
 
             if (!ipas.isEmpty()) {
-                // Same headword can be in multiple etymologies and lexical categories,
+                // Same headword can be in multiple etymologies and POS,
                 // so since we merge that, we need to be able to merge all of them,
                 // and the cache helps to find previous values and merge them.
                 Set<String> cached = headwordIpaCache.getOrDefault(headwordId, new LinkedHashSet<>());
@@ -237,21 +240,22 @@ public class KaikkiProcessor {
          * information about phonetic pronunciations or audio files.
          */
         private static String extractTagString(JsonObject obj) {
-            return Stream.of("tags", "raw_tags")
+            var joined = Stream.of("tags", "raw_tags")
                     .filter(obj::has)
                     .map(obj::getAsJsonArray)
                     .flatMap(ja -> ja.asList().stream())
                     .map(JsonElement::getAsString)
                     .distinct()
-                    .collect(Collectors.joining(", ", "«", "»"));
+                    .collect(Collectors.joining(", "));
+            return joined.isEmpty() ? "" : "«" + joined + "»";
         }
 
-        private void processSensesInternal(long headwordId, String pos, JsonArray senses, String word)
+        private void processSensesInternal(long headwordId, String pos, String posTitle, JsonArray senses, String word)
                 throws SQLException {
             int senseIdx = headwordSenseCounter.getOrDefault(word, 0);
             for (JsonElement senseElem : senses) {
                 JsonObject sense = senseElem.getAsJsonObject();
-                long entryId = insertLexicalEntryInternal(headwordId, pos, senseIdx++);
+                long entryId = insertLexicalEntryInternal(headwordId, pos, posTitle, senseIdx++);
                 processGlossesInternal(entryId, sense);
                 processLinksInternal(entryId, sense);
                 processExamplesInternal(entryId, sense);
@@ -260,10 +264,11 @@ public class KaikkiProcessor {
             headwordSenseCounter.put(word, senseIdx);
         }
 
-        private long insertLexicalEntryInternal(long headwordId, String pos, int index) throws SQLException {
+        private long insertLexicalEntryInternal(long headwordId, String pos, String posTitle, int index) throws SQLException {
             pEntry.setLong(1, headwordId);
             pEntry.setString(2, pos);
-            pEntry.setInt(3, index);
+            pEntry.setString(3, posTitle);
+            pEntry.setInt(4, index);
             pEntry.executeUpdate();
             return getGeneratedKeys(pEntry);
         }
@@ -413,7 +418,7 @@ public class KaikkiProcessor {
         }
 
         private void cleanDeadEnds() throws SQLException {
-            // First, there are lexical categories without definitions (glosses), stuff like this:
+            // First, there are lexical entries without definitions (glosses), stuff like this:
             // {"word": "waste", "lang_code": "en", "pos_title": "Substantivo", "senses": [{"tags": ["no-gloss"]}]}
             deletedLexicalEntries = conn.prepareStatement("""
                     DELETE FROM lexical_entries
@@ -437,7 +442,7 @@ public class KaikkiProcessor {
                     )
                     """).executeUpdate();
 
-            // Either by having no more dead links or deleted empty lexical categories,
+            // Either by having no more dead links or deleted empty lexical entries,
             // get rid of those useless headwords
             deletedHeadwords = conn.prepareStatement("""
                     DELETE FROM headwords
@@ -728,7 +733,7 @@ public class KaikkiProcessor {
                 }
                 System.out.printf(
                         Locale.US,
-                        "%s %s, %s: %d headwords (without %d dead ends), %d glosses (without %d empty lexical categories), %d examples, %d pronunciations, %d links (%d links plus %d forms minus %d dead ends).%s%n",
+                        "%s %s, %s: %d headwords (without %d dead ends), %d glosses (without %d empty lexical entries), %d examples, %d pronunciations, %d links (%d links plus %d forms minus %d dead ends).%s%n",
                         session.removed ? " ! " : ">>>",
                         learningCode,
                         session.learningLangName,
@@ -768,10 +773,11 @@ public class KaikkiProcessor {
                 CREATE TABLE lexical_entries (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     headword_id INTEGER NOT NULL,
-                    lexical_category TEXT NOT NULL,
+                    pos TEXT NOT NULL,
+                    pos_title TEXT NOT NULL,
                     sense_index INTEGER NOT NULL,
                     FOREIGN KEY(headword_id) REFERENCES headwords(id),
-                    UNIQUE(headword_id, lexical_category, sense_index))""");
+                    UNIQUE(headword_id, pos, pos_title, sense_index))""");
         st.execute("""
                 CREATE TABLE glosses (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,

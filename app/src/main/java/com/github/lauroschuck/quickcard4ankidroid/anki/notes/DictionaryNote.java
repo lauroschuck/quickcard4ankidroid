@@ -63,7 +63,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
 
     public DictionaryNote(@NonNull CardAssets assets) {
         super(
-                "quickcard4ankidroid.DictionaryV61",
+                "quickcard4ankidroid.DictionaryV63",
                 generateFieldNames(),
                 assets.getSharedCss() + assets.getDictionaryCss(),
                 generateCardTypes(assets));
@@ -144,8 +144,8 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
                 .findAny()
                 .ifPresent(i -> {
                     throw new IllegalArgumentException(String.format(
-                            "Input for '%s', category '%s' has %d definitions: %s",
-                            i.headword(), i.lexicalCategory(), i.definitions().size(), i.definitions()));
+                            "Input for '%s', POS '%s' has %d definitions: %s",
+                            i.headword(), i.pos(), i.definitions().size(), i.definitions()));
                 });
         return super.generateFields(learningLanguage, nativeLanguage, audio, sourceUrl, actualFieldNames, cards);
     }
@@ -168,7 +168,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
         ID("Id", (l, n, s, i) -> computeId(l, n, i)),
         LEARNING_WORD("LearningWord", (l, n, s, i) -> i.headword()),
         IPA("IPA", (l, n, s, i) -> i.ipa()),
-        LEXICAL_CAT("LexicalCat", (l, n, s, i) -> i.lexicalCategory()),
+        POS("POS", (l, n, s, i) -> i.pos()),
         LEARNING_LANG("LearningLang", (l, n, s, i) -> l.getDisplayName(l)),
         NATIVE_LANG("NativeLang", (l, n, s, i) -> n.getDisplayName(l)),
         PERSONAL_NOTES("PersonalNotes", (l, n, s, i) -> null),
@@ -202,10 +202,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
         public static String computeId(Language learningLanguage, Language nativeLanguage, Input input) {
             return String.format(
                     "%s-%s-%s-%s",
-                    input.headword(),
-                    input.lexicalCategory(),
-                    learningLanguage.getIsoCode(),
-                    nativeLanguage.getIsoCode());
+                    input.headword(), input.pos(), learningLanguage.getIsoCode(), nativeLanguage.getIsoCode());
         }
     }
 
@@ -213,8 +210,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
             implements CardField<Input> {}
 
     @Keep
-    public record Input(
-            @NonNull String headword, String ipa, String lexicalCategory, @NonNull List<Definition> definitions)
+    public record Input(@NonNull String headword, String ipa, String pos, @NonNull List<Definition> definitions)
             implements AbstractAnkiNote.Input {
 
         public Input {

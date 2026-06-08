@@ -96,7 +96,7 @@ html {
     margin-bottom: 0.7em;
 }
 
-.context .lexical-cat {
+.context .pos {
     text-transform: uppercase;
 }
 

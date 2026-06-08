@@ -193,9 +193,7 @@ public class AnkiIntegration {
                         Timber.w("Found duplicate note '%s', aborting", id);
                         showSnackbar(
                                 context.getString(
-                                        R.string.anki_duplicate_note,
-                                        firstDuplicate.headword(),
-                                        firstDuplicate.lexicalCategory()),
+                                        R.string.anki_duplicate_note, firstDuplicate.headword(), firstDuplicate.pos()),
                                 true);
                         return;
                     }

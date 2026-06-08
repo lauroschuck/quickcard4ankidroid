@@ -81,10 +81,9 @@ public interface DataSource {
             implements SelectedCards<DictionaryNote.Input> {
 
         public SelectedDictionaryCards {
-            var categories =
-                    inputs.stream().map(DictionaryNote.Input::lexicalCategory).collect(Collectors.toList());
-            if (categories.size() != new HashSet<>(categories).size()) {
-                throw new IllegalArgumentException("Duplicate lexical categories found: " + categories);
+            var pos = inputs.stream().map(DictionaryNote.Input::pos).collect(Collectors.toList());
+            if (pos.size() != new HashSet<>(pos).size()) {
+                throw new IllegalArgumentException("Duplicate POS found: " + pos);
             }
         }
     }

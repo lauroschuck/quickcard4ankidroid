@@ -133,15 +133,15 @@ public class FirebaseHelper {
             @NonNull String headword, @NonNull DataSource.SelectedDictionaryCards dictCards) {
         var inputs = dictCards.inputs();
 
-        // 1. Count of lexical categories (one Input record per category)
-        var lexicalCategoryCount = inputs.size();
+        // 1. Count of POS (one Input record per POS)
+        var posCount = inputs.size();
 
-        // 2. Total count of definitions across all categories
+        // 2. Total count of definitions across all POS
         var totalDefinitions =
                 inputs.stream().mapToInt(i -> i.definitions().size()).sum();
 
-        // 3. Average definitions per lexical category
-        var avgDefsPerCategory = (double) totalDefinitions / lexicalCategoryCount;
+        // 3. Average definitions per POS
+        var avgDefsPerPos = (double) totalDefinitions / posCount;
 
         // 4. Count of available example phrase pairs
         // Assumes a pair is available if both learningText and nativeText are present
@@ -155,9 +155,9 @@ public class FirebaseHelper {
 
         Bundle bundle = new Bundle();
         bundle.putString("headword", headword);
-        bundle.putInt("lexical_category_count", lexicalCategoryCount);
+        bundle.putInt("pos_count", posCount);
         bundle.putInt("definitions_count", totalDefinitions);
-        bundle.putDouble("avg_defs_per_lexical_category", avgDefsPerCategory);
+        bundle.putDouble("avg_defs_per_pos", avgDefsPerPos);
         bundle.putInt("example_pairs_count", (int) examplePairsCount);
         bundle.putDouble("example_pairs_proportion", percentageWithExamples);
         logEvent("export_dictionary_cards", bundle);
@@ -173,21 +173,20 @@ public class FirebaseHelper {
         var totalDefinitions =
                 inputs.stream().map(TextNote.Input::definition).distinct().count();
 
-        // 3. Count of distinct lexical categories
-        var lexicalCategoryCount =
-                inputs.stream().map(TextNote.Input::lexicalCategory).distinct().count();
+        // 3. Count of distinct POS
+        var posCount = inputs.stream().map(TextNote.Input::pos).distinct().count();
 
-        // 4. Average definitions per lexical category
-        double avgDefsPerCategory = lexicalCategoryCount == 0 ? 0 : (double) totalDefinitions / lexicalCategoryCount;
+        // 4. Average definitions per POS
+        double avgDefsPerPos = posCount == 0 ? 0 : (double) totalDefinitions / posCount;
 
         // 5. Average number of example phrases per definition
         double avgExamplesPerDefinition = totalDefinitions == 0 ? 0 : (double) examplePairsCount / totalDefinitions;
 
         Bundle bundle = new Bundle();
         bundle.putString("headword", headword);
-        bundle.putLong("lexical_category_count", lexicalCategoryCount);
+        bundle.putLong("pos_count", posCount);
         bundle.putLong("definitions_count", totalDefinitions);
-        bundle.putDouble("avg_defs_per_lexical_category", avgDefsPerCategory);
+        bundle.putDouble("avg_defs_per_pos", avgDefsPerPos);
         bundle.putInt("example_pairs_count", examplePairsCount);
         bundle.putDouble("avg_examples_per_definition", avgExamplesPerDefinition);
         logEvent("export_text_cards", bundle);

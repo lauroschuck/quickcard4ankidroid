@@ -76,7 +76,7 @@ public class WordReferenceSource implements DataSource {
                     const headword = document.body.getAttribute('data-word');
                     const isDefinitions = document.body.classList.contains('mode-definitions');
 
-                    // Collapse the lexical categories into a simpler definition
+                    // Collapse the POSes into a simpler definition
                     const posMapping = {
                         'n': 'noun',
                         'npl': 'noun', // noun plural
@@ -108,7 +108,7 @@ public class WordReferenceSource implements DataSource {
                             const radio = document.querySelector('input[name="radio-' + blockId + '"]:checked');
 
                             let definition = '';
-                            let lexicalCategory = '';
+                            let pos = '';
 
                             const frWrdHeader = headerRow.querySelector('.FrWrd');
                             if (frWrdHeader) {
@@ -119,12 +119,16 @@ public class WordReferenceSource implements DataSource {
                                 if (posEm) {
                                     const rawPos = posEm.innerText.trim();
                                     if (rawPos) {
-                                        lexicalCategory = rawPos.split(/ *\\\\+ */).map(function(cat) {
+                                        pos = rawPos.split(/ *\\\\+ */).map(function(cat) {
                                             const cleaned = cat.toLowerCase().trim();
                                             return posMapping[cleaned] || cat;
                                         }).join(' + ');
                                     }
                                 }
+                            }
+
+                            if (!pos) {
+                                pos = '???';
                             }
 
                             // Append content of the specific row's sense column (index 2)
@@ -147,7 +151,7 @@ public class WordReferenceSource implements DataSource {
                                 nativeText = trgEl ? trgEl.innerHTML.trim() : null;
                             }
 
-                            entries.push({ definition, lexicalCategory: lexicalCategory, learningText, nativeText });
+                            entries.push({ definition, pos, learningText, nativeText });
                         });
                         Android.processSelectedCards(JSON.stringify({ mode: 'definitions', headword: headword, entries: entries }));
                     } else {
@@ -167,7 +171,7 @@ public class WordReferenceSource implements DataSource {
                             const nativeText = nativeTextEl.innerHTML.trim();
 
                             let definition = '';
-                            let lexicalCategory = '';
+                            let pos = '';
                             let curr = frRow;
                             while (curr) {
                                 const frWrd = curr.querySelector('.FrWrd');
@@ -197,7 +201,7 @@ public class WordReferenceSource implements DataSource {
                                     if (posEm) {
                                         const rawPos = posEm.innerText.trim();
                                         if (rawPos) {
-                                            lexicalCategory = rawPos.split(/ *\\\\+ */).map(function(cat) {
+                                            pos = rawPos.split(/ *\\\\+ */).map(function(cat) {
                                                 const cleaned = cat.toLowerCase().trim();
                                                 return posMapping[cleaned] || cat;
                                             }).join(' + ');
@@ -208,12 +212,16 @@ public class WordReferenceSource implements DataSource {
                                 curr = curr.previousElementSibling;
                             }
 
+                            if (!pos) {
+                                pos = '???';
+                            }
+
                             cards.push({
                                 headword,
                                 learningText,
                                 nativeText,
                                 definition: definition,
-                                lexicalCategory: lexicalCategory
+                                pos
                             });
                         });
                         Android.processSelectedCards(JSON.stringify({ mode: 'examples', headword: headword, cards: cards }));
@@ -245,17 +253,17 @@ public class WordReferenceSource implements DataSource {
             }
 
             Map<String, List<Map<String, String>>> grouped =
-                    entries.stream().collect(Collectors.groupingBy(e -> e.getOrDefault("lexicalCategory", "")));
+                    entries.stream().collect(Collectors.groupingBy(e -> e.getOrDefault("pos", "???")));
 
             List<DictionaryNote.Input> inputs = new ArrayList<>();
             for (var entry : grouped.entrySet()) {
-                String lexicalCat = entry.getKey();
+                String pos = entry.getKey();
                 List<DictionaryNote.Input.Definition> definitions = entry.getValue().stream()
                         .map(e -> new DictionaryNote.Input.Definition(
                                 e.get("definition"), e.get("learningText"), e.get("nativeText"), null))
                         .collect(Collectors.toList());
 
-                inputs.add(new DictionaryNote.Input(headword != null ? headword : "", null, lexicalCat, definitions));
+                inputs.add(new DictionaryNote.Input(headword != null ? headword : "", null, pos, definitions));
             }
             return new SelectedDictionaryCards(lastLearningLanguage, lastNativeLanguage, null, sourceUrl, inputs);
         } else {

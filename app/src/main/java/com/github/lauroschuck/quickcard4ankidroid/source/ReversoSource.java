@@ -80,15 +80,15 @@ public class ReversoSource implements DataSource {
                     const headword = document.body.getAttribute('data-word');
                     const isDefinitions = document.body.classList.contains('mode-definitions');
 
-                    const getLexicalCategory = (el) => {
-                        let cat = 'REVERSO';
+                    const getPos = (el) => {
+                        let pos = '???';
                         const chips = document.querySelectorAll('app-translation-pos-chips');
                         chips.forEach(chip => {
                             if (chip.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) {
-                                cat = chip.innerText.trim();
+                                pos = chip.innerText.trim();
                             }
                         });
-                        return cat;
+                        return pos;
                     };
 
                     if (isDefinitions) {
@@ -100,7 +100,7 @@ public class ReversoSource implements DataSource {
 
                             const defLink = contextEl.querySelector('app-link-internal');
                             const definition = defLink ? defLink.innerText.trim() : '';
-                            const lexicalCategory = getLexicalCategory(contextEl);
+                            const pos = getPos(contextEl);
 
                             let learningText = null;
                             let nativeText = null;
@@ -112,7 +112,7 @@ public class ReversoSource implements DataSource {
                                 nativeText = targetEl ? targetEl.innerHTML.trim() : null;
                             }
 
-                            entries.push({ definition, lexicalCategory, learningText, nativeText });
+                            entries.push({ definition, pos, learningText, nativeText });
                         });
                         Android.processSelectedCards(JSON.stringify({ mode: 'definitions', headword: headword, entries: entries }));
                     } else {
@@ -134,9 +134,9 @@ public class ReversoSource implements DataSource {
                                 if (defLink) definition = defLink.innerText.trim();
                             }
 
-                            const lexicalCategory = getLexicalCategory(contextEl || exampleEl);
+                            const pos = getPos(contextEl || exampleEl);
 
-                            cards.push({ headword, learningText, nativeText, definition, lexicalCategory });
+                            cards.push({ headword, learningText, nativeText, definition, pos });
                         });
                         Android.processSelectedCards(JSON.stringify({ mode: 'examples', headword: headword, cards: cards }));
                     }
@@ -167,20 +167,20 @@ public class ReversoSource implements DataSource {
                 return null;
             }
 
-            // Group by lexical category to create DictionaryNote.Input objects
+            // Group by POS to create DictionaryNote.Input objects
             Map<String, List<Map<String, String>>> grouped =
-                    entries.stream().collect(Collectors.groupingBy(e -> e.getOrDefault("lexicalCategory", null)));
+                    entries.stream().collect(Collectors.groupingBy(e -> e.getOrDefault("pos", "???")));
 
             List<DictionaryNote.Input> inputs = new ArrayList<>();
             for (var entry : grouped.entrySet()) {
-                String lexicalCat = entry.getKey();
+                String pos = entry.getKey();
                 List<DictionaryNote.Input.Definition> definitions = entry.getValue().stream()
                         .map(e -> new DictionaryNote.Input.Definition(
                                 e.get("definition"), e.get("learningText"), e.get("nativeText"), null))
                         .collect(Collectors.toList());
 
                 inputs.add(new DictionaryNote.Input(
-                        headword != null ? headword : "", null, lexicalCat.toLowerCase(Locale.ROOT), definitions));
+                        headword != null ? headword : "", null, pos.toLowerCase(Locale.ROOT), definitions));
             }
             return new SelectedDictionaryCards(lastLearningLanguage, lastNativeLanguage, null, sourceUrl, inputs);
         } else {

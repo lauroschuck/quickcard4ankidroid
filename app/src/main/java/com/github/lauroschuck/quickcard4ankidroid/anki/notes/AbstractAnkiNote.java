@@ -136,6 +136,6 @@ public abstract sealed class AbstractAnkiNote<I extends AbstractAnkiNote.Input> 
     public sealed interface Input permits DictionaryNote.Input, TextNote.Input {
         String headword();
 
-        String lexicalCategory();
+        String pos();
     }
 }
