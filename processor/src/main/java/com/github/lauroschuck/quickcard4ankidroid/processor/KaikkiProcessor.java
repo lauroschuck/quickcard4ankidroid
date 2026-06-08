@@ -85,6 +85,7 @@ public class KaikkiProcessor {
         long linkCount = 0;
         long formOfCount = 0;
         long deletedHeadwords = -1;
+        long deletedLexicalEntries = -1;
         long deletedLinks = -1;
         long collectiveLinkCount = -1;
         boolean removed = false;
@@ -144,7 +145,7 @@ public class KaikkiProcessor {
                     }
                 }
                 commitInternal();
-                cleanDeadLinks();
+                cleanDeadEnds();
             } catch (InterruptedException | SQLException e) {
                 throw new RuntimeException("Consumption failure", e);
             }
@@ -411,9 +412,19 @@ public class KaikkiProcessor {
             conn.commit();
         }
 
-        private void cleanDeadLinks() throws SQLException {
-            // Links referring to headwords with no lex categories (or anything else) ae either
-            // really empty records (newer seen one) or a new headword for a link that is broken
+        private void cleanDeadEnds() throws SQLException {
+            // First, there are lexical categories without definitions (glosses), stuff like this:
+            // {"word": "waste", "lang_code": "en", "pos_title": "Substantivo", "senses": [{"tags": ["no-gloss"]}]}
+            deletedLexicalEntries = conn.prepareStatement("""
+                    DELETE FROM lexical_entries
+                    WHERE id NOT IN (
+                        SELECT g.lexical_entry_id
+                        FROM glosses g
+                    )
+                    """).executeUpdate();
+
+            // Links referring to headwords with no lex categories (or anything else) are either
+            // really empty records (like those above) or a new headword for a link that is broken
             // or from another language (lots), therefore erase these headwords and these links
 
             deletedLinks = conn.prepareStatement("""
@@ -425,6 +436,9 @@ public class KaikkiProcessor {
                         WHERE le.id is null
                     )
                     """).executeUpdate();
+
+            // Either by having no more dead links or deleted empty lexical categories,
+            // get rid of those useless headwords
             deletedHeadwords = conn.prepareStatement("""
                     DELETE FROM headwords
                     WHERE id NOT IN (
@@ -434,7 +448,7 @@ public class KaikkiProcessor {
                     """).executeUpdate();
 
             // Obtain the respective counters, especially links, as it is not the same as
-            // links plus form_of minus deleted because of ignored links because they conflicted
+            // links plus form_of minus deleted because of ignored links as they conflicted
             // with form_of and got ignored but still counted
             headwordCount = selectLong("SELECT count(*) FROM headwords");
             collectiveLinkCount = selectLong("SELECT count(*) FROM sense_links");
@@ -679,7 +693,7 @@ public class KaikkiProcessor {
                         System.out.printf(
                                 Locale.US,
                                 "\r[%d/%d] %s : processed %d lines...",
-                                dumpIndex,
+                                dumpIndex + 1,
                                 totalDumps,
                                 nativeLangCode,
                                 current);
@@ -691,7 +705,7 @@ public class KaikkiProcessor {
             System.out.printf(
                     Locale.US,
                     "\r[%d/%d] %s : processed %d lines (%d unprocessable - %.2f%%, %d %s - %.2f%%, %d fringe - %.2f%%)... Done.",
-                    dumpIndex,
+                    dumpIndex + 1,
                     totalDumps,
                     nativeLangCode,
                     linesCount.get(),
@@ -714,13 +728,14 @@ public class KaikkiProcessor {
                 }
                 System.out.printf(
                         Locale.US,
-                        "%s %s, %s: %d headwords (without %d dead ends), %d glosses, %d examples, %d pronunciations, %d links (%d links plus %d forms minus %d dead ends).%s%n",
+                        "%s %s, %s: %d headwords (without %d dead ends), %d glosses (without %d empty lexical categories), %d examples, %d pronunciations, %d links (%d links plus %d forms minus %d dead ends).%s%n",
                         session.removed ? " ! " : ">>>",
                         learningCode,
                         session.learningLangName,
                         session.headwordCount,
                         session.deletedHeadwords,
                         session.glossCount,
+                        session.deletedLexicalEntries,
                         session.exampleCount,
                         session.pronunciationCount,
                         session.collectiveLinkCount,
