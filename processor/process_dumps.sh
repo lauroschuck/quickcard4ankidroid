@@ -124,7 +124,20 @@ fi
 
 echo ""
 echo "Step 2: Finding latest dumps..."
-PROCESSOR_ARGS="$VERSION $THREADS \"$MIRRORS\""
+# Find latest metadata.json in processor/out/
+LATEST_META_FILE=$(find "$PROJECT_ROOT/processor/out" -name "pos_translations_cumulative.json" -printf "%T@ %p\n" 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)
+
+if [ -z "$LATEST_META_FILE" ]; then
+    echo "No existing pos_translations_cumulative.json found. Using empty dummy."
+    LATEST_META_FILE=$(mktemp --suffix=.json)
+    echo "{}" > "$LATEST_META_FILE"
+    # Ensure dummy is removed on exit
+    trap 'rm -f "$LATEST_META_FILE"' EXIT
+else
+    echo "Using existing translations from: $LATEST_META_FILE"
+fi
+
+PROCESSOR_ARGS="$VERSION $THREADS \"$MIRRORS\" \"$LATEST_META_FILE\""
 
 for LANG_CODE in "${!DUMPS[@]}"; do
     # The directory name is our timestamp: YYYYMMDD-HHMMSS
@@ -149,7 +162,7 @@ done
 echo ""
 echo "Step 3: Running KaikkiProcessor..."
 cd "$PROJECT_ROOT"
-./gradlew :processor:run --args="$PROCESSOR_ARGS"
+./gradlew :processor:run -Plaunch='com.github.lauroschuck.quickcard4ankidroid.processor.KaikkiProcessor' --args="$PROCESSOR_ARGS"
 
 echo ""
 echo "All dumps processed. Metadata and databases are available in processor/out/"

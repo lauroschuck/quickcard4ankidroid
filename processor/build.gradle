@@ -8,8 +8,10 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
-application {
-    mainClass = 'com.github.lauroschuck.quickcard4ankidroid.processor.KaikkiProcessor'
+run {
+    if (project.hasProperty('launch')) {
+        mainClass = project.getProperty('launch')
+    }
 }
 
 dependencies {

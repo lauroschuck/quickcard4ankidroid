@@ -1,5 +1,6 @@
 package com.github.lauroschuck.quickcard4ankidroid.processor;
 
+import com.github.lauroschuck.quickcard4ankidroid.processor.pos.PosTranslationData;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -55,13 +56,17 @@ public class KaikkiProcessor {
 
     private static final long MIN_HEADWORDS = 10000;
     private static final JsonObject POISON_PILL = new JsonObject();
+    private static PosTranslationData posTranslationCumulative;
 
     private static class DatabaseSession implements AutoCloseable {
         final String dbPath;
         final String learningLangCode;
         final String learningLangName;
+        final String nativeLangCode;
+
         final Connection conn;
         final PreparedStatement pHeadword,
+                pPos,
                 pEntry,
                 pGloss,
                 pExample,
@@ -88,11 +93,14 @@ public class KaikkiProcessor {
         long deletedLexicalEntries = -1;
         long deletedLinks = -1;
         long collectiveLinkCount = -1;
+        int deletedPos;
+        Set<String> blankPos;
         boolean removed = false;
 
-        DatabaseSession(String dbPath, String learningLangCode) throws SQLException {
+        DatabaseSession(String dbPath, String learningLangCode, String nativeLangCode) throws SQLException {
             this.dbPath = dbPath;
             this.learningLangCode = learningLangCode;
+            this.nativeLangCode = nativeLangCode;
             this.learningLangName = Locale.forLanguageTag(learningLangCode).getDisplayLanguage(Locale.ENGLISH);
             this.conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
             // Adjustments for performance
@@ -107,6 +115,8 @@ public class KaikkiProcessor {
 
             this.pHeadword = conn.prepareStatement(
                     "INSERT OR IGNORE INTO headwords (headword) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+            this.pPos = conn.prepareStatement(
+                    "INSERT OR IGNORE INTO pos_translations (pos, translation) VALUES (?, ?)");
             this.pEntry = conn.prepareStatement(
                     "INSERT INTO lexical_entries (headword_id, pos, pos_title, sense_index) VALUES (?, ?, ?, ?)",
                     Statement.RETURN_GENERATED_KEYS);
@@ -126,11 +136,11 @@ public class KaikkiProcessor {
             this.pLanguage = conn.prepareStatement("INSERT OR IGNORE INTO languages (iso, name) VALUES (?, ?)");
             this.pUpdateIpa = conn.prepareStatement("UPDATE headwords SET ipa = ? WHERE id = ?");
 
-            this.writerThread = new Thread(this::consume);
+            this.writerThread = new Thread(() -> consume(nativeLangCode));
             this.writerThread.start();
         }
 
-        private void consume() {
+        private void consume(String nativeLangCode) {
             int batchSize = 0;
             try {
                 while (true) {
@@ -145,7 +155,7 @@ public class KaikkiProcessor {
                     }
                 }
                 commitInternal();
-                cleanDeadEnds();
+                cleanDeadEnds(nativeLangCode);
             } catch (InterruptedException | SQLException e) {
                 throw new RuntimeException("Consumption failure", e);
             }
@@ -255,6 +265,8 @@ public class KaikkiProcessor {
             int senseIdx = headwordSenseCounter.getOrDefault(word, 0);
             for (JsonElement senseElem : senses) {
                 JsonObject sense = senseElem.getAsJsonObject();
+                // Insert the POS translation entry first (POS is a foreign key for the lexical entry)
+                insertPos(pos);
                 long entryId = insertLexicalEntryInternal(headwordId, pos, posTitle, senseIdx++);
                 processGlossesInternal(entryId, sense);
                 processLinksInternal(entryId, sense);
@@ -262,6 +274,15 @@ public class KaikkiProcessor {
                 processRelationsInternal(entryId, sense);
             }
             headwordSenseCounter.put(word, senseIdx);
+        }
+
+        private void insertPos(String pos) throws SQLException {
+            // Reuse from the map of cumulative translations, in case it exists (null otherwise)
+            String translation = posTranslationCumulative.getTranslation(nativeLangCode, pos);
+            pPos.setString(1, pos);
+            // Non nullable field, so add empty temporarily until it is fixed by manual addition
+            pPos.setString(2, translation != null ? translation : "");
+            pPos.executeUpdate();
         }
 
         private long insertLexicalEntryInternal(long headwordId, String pos, String posTitle, int index) throws SQLException {
@@ -417,7 +438,7 @@ public class KaikkiProcessor {
             conn.commit();
         }
 
-        private void cleanDeadEnds() throws SQLException {
+        private void cleanDeadEnds(String nativeLangCode) throws SQLException {
             // First, there are lexical entries without definitions (glosses), stuff like this:
             // {"word": "waste", "lang_code": "en", "pos_title": "Substantivo", "senses": [{"tags": ["no-gloss"]}]}
             deletedLexicalEntries = conn.prepareStatement("""
@@ -427,6 +448,27 @@ public class KaikkiProcessor {
                         FROM glosses g
                     )
                     """).executeUpdate();
+
+            // Deleting these might also make some POS entries irrelevant
+            deletedPos = conn.prepareStatement("""
+                    DELETE FROM pos_translations
+                    WHERE pos NOT IN (
+                        SELECT DISTINCT le.pos
+                        FROM lexical_entries le
+                    )
+                    """).executeUpdate();
+            // And at the same time, some new unkown POS values were added as empty to the DB
+            // and we need to add them to the JSON data
+            var posPs = conn.prepareStatement("""
+                    SELECT DISTINCT pos FROM pos_translations
+                    WHERE translation = ''
+                    """);
+            posPs.execute();
+            var posRs = posPs.getResultSet();
+            blankPos = new HashSet<>();
+            while (posRs.next()) {
+                blankPos.add(posRs.getString(1));
+            }
 
             // Links referring to headwords with no lex categories (or anything else) are either
             // really empty records (like those above) or a new headword for a link that is broken
@@ -493,9 +535,9 @@ public class KaikkiProcessor {
     }
 
     public static void main(String[] args) throws SQLException, IOException, InterruptedException {
-        if (args.length < 4) {
+        if (args.length < 5) {
             System.out.println(
-                    "Usage: java KaikkiProcessor <version> <num_threads> <mirrors_csv> <nativeLang1:last_mod:dumpPath1> ...");
+                    "Usage: java KaikkiProcessor <version> <num_threads> <mirrors_csv> <existing_pos_translation_json> <nativeLang1:last_mod:dumpPath1> ...");
             return;
         }
 
@@ -512,12 +554,23 @@ public class KaikkiProcessor {
         String outDir = outBase + File.separator + timestampDir + File.separator + epochSeconds;
         new File(outDir).mkdirs();
 
-        KaikkiProcessor converter = new KaikkiProcessor();
+        KaikkiProcessor processor = new KaikkiProcessor();
         Map<String, Map<String, Boolean>> summaryTable = new TreeMap<>();
         List<Map<String, Object>> dictionaryMetadataList = new ArrayList<>();
 
-        int totalDumps = args.length - 3;
-        for (int i = 3; i < args.length; i++) {
+        int totalDumps = args.length - 4;
+        String existingMetaJsonPath = args[3];
+
+        // Load existing POS translations if metadata file exists
+        File existingMetaFile = new File(existingMetaJsonPath);
+        if (existingMetaFile.exists()) {
+            posTranslationCumulative = PosTranslationData.read(existingMetaFile);
+        } else {
+            posTranslationCumulative = new PosTranslationData();
+        }
+
+        int totalBlankPos = 0;
+        for (int i = 4; i < args.length; i++) {
             String[] parts = args[i].split(":", 3);
             if (parts.length < 3) {
                 System.err.println("Invalid argument format: " + args[i]);
@@ -543,11 +596,11 @@ public class KaikkiProcessor {
                     numThreads);
 
             Instant dumpStart = Instant.now();
-            Map<String, DatabaseSession> sessions = converter.processDumpParallel(
+            Map<String, DatabaseSession> sessions = processor.processDumpParallel(
                     dumpPath,
                     nativeLangCode,
                     outDir,
-                    i - 3,
+                    i - 4,
                     totalDumps,
                     numThreads,
                     version,
@@ -580,13 +633,24 @@ public class KaikkiProcessor {
 
             Duration elapsed = Duration.between(dumpStart, Instant.now()).truncatedTo(ChronoUnit.SECONDS);
             System.out.printf(Locale.US, "Dump %s processed in %s%n", dumpPath, elapsed);
+            int blankPos = posTranslationCumulative.countBlanks(nativeLangCode);
+            totalBlankPos += blankPos;
+            if (blankPos > 0) {
+                System.out.printf(Locale.US, "There are %d POS translations that are blank%n", blankPos);
+            }
         }
 
         writeMetadataJson(outDir, dictionaryMetadataList, epochSeconds, version, mirrorBases);
+        writePosTranslations(outDir);
         printSummaryTable(summaryTable);
 
         Duration totalElapsed = Duration.between(totalStart, Instant.now()).truncatedTo(ChronoUnit.SECONDS);
         System.out.printf(Locale.US, "Entire process finished in %s%n", totalElapsed);
+        if (totalBlankPos == 0) {
+            System.out.println("No POS translations are blank");
+        } else {
+            System.out.printf(Locale.US, "There are a total of %d POS translations across all languages that are blank! Fix them!%n", totalBlankPos);
+        }
     }
 
     private static long parseTimestampToEpoch(String raw) {
@@ -643,6 +707,16 @@ public class KaikkiProcessor {
         }
     }
 
+    private static void writePosTranslations(String outDir) {
+        File file = new File(outDir, "pos_translations_cumulative.json");
+        try {
+            posTranslationCumulative.write(file, false);
+            System.out.println("\nPOS translation cumulative saved to: " + file.getAbsolutePath());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to write pos_translations_cumulative.json", e);
+        }
+    }
+
     private Map<String, DatabaseSession> processDumpParallel(
             String dumpPath,
             String nativeLangCode,
@@ -682,7 +756,7 @@ public class KaikkiProcessor {
                                 String dbFileName = String.format(Locale.US,
                                         "wiktionary_kaikki_%s-%s_%s_%d.db", code, nativeLangCode, version, lastModEpoch);
                                 try {
-                                    return new DatabaseSession(outDir + File.separator + dbFileName, code);
+                                    return new DatabaseSession(outDir + File.separator + dbFileName, code, nativeLangCode);
                                 } catch (SQLException e) {
                                     throw new RuntimeException("Failed to create database", e);
                                 }
@@ -730,6 +804,9 @@ public class KaikkiProcessor {
                 if (session.headwordCount < MIN_HEADWORDS) {
                     new File(session.dbPath).delete();
                     session.removed = true;
+                } else {
+                    // Set blanks in the JSON for any blank in the DB that did not get deleted
+                    session.blankPos.forEach(pos -> posTranslationCumulative.setTranslation(nativeLangCode, pos, ""));
                 }
                 System.out.printf(
                         Locale.US,
@@ -770,6 +847,10 @@ public class KaikkiProcessor {
                     headword TEXT UNIQUE NOT NULL,
                     ipa TEXT)""");
         st.execute("""
+                CREATE TABLE pos_translations (
+                    pos TEXT PRIMARY KEY,
+                    translation TEXT)""");
+        st.execute("""
                 CREATE TABLE lexical_entries (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     headword_id INTEGER NOT NULL,
@@ -777,6 +858,7 @@ public class KaikkiProcessor {
                     pos_title TEXT NOT NULL,
                     sense_index INTEGER NOT NULL,
                     FOREIGN KEY(headword_id) REFERENCES headwords(id),
+                    FOREIGN KEY(pos) REFERENCES pos_translation(pos),
                     UNIQUE(headword_id, pos, pos_title, sense_index))""");
         st.execute("""
                 CREATE TABLE glosses (
