@@ -168,7 +168,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
         ID("Id", (l, n, s, i) -> computeId(l, n, i)),
         LEARNING_WORD("LearningWord", (l, n, s, i) -> i.headword()),
         IPA("IPA", (l, n, s, i) -> i.ipa()),
-        POS("POS", (l, n, s, i) -> i.pos()),
+        POS("POS", (l, n, s, i) -> i.effectivePos()),
         LEARNING_LANG("LearningLang", (l, n, s, i) -> l.getDisplayName(l)),
         NATIVE_LANG("NativeLang", (l, n, s, i) -> n.getDisplayName(l)),
         PERSONAL_NOTES("PersonalNotes", (l, n, s, i) -> null),
@@ -210,7 +210,12 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
             implements CardField<Input> {}
 
     @Keep
-    public record Input(@NonNull String headword, String ipa, String pos, @NonNull List<Definition> definitions)
+    public record Input(
+            @NonNull String headword,
+            String ipa,
+            String pos,
+            String posTranslation,
+            @NonNull List<Definition> definitions)
             implements AbstractAnkiNote.Input {
 
         public Input {

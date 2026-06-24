@@ -263,7 +263,7 @@ public class WordReferenceSource implements DataSource {
                                 e.get("definition"), e.get("learningText"), e.get("nativeText"), null))
                         .collect(Collectors.toList());
 
-                inputs.add(new DictionaryNote.Input(headword != null ? headword : "", null, pos, definitions));
+                inputs.add(new DictionaryNote.Input(headword != null ? headword : "", null, pos, null, definitions));
             }
             return new SelectedDictionaryCards(lastLearningLanguage, lastNativeLanguage, null, sourceUrl, inputs);
         } else {

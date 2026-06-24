@@ -61,7 +61,7 @@ public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
         NATIVE_LANG("NativeLang", (l, n, s, i) -> n.getDisplayName(l)),
         LEARNING_WORD("LearningWord", (l, n, s, i) -> i.headword()),
         IPA("IPA", (l, n, s, i) -> i.ipa()),
-        POS("POS", (l, n, s, i) -> i.pos()),
+        POS("POS", (l, n, s, i) -> i.effectivePos()),
         DEFINITION("Definition", (l, n, s, i) -> i.definition()),
         WORD_SYNONYMS(
                 "WordSynonyms",
@@ -104,6 +104,7 @@ public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
             @NonNull String nativeText,
             String definition,
             String pos,
+            String posTranslation,
             List<String> synonyms)
             implements AbstractAnkiNote.Input {}
 }

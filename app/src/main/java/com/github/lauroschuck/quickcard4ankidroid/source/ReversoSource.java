@@ -180,7 +180,7 @@ public class ReversoSource implements DataSource {
                         .collect(Collectors.toList());
 
                 inputs.add(new DictionaryNote.Input(
-                        headword != null ? headword : "", null, pos.toLowerCase(Locale.ROOT), definitions));
+                        headword != null ? headword : "", null, pos.toLowerCase(Locale.ROOT), null, definitions));
             }
             return new SelectedDictionaryCards(lastLearningLanguage, lastNativeLanguage, null, sourceUrl, inputs);
         } else {

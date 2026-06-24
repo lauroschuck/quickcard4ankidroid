@@ -137,5 +137,17 @@ public abstract sealed class AbstractAnkiNote<I extends AbstractAnkiNote.Input> 
         String headword();
 
         String pos();
+
+        String posTranslation();
+
+        default String effectivePos() {
+            if (posTranslation() != null) {
+                return posTranslation();
+            } else if ("unknown".equals(pos())) {
+                return "???";
+            } else {
+                return pos();
+            }
+        }
     }
 }

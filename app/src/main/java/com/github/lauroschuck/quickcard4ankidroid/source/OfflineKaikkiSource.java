@@ -184,13 +184,24 @@ public class OfflineKaikkiSource implements DataSource {
             // 4. Fetch Lexical Entries and nest everything
             var posBlocks = new ArrayList<Map<String, Object>>();
             String mainQuery =
-                    "SELECT le.id, le.pos FROM lexical_entries le JOIN headwords h ON le.headword_id = h.id WHERE h.headword = ? COLLATE BINARY ORDER BY le.pos, le.pos_title, le.sense_index";
+                    """
+                    SELECT le.id, le.pos, pt.translation
+                    FROM lexical_entries le
+                    JOIN pos_translations pt ON pt.pos = le.pos
+                    JOIN headwords h ON le.headword_id = h.id
+                    WHERE h.headword = ?
+                    COLLATE BINARY
+                    ORDER BY le.pos, le.pos_title, le.sense_index
+                    """;
 
             try (Cursor cursor = db.rawQuery(mainQuery, new String[] {word})) {
                 var posMap = new LinkedHashMap<String, List<Map<String, Object>>>();
+                var posTranslationMap = new HashMap<String, String>();
                 while (cursor.moveToNext()) {
                     long entryId = cursor.getLong(0);
                     String pos = cursor.getString(1);
+                    String posTranslation = cursor.getString(2);
+                    posTranslationMap.put(pos, posTranslation);
 
                     var sense = new HashMap<String, Object>();
                     sense.put("entryId", entryId);
@@ -246,7 +257,21 @@ public class OfflineKaikkiSource implements DataSource {
 
                 for (var entry : posMap.entrySet()) {
                     var block = new HashMap<String, Object>();
-                    block.put("pos", entry.getKey());
+                    var pos = entry.getKey();
+                    var posTranslation = posTranslationMap.get(pos);
+                    String effectivePos;
+                    if (!posTranslation.isEmpty()) {
+                        effectivePos = posTranslation;
+                    } else if ("unknown".equals(pos)) {
+                        Timber.w("Found '%s' POS on %s-%s dictionary", pos, learningLanguage, nativeLanguage);
+                        effectivePos = "???";
+                    } else {
+                        Timber.w(
+                                "Missing translation for '%s' POS on %s-%s dictionary",
+                                pos, learningLanguage, nativeLanguage);
+                        effectivePos = pos;
+                    }
+                    block.put("pos", effectivePos);
                     block.put("senses", entry.getValue());
                     posBlocks.add(block);
                 }
@@ -399,11 +424,15 @@ public class OfflineKaikkiSource implements DataSource {
     }
 
     private TextNote.Input fetchCardForExample(SQLiteDatabase db, long exId) {
-        var query = "SELECT e.learning_text, e.native_text, le.pos, h.headword, h.ipa, e.lexical_entry_id "
-                + "FROM examples e "
-                + "JOIN lexical_entries le ON e.lexical_entry_id = le.id "
-                + "JOIN headwords h ON le.headword_id = h.id "
-                + "WHERE e.id = ?";
+        var query =
+                """
+                SELECT e.learning_text, e.native_text, le.pos, pt.translation, h.headword, h.ipa, e.lexical_entry_id
+                FROM examples e
+                JOIN lexical_entries le ON e.lexical_entry_id = le.id
+                JOIN pos_translations pt ON pt.pos = le.pos
+                JOIN headwords h ON le.headword_id = h.id
+                WHERE e.id = ?
+                """;
 
         try (var cursor = db.rawQuery(query, new String[] {String.valueOf(exId)})) {
             if (!cursor.moveToFirst()) {
@@ -413,16 +442,17 @@ public class OfflineKaikkiSource implements DataSource {
             var learningTextRaw = cursor.getString(0);
             var nativeTextRaw = cursor.getString(1);
             var pos = cursor.getString(2);
-            var headword = cursor.getString(3);
-            var ipa = cursor.getString(4);
-            var entryId = cursor.getLong(5);
+            var posTranslation = cursor.getString(3);
+            var headword = cursor.getString(4);
+            var ipa = cursor.getString(5);
+            var entryId = cursor.getLong(6);
 
             var learningText = applyBolding(learningTextRaw, exId, "L", db);
             var nativeText = nativeTextRaw != null ? applyBolding(nativeTextRaw, exId, "N", db) : null;
             var glosses = fetchGlosses(db, entryId);
             var synonyms = fetchSynonyms(db, entryId);
 
-            return new TextNote.Input(headword, ipa, learningText, nativeText, glosses, pos, synonyms);
+            return new TextNote.Input(headword, ipa, learningText, nativeText, glosses, pos, posTranslation, synonyms);
         }
     }
 
@@ -430,9 +460,10 @@ public class OfflineKaikkiSource implements DataSource {
         var examples = entryMap.values().stream().filter(Objects::nonNull).collect(Collectors.toList());
         var query = String.format(
                 """
-            SELECT le.id, h.headword, h.ipa, le.pos, e.id, e.learning_text, e.native_text
+            SELECT le.id, h.headword, h.ipa, le.pos, pt.translation, e.id, e.learning_text, e.native_text
             FROM headwords h
             JOIN lexical_entries le ON le.headword_id = h.id
+            JOIN pos_translations pt ON pt.pos = le.pos
             LEFT JOIN examples e ON e.lexical_entry_id = le.id
             WHERE le.id IN %s
                 AND (%s e.id IS NULL)
@@ -453,20 +484,21 @@ public class OfflineKaikkiSource implements DataSource {
                 var headword = cursor.getString(1);
                 var ipa = cursor.getString(2);
                 var pos = cursor.getString(3);
+                var posTranslation = cursor.getString(4);
                 var definitionText = fetchGlosses(db, entryId);
                 var synonyms = fetchSynonyms(db, entryId);
                 DictionaryNote.Input.Definition definition;
-                if (cursor.isNull(4)) {
+                if (cursor.isNull(5)) {
                     definition = new DictionaryNote.Input.Definition(definitionText, null, null, synonyms);
                 } else {
-                    var exampleId = cursor.getLong(4);
-                    var learningText = applyBolding(cursor.getString(5), exampleId, "L", db);
-                    var nativeTextRaw = cursor.getString(6);
+                    var exampleId = cursor.getLong(5);
+                    var learningText = applyBolding(cursor.getString(6), exampleId, "L", db);
+                    var nativeTextRaw = cursor.getString(7);
                     var nativeText = nativeTextRaw != null ? applyBolding(nativeTextRaw, exampleId, "N", db) : null;
                     definition =
                             new DictionaryNote.Input.Definition(definitionText, learningText, nativeText, synonyms);
                 }
-                var input = new DictionaryNote.Input(headword, ipa, pos, List.of(definition));
+                var input = new DictionaryNote.Input(headword, ipa, pos, posTranslation, List.of(definition));
                 Timber.d("Intermediary input: %s", input);
                 flattenedCards.add(input);
             }
@@ -479,7 +511,11 @@ public class OfflineKaikkiSource implements DataSource {
                             .collect(Collectors.toList());
                     var firstInput = inputs.get(0);
                     var input = new DictionaryNote.Input(
-                            firstInput.headword(), firstInput.ipa(), firstInput.pos(), definitions);
+                            firstInput.headword(),
+                            firstInput.ipa(),
+                            firstInput.pos(),
+                            firstInput.posTranslation(),
+                            definitions);
                     Timber.d("Condensed input: %s", input);
                     return input;
                 })
