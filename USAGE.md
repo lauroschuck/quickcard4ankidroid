@@ -16,7 +16,7 @@ Before using the app, ensure you have configured your dictionary:
 
 ### Within the App
 1.  On the main screen, enter a word in the search box and tap the **Search** icon.
-2.  The app will fetch results from your active source (e.g., Offline Wiktionary, Reverso, or WordReference).
+2.  The app will fetch results from your active dictionary.
 
 ### System-wide (Process Text)
 You can search for words without leaving the app you are currently reading in (like a browser or ebook reader):
