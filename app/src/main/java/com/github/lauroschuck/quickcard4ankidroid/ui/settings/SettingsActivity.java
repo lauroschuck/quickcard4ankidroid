@@ -255,9 +255,8 @@ public class SettingsActivity extends AppCompatActivity {
         if (!lIso.isEmpty() && !nIso.isEmpty()) {
             Language learning = Language.ofIsoCode(lIso);
             Language nativeLang = Language.ofIsoCode(nIso);
-            String defaultName = String.format(
-                            "%s-%s", learning.getDisplayName(learning), nativeLang.getDisplayName(learning))
-                    .toLowerCase(Locale.ROOT);
+            String defaultName =
+                    String.format("%s-%s", learning.getDisplayName(nativeLang), nativeLang.getDisplayName(nativeLang));
             deckNameEditText.setText(defaultName);
         } else {
             deckNameEditText.setText("");

@@ -55,10 +55,10 @@ public final class TextNote extends AbstractAnkiNote<TextNote.Input> {
     enum Field implements CardField<Input> {
         LEARNING_TEXT("LearningText", (l, n, s, i) -> cleanHtml(i.learningText())),
         ALT_LEARNING_TEXT("AltLearningText", (l, n, s, i) -> null),
-        LEARNING_LANG("LearningLang", (l, n, s, i) -> l.getDisplayName(l)),
+        LEARNING_LANG("LearningLang", (l, n, s, i) -> l.getDisplayName(n)),
         NATIVE_TEXT("NativeText", (l, n, s, i) -> cleanHtml(i.nativeText())),
         ALT_NATIVE_TEXT("AltNativeText", (l, n, s, i) -> null),
-        NATIVE_LANG("NativeLang", (l, n, s, i) -> n.getDisplayName(l)),
+        NATIVE_LANG("NativeLang", (l, n, s, i) -> n.getDisplayName(n)),
         LEARNING_WORD("LearningWord", (l, n, s, i) -> i.headword()),
         IPA("IPA", (l, n, s, i) -> i.ipa()),
         POS("POS", (l, n, s, i) -> i.effectivePos()),
