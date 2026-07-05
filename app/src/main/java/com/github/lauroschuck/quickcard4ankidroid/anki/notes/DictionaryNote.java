@@ -38,7 +38,7 @@ public final class DictionaryNote extends AbstractAnkiNote<DictionaryNote.Input>
                                                 : null))),
                         new IndexedField(
                                 index,
-                                String.format(Locale.US, "Definition%d_Included", index),
+                                String.format(Locale.US, "Definition%d_Listed", index),
                                 (l, n, s, i) -> getPotentialField(i, index - 1, d -> "y")),
                         new IndexedField(
                                 index,
