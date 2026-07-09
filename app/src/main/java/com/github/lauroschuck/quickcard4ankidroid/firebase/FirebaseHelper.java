@@ -2,6 +2,7 @@ package com.github.lauroschuck.quickcard4ankidroid.firebase;
 
 import android.content.Context;
 import android.os.Bundle;
+import androidx.preference.PreferenceManager;
 import com.github.lauroschuck.quickcard4ankidroid.BuildConfig;
 import com.github.lauroschuck.quickcard4ankidroid.anki.notes.DictionaryNote;
 import com.github.lauroschuck.quickcard4ankidroid.anki.notes.TextNote;
@@ -27,6 +28,7 @@ import timber.log.Timber;
 
 public class FirebaseHelper {
 
+    public static final String KEY_FIREBASE_CONSENT = "firebase_consent";
     private static final String VERSION = "v1";
     private static final String DICTIONARIES_METADATA_KEY = "dictionaries_" + VERSION;
     private static FirebaseRemoteConfig remoteConfig;
@@ -70,6 +72,19 @@ public class FirebaseHelper {
         analytics = FirebaseAnalytics.getInstance(context);
         crashlytics = FirebaseCrashlytics.getInstance();
         firestore = FirebaseFirestore.getInstance();
+
+        var prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        boolean consent = prefs.getBoolean(KEY_FIREBASE_CONSENT, false);
+        updateFirebaseCollectionState(consent);
+    }
+
+    public static void updateFirebaseCollectionState(boolean enabled) {
+        if (analytics != null) {
+            analytics.setAnalyticsCollectionEnabled(enabled);
+        }
+        if (crashlytics != null) {
+            crashlytics.setCrashlyticsCollectionEnabled(enabled);
+        }
     }
 
     public static void setUserLanguages(Language learning, Language nativeLang) {

@@ -17,6 +17,7 @@ import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.Observer;
@@ -62,6 +63,7 @@ public class SettingsActivity extends AppCompatActivity {
     private Button clearCacheButton;
     private Button addDictionaryButton;
     private Spinner themeSpinner;
+    private SwitchCompat usageDataSwitch;
 
     private SharedPreferences prefs;
     private MainViewModel viewModel;
@@ -113,8 +115,17 @@ public class SettingsActivity extends AppCompatActivity {
         useDefaultDeckNameCheckbox = findViewById(R.id.useDefaultDeckNameCheckbox);
         dictionariesRecyclerView = findViewById(R.id.dictionariesRecyclerView);
         themeSpinner = findViewById(R.id.themeSpinner);
+        usageDataSwitch = findViewById(R.id.usageDataSwitch);
 
         setupThemeSpinner();
+
+        usageDataSwitch.setChecked(prefs.getBoolean(FirebaseHelper.KEY_FIREBASE_CONSENT, false));
+        usageDataSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            prefs.edit()
+                    .putBoolean(FirebaseHelper.KEY_FIREBASE_CONSENT, isChecked)
+                    .apply();
+            FirebaseHelper.updateFirebaseCollectionState(isChecked);
+        });
 
         useDefaultDeckNameCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             deckNameEditText.setEnabled(!isChecked);

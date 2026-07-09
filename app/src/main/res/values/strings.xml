@@ -119,6 +119,17 @@
     <string name="settings_clear_cache_message">This will clear the WebView cache and temporary download files. Your downloaded dictionaries will NOT be deleted. Proceed?</string>
     <string name="settings_cancel">@string/common_cancel</string>
 
+    <!-- Privacy -->
+    <string name="settings_section_privacy">Privacy</string>
+    <string name="settings_share_usage_data">Share usage data</string>
+    <string name="settings_share_usage_data_summary">Help improve the app by sharing anonymous usage statistics and crash reports.</string>
+
+    <!-- Consent Dialog -->
+    <string name="consent_dialog_title">Usage Data &amp; Crash Reports</string>
+    <string name="consent_dialog_message">To help improve QuickCard for AnkiDroid, would you like to share anonymous usage data and crash reports? No personal information is collected.</string>
+    <string name="consent_dialog_allow">Allow</string>
+    <string name="consent_dialog_decline">Decline</string>
+
     <!-- Dictionary Adapter -->
     <string name="dict_info_description">Dictionary information</string>
     <string name="settings_dictionary_info_title_format">%1$s-%2$s Dictionary</string>

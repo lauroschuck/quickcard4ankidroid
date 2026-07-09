@@ -42,6 +42,13 @@
                 android:value="true"/>
         </activity>
 
+        <meta-data
+            android:name="firebase_analytics_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="firebase_crashlytics_collection_enabled"
+            android:value="false" />
+
         <activity
             android:name="com.github.lauroschuck.quickcard4ankidroid.ui.enqueue.EnqueueActivity"
             android:label="QuickCard Enqueue"

@@ -132,7 +132,30 @@ public class MainActivity extends AppCompatActivity {
         FirebaseHelper.setUserLanguages(viewModel.getLastUsedLearningLanguage(), viewModel.getLastUsedNativeLanguage());
 
         updateDictionaryTitle();
+        checkFirebaseConsent(prefs);
         handleIntent(getIntent());
+    }
+
+    private void checkFirebaseConsent(SharedPreferences prefs) {
+        if (!prefs.contains(FirebaseHelper.KEY_FIREBASE_CONSENT)) {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.consent_dialog_title)
+                    .setMessage(R.string.consent_dialog_message)
+                    .setCancelable(false)
+                    .setPositiveButton(R.string.consent_dialog_allow, (dialog, which) -> {
+                        prefs.edit()
+                                .putBoolean(FirebaseHelper.KEY_FIREBASE_CONSENT, true)
+                                .apply();
+                        FirebaseHelper.updateFirebaseCollectionState(true);
+                    })
+                    .setNegativeButton(R.string.consent_dialog_decline, (dialog, which) -> {
+                        prefs.edit()
+                                .putBoolean(FirebaseHelper.KEY_FIREBASE_CONSENT, false)
+                                .apply();
+                        FirebaseHelper.updateFirebaseCollectionState(false);
+                    })
+                    .show();
+        }
     }
 
     @Override
