@@ -36,3 +36,6 @@ google-services.json
 /.gemini/
 /.idea/
 /run_processor.sh
+/app/release/
+/app/debug/
+/app/build/

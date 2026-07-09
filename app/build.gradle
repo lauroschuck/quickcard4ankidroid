@@ -14,8 +14,8 @@ android {
         applicationId "com.github.lauroschuck.quickcard4ankidroid"
         minSdk 26
         targetSdk 36
-        versionCode 1
-        versionName "0.9-alpha"
+        versionCode 4
+        versionName '0.9-alpha'
     }
 
     buildTypes {
@@ -35,6 +35,13 @@ android {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Include native debug symbols in the AAB
+            ndk {
+                debugSymbolLevel 'FULL'
+            }
+            firebaseCrashlytics {
+                nativeSymbolUploadEnabled true
+            }
         }
     }
 
