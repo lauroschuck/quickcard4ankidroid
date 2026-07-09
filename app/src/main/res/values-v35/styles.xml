@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- On Android 15+, edge-to-edge is enforced by default.
+         Since play-services-oss-licenses doesn't handle insets, we opt out. -->
+    <style name="LicensesTheme" parent="BaseLicensesTheme">
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">default</item>
+    </style>
+</resources>
