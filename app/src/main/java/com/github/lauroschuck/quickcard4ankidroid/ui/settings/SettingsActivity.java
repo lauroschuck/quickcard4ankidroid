@@ -502,7 +502,7 @@ public class SettingsActivity extends AppCompatActivity {
         new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.settings_clear_cache_title)
                 .setMessage(R.string.settings_clear_cache_message)
-                .setPositiveButton(R.string.common_close, (dialog, which) -> clearAppCache())
+                .setPositiveButton(R.string.common_confirm, (dialog, which) -> clearAppCache())
                 .setNegativeButton(R.string.settings_cancel, null)
                 .show();
     }

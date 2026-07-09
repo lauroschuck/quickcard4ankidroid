@@ -88,6 +88,7 @@
     <string name="settings_deck_name_hint">Custom deck name</string>
     <string name="settings_use_default_name">Use default name</string>
     <string name="settings_section_general">General Settings</string>
+    <string name="settings_section_maintenance">Maintenance</string>
     <string name="settings_clear_cache_button">Clear App Cache</string>
     <string name="settings_downloaded_dictionaries_label">Downloaded Dictionaries</string>
     <string name="settings_add_dictionary_button">@string/common_add</string>
@@ -160,6 +161,7 @@
 
     <!-- General -->
     <string name="common_add">Add</string>
+    <string name="common_confirm">Confirm</string>
     <string name="common_close">Close</string>
     <string name="common_cancel">Cancel</string>
     <string name="common_added_to_anki">Added to Anki</string>
