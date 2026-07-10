@@ -13,7 +13,7 @@ QuickCard for AnkiDroid is an Android utility application designed to streamline
 
 ## 📖 Usage
 
-For detailed instructions on how to set up and use the app, please refer to the [Usage Guide](USAGE.md).
+For detailed instructions on how to set up and use the app, please refer to the [Usage Guide](docs/usage/USAGE.md).
 
 ## 🛠 Project Structure
 
